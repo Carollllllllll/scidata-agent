@@ -1,0 +1,4 @@
+Paper Title,Material,Method,PCE (%),Condition,FID
+Demo perovskite solar cells,MAPbI3,spin coating,21.3,AM 1.5G illumination,
+Demo perovskite solar cells,FAPbI3,annealing,23.1,after 1000 h stability test,
+Demo benchmark,Diffusion baseline,diffusion,,test set,8.7

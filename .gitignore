@@ -1,0 +1,30 @@
+# Secrets and local configuration
+**/.env
+**/.env.*
+!.env.example
+
+# Generated task outputs and model caches
+outputs/
+**/outputs/
+.cache/
+**/.cache/
+runtime/
+**/runtime/
+
+# Python caches and test artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local IDE and tool state
+.workbuddy/
+.vscode/
+.idea/
+
+# Temporary files
+*.part
+*.tmp
+*.log
