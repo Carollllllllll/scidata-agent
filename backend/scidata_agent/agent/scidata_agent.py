@@ -15,6 +15,7 @@ from scidata_agent.agent.schemas import (
     ArtifactActionIteration,
     QualityIssue,
     UploadedFile,
+    timestamp_task_id,
 )
 from scidata_agent.llm.client import LLMConfigurationError, QwenBailianClient
 from scidata_agent.llm.nodes import QwenAgentNodes
@@ -107,11 +108,13 @@ class SciDataAgent:
         max_artifact_action_iterations: int = 1,
         arxiv_pdf_timeout: int = DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
         arxiv_download_batch_timeout: int = DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
+        task_id: str | None = None,
     ) -> AgentResult:
         resource_cap = max_arxiv_papers if max_arxiv_papers is not None else max_auto_resources
         artifact_action_iterations = max(1, min(int(max_artifact_action_iterations), 5))
         uploaded_files = [UploadedFile(filename=Path(path).name, path=Path(path)) for path in (files or [])]
         state = AgentState(
+            task_id=task_id or timestamp_task_id(),
             research_question=research_question,
             files=uploaded_files,
             output_dir=self.output_dir,
