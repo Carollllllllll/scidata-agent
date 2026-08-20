@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+import json
 import re
 from collections import defaultdict
+from pathlib import Path
+from typing import Any
 
-from scidata_agent.agent.schemas import ConflictIssue, QualityIssue, QualityReport, ScientificRecord
+from scidata_agent.agent.schemas import (
+    ConflictIssue,
+    DynamicExtractionPlan,
+    DynamicRecord,
+    QualityIssue,
+    QualityReport,
+    ScientificRecord,
+    TableBlock,
+    TextBlock,
+)
 
 
 DIMENSIONLESS_METRICS = {
@@ -39,6 +51,10 @@ def build_quality_report(
     records: list[ScientificRecord],
     llm_issues: list[QualityIssue] | None = None,
     target_fields: list[str] | None = None,
+    dynamic_records: list[DynamicRecord] | None = None,
+    dynamic_plan: DynamicExtractionPlan | None = None,
+    text_blocks: list[TextBlock] | None = None,
+    table_blocks: list[TableBlock] | None = None,
 ) -> QualityReport:
     """Build the competition-facing quality report for the Data Agent loop.
 
@@ -54,6 +70,16 @@ def build_quality_report(
     if llm_issues:
         issues.extend(llm_issues)
 
+    dynamic_records = dynamic_records or []
+    required_fields = _dynamic_required_fields(dynamic_plan)
+    for record in dynamic_records:
+        issues.extend(_check_dynamic_record(record, required_fields.get(record.table_name, set())))
+
+    provenance_matches, provenance_total, provenance_issues = _validate_provenance_pages(
+        [*records, *dynamic_records], text_blocks or [], table_blocks or []
+    )
+    issues.extend(provenance_issues)
+
     conflicts = detect_conflicts(records)
     for conflict in conflicts:
         issues.append(
@@ -65,11 +91,15 @@ def build_quality_report(
         )
 
     evidence_count = sum(1 for record in records if record.evidence_text)
+    all_records: list[Any] = [*records, *dynamic_records]
+    all_evidence_count = sum(1 for record in all_records if record.evidence_text)
     value_supported_count = sum(1 for record in records if _value_supported_by_evidence(record))
     field_coverage = _field_coverage(records, target_fields or REQUIRED_FIELDS)
     source_count = len({record.source_file for record in records if record.source_file})
     warning_count = sum(1 for issue in issues if issue.level == "warning")
     error_count = sum(1 for issue in issues if issue.level == "error")
+    review_ids = {issue.record_id for issue in issues if issue.record_id and issue.level in {"warning", "error"}}
+    warning_free_count = sum(1 for record in all_records if record.record_id not in review_ids)
 
     notes = [
         "Quality report follows the Data Agent loop: provenance, schema coverage, evidence support, and conflict checks.",
@@ -82,17 +112,168 @@ def build_quality_report(
 
     return QualityReport(
         record_count=len(records),
+        dynamic_record_count=len(dynamic_records),
+        total_record_count=len(all_records),
         issue_count=len(issues),
         warning_count=warning_count,
         error_count=error_count,
         conflict_count=len(conflicts),
         evidence_coverage=_ratio(evidence_count, len(records)),
+        evidence_text_coverage=_ratio(all_evidence_count, len(all_records)),
         value_evidence_coverage=_ratio(value_supported_count, len(records)),
+        provenance_page_coverage=_ratio(provenance_matches, provenance_total),
+        warning_free_rate=_ratio(warning_free_count, len(all_records)),
+        review_count=len(review_ids),
         field_coverage=field_coverage,
         source_count=source_count,
         issues=issues,
         conflicts=conflicts,
         notes=notes,
+    )
+
+
+def _dynamic_required_fields(dynamic_plan: DynamicExtractionPlan | None) -> dict[str, set[str]]:
+    if dynamic_plan is None:
+        return {}
+    return {
+        table.table_name: {field.name for field in table.fields if field.required}
+        for table in dynamic_plan.dynamic_tables
+    }
+
+
+def _check_dynamic_record(record: DynamicRecord, required_fields: set[str]) -> list[QualityIssue]:
+    issues: list[QualityIssue] = []
+    seen_messages: set[tuple[str, str]] = set()
+
+    def add(level: str, field: str, message: str) -> None:
+        key = (field.casefold(), " ".join(message.casefold().rstrip(".").split()))
+        if key in seen_messages:
+            return
+        seen_messages.add(key)
+        issues.append(
+            QualityIssue(record_id=record.record_id, level=level, field=field, message=message)  # type: ignore[arg-type]
+        )
+
+    for field in sorted(required_fields):
+        if record.fields.get(field) in (None, "", []):
+            add("warning", field, f"Required dynamic field is missing: {field}.")
+    if not record.evidence_text and any(value not in (None, "", []) for value in record.fields.values()):
+        add("warning", "evidence_text", "Dynamic record has values but no evidence_text.")
+    if record.confidence < 0.6:
+        add("warning", "confidence", "Dynamic record confidence is low and should be reviewed.")
+    for warning in record.warnings:
+        normalized_warning = " ".join(str(warning).casefold().rstrip(".").split())
+        missing_match = re.fullmatch(r"required dynamic field missing:\s*([a-z0-9_]+)", normalized_warning)
+        if missing_match and missing_match.group(1) in required_fields:
+            # The schema-derived issue above is the canonical representation.
+            continue
+        if normalized_warning == "record contains extraction warnings that require review":
+            # This is a curator routing marker, not an independent defect.
+            continue
+        add("warning", "record_warning", str(warning))
+    return issues
+
+
+def _validate_provenance_pages(
+    records: list[ScientificRecord | DynamicRecord],
+    text_blocks: list[TextBlock],
+    table_blocks: list[TableBlock] | None = None,
+) -> tuple[int, int, list[QualityIssue]]:
+    page_index: dict[tuple[str, int], str] = {}
+    for block in text_blocks:
+        if block.page is None:
+            continue
+        for source_name in {block.source_file, Path(block.source_file).name}:
+            key = (source_name.casefold(), block.page)
+            page_index[key] = f"{page_index.get(key, '')}\n{block.text}"
+    for table in table_blocks or []:
+        if table.page is None:
+            continue
+        table_lines = [table.caption or "", " ".join(table.columns)]
+        for row in table.rows:
+            table_lines.append(
+                ", ".join(
+                    f"{column}: {json.dumps(row.get(column), ensure_ascii=False)}"
+                    for column in table.columns
+                )
+            )
+        table_text = "\n".join(line for line in table_lines if line)
+        for source_name in {table.source_file, Path(table.source_file).name}:
+            key = (source_name.casefold(), table.page)
+            page_index[key] = f"{page_index.get(key, '')}\n{table_text}"
+
+    matches = 0
+    total = 0
+    issues: list[QualityIssue] = []
+    for record in records:
+        source_type = str(getattr(record.source_type, "value", record.source_type)).lower()
+        if source_type not in {"pdf_text", "pdf_table"} or not record.evidence_text:
+            continue
+        total += 1
+        page = record.page
+        page_text = None
+        if page is not None:
+            source_name = Path(record.source_file).name.casefold()
+            page_text = page_index.get((record.source_file.casefold(), page)) or page_index.get((source_name, page))
+        evidence = _compact_provenance_text(record.evidence_text)
+        page_content = _compact_provenance_text(page_text or "")
+        if page is not None and len(evidence) >= 8 and _evidence_matches_page(record.evidence_text, page_text or ""):
+            matches += 1
+            continue
+
+        message = (
+            "Evidence text was not found on the recorded PDF page; verify page provenance."
+            if page is not None
+            else "PDF evidence has no recorded page; verify page provenance."
+        )
+        issues.append(
+            QualityIssue(
+                record_id=record.record_id,
+                level="warning",
+                field="page",
+                message=message,
+            )
+        )
+        warning = "evidence text not found on recorded PDF page"
+        if warning not in record.warnings:
+            record.warnings.append(warning)
+        record.confidence = min(record.confidence, 0.5)
+    return matches, total, issues
+
+
+def _compact_provenance_text(text: str) -> str:
+    return "".join(character.casefold() for character in str(text) if character.isalnum())
+
+
+def _evidence_matches_page(evidence_text: str, page_text: str) -> bool:
+    evidence = _compact_provenance_text(evidence_text)
+    page = _compact_provenance_text(page_text)
+    if evidence and evidence in page:
+        return True
+
+    # Table extractors often cite a header plus one row while other rows occur
+    # between them in page reading order. Accept that non-contiguous form only
+    # when every meaningful token appears in order on the recorded page.
+    evidence_tokens = _provenance_tokens(evidence_text)
+    page_tokens = _provenance_tokens(page_text)
+    if len(evidence_tokens) < 4:
+        return False
+    has_numeric_token = any(token[0].isdigit() for token in evidence_tokens if token)
+    if not has_numeric_token and len(evidence_tokens) < 8:
+        return False
+    cursor = 0
+    for token in evidence_tokens:
+        try:
+            cursor = page_tokens.index(token, cursor) + 1
+        except ValueError:
+            return False
+    return True
+
+
+def _provenance_tokens(text: str) -> list[str]:
+    return re.findall(
+        r"\d+(?:\.\d+)*|[a-z]+[a-z0-9]*(?:-[a-z0-9]+)*|[\u3400-\u9fff]+",
+        str(text).casefold(),
     )
 
 
@@ -103,6 +284,10 @@ def detect_conflicts(records: list[ScientificRecord]) -> list[ConflictIssue]:
         metric = _norm(record.metric_name)
         context = _context_key(record)
         if not metric or record.metric_value is None:
+            continue
+        if not context:
+            # Several values without dataset/method/condition are ambiguous,
+            # but there is not enough information to assert a contradiction.
             continue
         groups[(entity, metric, context)].append(record)
 

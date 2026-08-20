@@ -8,6 +8,7 @@ from typing import Any
 from scidata_agent.agent.schemas import (
     ArxivSearchPlan,
     DiscoveredSource,
+    DynamicExtractionPlan,
     DynamicRecord,
     MultiSourceSearchPlan,
     ScientificRecord,
@@ -15,11 +16,17 @@ from scidata_agent.agent.schemas import (
     SourceSearchRequest,
     SourceSelectionPlan,
     SourceType,
+    TableBlock,
 )
-from scidata_agent.agent.scidata_agent import SciDataAgent
+from scidata_agent.agent.scidata_agent import SciDataAgent, _records_for_llm_validation
 from scidata_agent.llm.client import QwenBailianClient
 from scidata_agent.llm import nodes as llm_nodes_module
-from scidata_agent.llm.nodes import _records_from_payload
+from scidata_agent.llm.nodes import (
+    QwenAgentNodes,
+    _dynamic_records_from_payload,
+    _issues_from_payload,
+    _records_from_payload,
+)
 from scidata_agent.tools.quality import build_quality_report
 from scidata_agent.tools.connectors.arxiv import (
     download_arxiv_pdfs,
@@ -36,6 +43,7 @@ from scidata_agent.tools.source_ingestion import ingest_triaged_sources
 from scidata_agent.tools.source_triage import ingestible_arxiv_source_ids, ingestible_pdf_source_ids, triage_sources, triage_sources_from_selection
 from scidata_agent.tools.curator import curate_dynamic_records
 from scidata_agent.tools.exporter import build_paper_survey_records
+from scidata_agent.tools.normalizer import scientific_records_from_dynamic
 from scidata_agent.tools.parser import build_section_blocks_from_plan
 from tests.create_fixtures import create_csv_fixture, create_pdf_fixture
 
@@ -618,7 +626,7 @@ def test_qwen_agent_pipeline_with_mock_client() -> None:
     assert result.quality_report.value_evidence_coverage > 0
     assert all(record.source_file for record in result.records)
     assert any(record.evidence_text for record in result.records)
-    assert any("Qwen Record Extractor" in log for log in result.processing_log)
+    assert any("Metric extraction reused schema-driven dynamic records" in log for log in result.processing_log)
     monitor_events = [
         json.loads(line)
         for line in Path(result.export_files.monitor_log).read_text(encoding="utf-8").splitlines()
@@ -885,6 +893,135 @@ def test_section_builder_keeps_sections_within_source_file() -> None:
     assert not any(block.source_file == "paper_b.pdf" and block.section_type == "method" for block in sections)
 
 
+def test_uploaded_file_does_not_disable_live_multi_source_search(tmp_path, monkeypatch) -> None:
+    pdf_path = create_pdf_fixture()
+    agent = SciDataAgent(
+        output_dir=tmp_path / "outputs",
+        llm_client=MockQwenClient(),
+        require_llm=True,
+        monitor_console=False,
+    )
+    called: list[str] = []
+
+    def mark(name: str):
+        def callback(state, **kwargs):
+            called.append(name)
+        return callback
+
+    monkeypatch.setattr(agent, "_plan_multi_source_search", mark("plan"))
+    monkeypatch.setattr(agent, "_execute_multi_source_search", mark("search"))
+    monkeypatch.setattr(agent, "_select_sources", mark("select"))
+    monkeypatch.setattr(agent, "_triage_sources", mark("triage"))
+    monkeypatch.setattr(agent, "_ingest_triaged_sources", mark("ingest"))
+    monkeypatch.setattr(agent, "_ingest_arxiv_pdfs", mark("download"))
+
+    result = agent.run(
+        "Search related sources for the uploaded scientific paper.",
+        [pdf_path],
+        auto_fetch_arxiv=False,
+        enable_live_search=True,
+        auto_download_sources=False,
+        discovery_only=True,
+    )
+
+    assert result.status == "completed"
+    assert called == ["plan", "search", "select", "triage"]
+    assert any("metadata-only" in item for item in result.processing_log)
+
+
+def test_section_builder_matches_normalized_anchor_and_preserves_chunk_pages() -> None:
+    from scidata_agent.agent.schemas import SectionPlan, TextBlock
+
+    blocks = [
+        TextBlock(
+            source_file="paper.pdf",
+            source_path="paper.pdf",
+            source_type=SourceType.PDF_TEXT,
+            page=4,
+            text="3.2. Unified AutoEncoder Method details on page four.",
+            chunk_id="p4",
+        ),
+        TextBlock(
+            source_file="paper.pdf",
+            source_path="paper.pdf",
+            source_type=SourceType.PDF_TEXT,
+            page=5,
+            text="Additional method evidence on page five.",
+            chunk_id="p5",
+        ),
+        TextBlock(
+            source_file="paper.pdf",
+            source_path="paper.pdf",
+            source_type=SourceType.PDF_TEXT,
+            page=6,
+            text="4 Experiments Benchmark details on page six.",
+            chunk_id="p6",
+        ),
+    ]
+    plan = SectionPlan.model_validate(
+        {
+            "sections": [
+                {
+                    "source_file": "paper.pdf",
+                    "section_title": "Unified AutoEncoder",
+                    "section_type": "method",
+                    "start_page": 4,
+                    "start_anchor": "preceding paragraph merged here 3.2 Unified AutoEncoder",
+                    "confidence": 0.9,
+                },
+                {
+                    "source_file": "paper.pdf",
+                    "section_title": "Experiments",
+                    "section_type": "experiments",
+                    "start_page": 6,
+                    "start_anchor": "4. Experiments",
+                    "confidence": 0.9,
+                },
+            ],
+            "used_llm": True,
+        }
+    )
+
+    sections = build_section_blocks_from_plan(blocks, plan)
+    method_blocks = [block for block in sections if block.section_type == "method"]
+
+    assert [block.page for block in method_blocks] == [4, 5]
+    assert all(block.page_start == block.page_end == block.page for block in method_blocks)
+    assert method_blocks[0].raw["section_page_start"] == 4
+    assert method_blocks[0].raw["section_page_end"] == 5
+
+
+def test_record_page_is_corrected_to_source_block_page() -> None:
+    from scidata_agent.agent.schemas import TextBlock
+
+    block = TextBlock(
+        source_file="paper.pdf",
+        source_path="paper.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=7,
+        text="UAE reports FID 1.23.",
+        chunk_id="p7",
+    )
+    records = _records_from_payload(
+        [
+            {
+                "metric_name": "FID",
+                "metric_value": 1.23,
+                "page": 1,
+                "evidence_text": "UAE reports FID 1.23.",
+            }
+        ],
+        "paper.pdf",
+        SourceType.PDF_TEXT,
+        7,
+        block=block,
+    )
+
+    assert records[0].page == 7
+    assert records[0].raw["llm_reported_page"] == 1
+    assert any("page corrected" in warning for warning in records[0].warnings)
+
+
 def test_task_planner_accepts_nested_dynamic_schema() -> None:
     pdf_path = create_pdf_fixture()
     output_dir = ROOT / "outputs" / "test-runs"
@@ -920,6 +1057,124 @@ def test_dynamic_schema_planner_accepts_numeric_field_examples() -> None:
     numeric_examples = result.dynamic_extraction_plan.dynamic_tables[1].fields[2].examples
     assert numeric_examples == [124.5, 890.2, None]
     assert result.export_files.dynamic_schema and Path(result.export_files.dynamic_schema).exists()
+
+
+def test_dynamic_schema_plan_enforces_provenance_and_metric_context_contract() -> None:
+    class ContractViolatingClient(MockQwenClient):
+        def generate_json(
+            self,
+            node: str,
+            system_prompt: str,
+            user_prompt: str,
+            temperature: float = 0.1,
+        ) -> Any:
+            payload = super().generate_json(node, system_prompt, user_prompt, temperature=temperature)
+            if node == "qwen_dynamic_schema_planner":
+                metric_table = payload["dynamic_tables"][1]
+                value_field = next(field for field in metric_table["fields"] if field["name"] == "metric_value")
+                value_field["name"] = "value"
+                value_field["examples"] = "21.3"
+                metric_table["fields"].extend(
+                    [
+                        {"name": "evidence_text", "type": "string", "required": True},
+                        {"name": "paper", "type": "url", "required": True},
+                    ]
+                )
+            return payload
+
+    plan = QwenAgentNodes(ContractViolatingClient()).plan_dynamic_extraction("Extract metrics")
+    metric_table = next(table for table in plan.dynamic_tables if table.table_name == "performance_results")
+    fields = {field.name: field for field in metric_table.fields}
+
+    assert "evidence_text" not in fields
+    assert fields["paper"].required is False
+    assert "condition" in fields
+    assert fields["value"].examples == ["21.3"]
+    assert any("provenance fields" in rule for rule in plan.quality_rules)
+
+
+def test_dynamic_warning_normalization_keeps_one_required_field_issue() -> None:
+    plan = DynamicExtractionPlan.model_validate(
+        {
+            "research_goal": "Extract scores",
+            "dynamic_tables": [
+                {
+                    "table_name": "scores",
+                    "fields": [
+                        {"name": "score", "type": "number", "required": True},
+                        {"name": "paper", "type": "url", "required": False},
+                    ],
+                }
+            ],
+        }
+    )
+    records = _dynamic_records_from_payload(
+        [
+            {
+                "table_name": "scores",
+                "fields": {"score": None, "paper": None},
+                "evidence_text": "The score was not reported.",
+                "confidence": 0.9,
+                "warnings": [
+                    "Missing paper URL",
+                    "required dynamic field missing: score",
+                    "record contains extraction warnings that require review",
+                ],
+            }
+        ],
+        plan,
+        "scores.csv",
+        SourceType.CSV,
+        None,
+    )
+
+    assert records[0].warnings == [
+        "required dynamic field missing: score",
+        "record contains extraction warnings that require review",
+    ]
+    report = build_quality_report([], dynamic_records=records, dynamic_plan=plan)
+    assert report.warning_count == 1
+    assert report.review_count == 1
+    assert report.issues[0].field == "score"
+
+
+def test_dynamic_context_alias_is_aligned_without_false_unknown_warning() -> None:
+    plan = DynamicExtractionPlan.model_validate(
+        {
+            "research_goal": "Extract metrics",
+            "dynamic_tables": [
+                {
+                    "table_name": "performance_metrics",
+                    "fields": [
+                        {"name": "metric_name", "required": True},
+                        {"name": "value", "type": "number|string|null"},
+                        {"name": "condition", "type": "string|null"},
+                    ],
+                }
+            ],
+        }
+    )
+
+    records = _dynamic_records_from_payload(
+        [
+            {
+                "table_name": "performance_metrics",
+                "fields": {"metric_name": "PSNR", "value": "31.00", "dataset_name": "ImageNet-1K"},
+                "evidence_text": "On ImageNet-1K, PSNR reaches 31.00.",
+                "confidence": 0.9,
+                "warnings": [],
+            }
+        ],
+        plan,
+        "paper.pdf",
+        SourceType.PDF_TEXT,
+        7,
+    )
+
+    assert records[0].fields["condition"] == "ImageNet-1K"
+    assert records[0].raw["field_aliases"] == {"dataset_name": "condition"}
+    assert "extra_fields" not in records[0].raw
+    assert not any("unknown dynamic fields" in warning for warning in records[0].warnings)
 
 
 def test_source_discovery_normalizes_llm_source_type_aliases() -> None:
@@ -973,7 +1228,7 @@ def test_dynamic_schema_planner_retries_timeout_and_recovers() -> None:
     assert result.dynamic_extraction_plan is not None
     assert result.export_files.dynamic_schema and Path(result.export_files.dynamic_schema).exists()
     assert any(
-        "node=qwen_dynamic_schema_planner" in log and "attempt=1/3" in log
+        "node=qwen_dynamic_schema_planner" in log and "attempt=1/2" in log
         for log in result.processing_log
     )
 
@@ -995,11 +1250,11 @@ def test_dynamic_schema_planner_fails_explicitly_after_retries_in_official_mode(
     )
 
     assert result.status == "failed"
-    assert client.dynamic_calls == 3
+    assert client.dynamic_calls == 2
     assert result.dynamic_extraction_plan is None
     assert result.export_files.dynamic_schema is None
     assert any(
-        "node=qwen_dynamic_schema_planner" in log and "attempt=3/3" in log
+        "node=qwen_dynamic_schema_planner" in log and "attempt=2/2" in log
         for log in result.processing_log
     )
     assert any("Task failed" in log and "qwen_dynamic_schema_planner" in log for log in result.processing_log)
@@ -1022,7 +1277,7 @@ def test_dynamic_schema_planner_rule_fallback_only_when_explicitly_allowed() -> 
     )
 
     assert result.status == "completed"
-    assert client.dynamic_calls == 3
+    assert client.dynamic_calls == 2
     assert result.dynamic_extraction_plan is not None
     assert result.dynamic_extraction_plan.dynamic_tables
     assert any(
@@ -1041,13 +1296,18 @@ def test_qwen_extraction_timeout_retries_and_exports() -> None:
         monitor_console=False,
     )
 
-    result = agent.run("Extract material, method, PCE, and evidence.", [pdf_path], max_pdf_pages=2)
+    result = agent.run(
+        "Extract material, method, PCE, and evidence.",
+        [pdf_path],
+        max_pdf_pages=2,
+        reuse_dynamic_records_for_metrics=False,
+    )
 
     assert result.status == "completed"
     assert result.summary.records_after_cleaning >= 1
     assert result.export_files.csv and Path(result.export_files.csv).exists()
     assert any(
-        "node=qwen_record_extractor_pdf" in log and "attempt=1/3" in log
+        "node=qwen_record_extractor_pdf" in log and "attempt=1/2" in log
         for log in result.processing_log
     )
     assert any("skipped_blocks=0" in log for log in result.processing_log)
@@ -1073,7 +1333,7 @@ def test_extraction_limits_text_blocks_and_logs_progress() -> None:
 
     assert result.status == "completed"
     assert any("Dynamic extraction limited to top-ranked" in log for log in result.processing_log)
-    assert any("Record extraction limited to top-ranked" in log for log in result.processing_log)
+    assert any("duplicate PDF/table LLM pass skipped" in log for log in result.processing_log)
     assert result.export_files.monitor_log
     monitor_events = [
         json.loads(line)
@@ -1088,10 +1348,9 @@ def test_extraction_limits_text_blocks_and_logs_progress() -> None:
         for event in monitor_events
     )
     assert any(
-        event["event_type"] == "progress"
+        event["event_type"] == "step"
         and event["step"] == "record_extraction"
-        and event["data"]["progress_index"] == 1
-        and event["data"]["progress_total"] == 1
+        and event["status"] == "completed"
         for event in monitor_events
     )
 
@@ -1162,6 +1421,238 @@ def test_quality_report_flags_weak_evidence_and_dimensionless_units() -> None:
     assert any(issue.field == "evidence_text" for issue in report.issues)
 
 
+def test_quality_report_links_dynamic_warning_and_validates_pdf_page() -> None:
+    from scidata_agent.agent.schemas import DynamicExtractionPlan, TextBlock
+
+    dynamic_plan = DynamicExtractionPlan.model_validate(
+        {
+            "research_goal": "Extract model results",
+            "dynamic_tables": [
+                {
+                    "table_name": "metric_result",
+                    "entity_type": "metric",
+                    "fields": [
+                        {"name": "model", "required": True},
+                        {"name": "score", "required": True},
+                    ],
+                }
+            ],
+        }
+    )
+    dynamic_record = DynamicRecord(
+        table_name="metric_result",
+        fields={"model": "UAE", "score": None},
+        source_file="paper.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=7,
+        evidence_text="UAE reports an FID score of 1.23.",
+        confidence=0.8,
+        warnings=["required dynamic field missing: score"],
+    )
+    block = TextBlock(
+        source_file="paper.pdf",
+        source_path="paper.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=7,
+        text="Table 1. UAE reports an FID score of 1.23.",
+        chunk_id="p7",
+    )
+
+    report = build_quality_report(
+        [],
+        dynamic_records=[dynamic_record],
+        dynamic_plan=dynamic_plan,
+        text_blocks=[block],
+    )
+
+    assert report.dynamic_record_count == 1
+    assert report.total_record_count == 1
+    assert report.evidence_text_coverage == 1
+    assert report.provenance_page_coverage == 1
+    assert report.review_count == 1
+    assert any(issue.record_id == dynamic_record.record_id for issue in report.issues)
+
+
+def test_pdf_page_validation_accepts_ordered_table_header_and_row_only() -> None:
+    from scidata_agent.agent.schemas import TextBlock
+
+    record = ScientificRecord(
+        paper_title="UAE",
+        method="SiT",
+        metric_name="gFID",
+        metric_value=8.61,
+        source_file="paper.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=8,
+        evidence_text="Methods gFID IS Prec Rec SiT 8.61 131.7 0.68 0.67",
+        confidence=0.9,
+    )
+    block = TextBlock(
+        source_file="paper.pdf",
+        source_path="paper.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=8,
+        text=(
+            "Methods gFID IS Prec Rec\n"
+            "DiT 9.62 121.5 0.67 0.67\n"
+            "SiT 8.61 131.7 0.68 0.67"
+        ),
+        chunk_id="p8",
+    )
+
+    report = build_quality_report([record], text_blocks=[block])
+    assert report.provenance_page_coverage == 1
+    assert not any(issue.field == "page" for issue in report.issues)
+
+    unsupported = record.model_copy(
+        update={"record_id": "rec_unsupported", "evidence_text": "Methods gFID SiT 999.0"},
+        deep=True,
+    )
+    unsupported_report = build_quality_report([unsupported], text_blocks=[block])
+    assert unsupported_report.provenance_page_coverage == 0
+    assert any(issue.field == "page" for issue in unsupported_report.issues)
+
+
+def test_pdf_table_page_validation_uses_structured_table_rows() -> None:
+    record = ScientificRecord(
+        paper_title="UAE",
+        method="SiT",
+        metric_name="gFID",
+        metric_value=8.61,
+        source_file="paper.pdf",
+        source_type=SourceType.PDF_TABLE,
+        page=8,
+        evidence_text='column_1: "SiT", column_2: "8.61", column_3: "131.7"',
+        confidence=0.9,
+    )
+    table = TableBlock(
+        source_file="paper.pdf",
+        source_path="paper.pdf",
+        source_type=SourceType.PDF_TABLE,
+        columns=["column_1", "column_2", "column_3"],
+        rows=[{"column_1": "SiT", "column_2": "8.61", "column_3": "131.7"}],
+        table_id="table_p8_1",
+        page=8,
+    )
+
+    report = build_quality_report([record], text_blocks=[], table_blocks=[table])
+
+    assert report.provenance_page_coverage == 1
+    assert not any(issue.field == "page" for issue in report.issues)
+
+
+def test_llm_quality_missing_unit_is_warning_not_error() -> None:
+    issues = _issues_from_payload(
+        [
+            {
+                "record_id": "rec_latency",
+                "level": "error",
+                "field": "unit",
+                "message": "指标 Latency 缺少单位，应明确时间单位。",
+            },
+            {
+                "record_id": "rec_bad_value",
+                "level": "error",
+                "field": "metric_value",
+                "message": "数值与原文矛盾。",
+            },
+        ]
+    )
+
+    assert issues[0].level == "warning"
+    assert issues[1].level == "error"
+
+
+def test_curator_routes_any_warned_dynamic_record_to_review() -> None:
+    record = DynamicRecord(
+        table_name="metric_result",
+        fields={"model": "UAE"},
+        source_file="paper.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=7,
+        evidence_text="UAE result.",
+        confidence=0.8,
+        warnings=["required dynamic field missing: score"],
+    )
+
+    clean, needs_review = curate_dynamic_records([record])
+
+    assert len(clean) == 1
+    assert len(needs_review) == 1
+    assert needs_review[0].record_id == record.record_id
+
+
+def test_dynamic_metric_records_are_reused_without_losing_provenance() -> None:
+    dynamic = DynamicRecord(
+        table_name="experiment_results",
+        fields={"model_name": "UAE", "metric_name": "FID", "metric_value": "4.20"},
+        paper_title="Unified Auto-Encoding",
+        source_file="uae.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=7,
+        evidence_text="UAE reaches an FID of 4.20 on the benchmark.",
+        confidence=0.91,
+    )
+
+    records = scientific_records_from_dynamic([dynamic])
+
+    assert len(records) == 1
+    assert records[0].metric_name == "FID"
+    assert records[0].metric_value == 4.2
+    assert records[0].method == "UAE"
+    assert records[0].page == 7
+    assert records[0].raw["derived_from_dynamic_record_id"] == dynamic.record_id
+
+
+def test_dynamic_metric_value_alias_is_reused_with_condition() -> None:
+    dynamic = DynamicRecord(
+        table_name="performance_metrics",
+        fields={
+            "model_name": "UAE",
+            "metric_name": "FID",
+            "value": "1.52",
+            "condition": "ImageNet-1K",
+        },
+        paper_title="Unified Auto-Encoding",
+        source_file="uae.pdf",
+        source_type=SourceType.PDF_TABLE,
+        page=7,
+        evidence_text='metric_name: "FID", value: "1.52", condition: "ImageNet-1K"',
+        confidence=0.93,
+    )
+
+    records = scientific_records_from_dynamic([dynamic])
+
+    assert len(records) == 1
+    assert records[0].metric_name == "FID"
+    assert records[0].metric_value == 1.52
+    assert records[0].condition == "ImageNet-1K"
+    assert records[0].source_type == SourceType.PDF_TABLE
+
+
+def test_llm_quality_sample_prioritizes_risky_records(monkeypatch) -> None:
+    monkeypatch.setenv("SCIDATA_LLM_VALIDATE_MAX_RECORDS", "1")
+    safe = ScientificRecord(
+        metric_name="FID",
+        metric_value=4.2,
+        source_file="safe.pdf",
+        source_type=SourceType.PDF_TEXT,
+        page=2,
+        evidence_text="FID was 4.2.",
+        confidence=0.95,
+    )
+    risky = ScientificRecord(
+        metric_name="FID",
+        metric_value=4.5,
+        source_file="risky.pdf",
+        source_type=SourceType.PDF_TEXT,
+        confidence=0.5,
+        warnings=["page missing"],
+    )
+
+    assert _records_for_llm_validation([safe, risky]) == [risky]
+
+
 def test_quality_report_detects_conflicts() -> None:
     records = [
         ScientificRecord(
@@ -1227,6 +1718,27 @@ def test_quality_report_does_not_flag_different_experimental_contexts_as_conflic
     ]
 
     report = build_quality_report(records, target_fields=["metric_name", "metric_value", "condition"])
+
+    assert report.conflict_count == 0
+
+
+def test_quality_report_does_not_claim_conflict_when_context_is_missing() -> None:
+    records = [
+        ScientificRecord(
+            paper_title="UAE",
+            metric_name="PSNR",
+            metric_value=value,
+            unit="dB",
+            source_file="paper.pdf",
+            source_type=SourceType.PDF_TEXT,
+            page=7,
+            evidence_text=f"The reported PSNR is {value} dB.",
+            confidence=0.9,
+        )
+        for value in (31.0, 31.19)
+    ]
+
+    report = build_quality_report(records, target_fields=["metric_name", "metric_value"])
 
     assert report.conflict_count == 0
 

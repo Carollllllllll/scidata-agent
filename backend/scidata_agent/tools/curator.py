@@ -98,6 +98,17 @@ def _repair_dynamic_record(record: DynamicRecord) -> list[str]:
         reasons.append("non-empty dynamic record has no evidence_text")
         record.confidence = min(record.confidence, 0.55)
 
+    if record.warnings:
+        reasons.append("record contains extraction warnings that require review")
+    if record.confidence < 0.6:
+        reasons.append("record confidence is below the review threshold")
+    if (
+        str(getattr(record.source_type, "value", record.source_type)) in {"pdf_text", "pdf_table"}
+        and record.raw.get("curation_source") != "arxiv_metadata"
+        and record.page is None
+    ):
+        reasons.append("PDF-derived record has no page provenance")
+
     return list(dict.fromkeys(reasons))
 
 

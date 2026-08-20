@@ -152,14 +152,16 @@ def test_stop_plan_has_no_artifact_and_stops() -> None:
     assert plan.actions[0].artifact_id is None
 
 
-def test_unknown_artifact_id_is_rejected() -> None:
+def test_unknown_artifact_id_is_dropped_without_losing_valid_actions() -> None:
     payload = valid_plan_payload()
     payload["actions"][0]["artifact_id"] = "artifact_does_not_exist"
 
-    with pytest.raises(LLMCallError, match="unknown artifact_id"):
-        QwenAgentNodes(RecordingClient(payload)).plan_artifact_actions(
-            "Compare the experimental evidence.", make_catalog()
-        )
+    plan = QwenAgentNodes(RecordingClient(payload)).plan_artifact_actions(
+        "Compare the experimental evidence.", make_catalog()
+    )
+
+    assert [action.artifact_id for action in plan.actions] == ["artifact_fig_1"]
+    assert any("unknown artifact_id" in note for note in plan.notes)
 
 
 def test_invalid_action_name_is_rejected() -> None:
@@ -172,14 +174,30 @@ def test_invalid_action_name_is_rejected() -> None:
         )
 
 
-def test_artifact_action_without_artifact_id_is_rejected() -> None:
+def test_artifact_action_without_artifact_id_is_dropped() -> None:
     payload = valid_plan_payload()
     payload["actions"][0]["artifact_id"] = None
 
-    with pytest.raises(LLMCallError, match="requires a concrete artifact_id"):
-        QwenAgentNodes(RecordingClient(payload)).plan_artifact_actions(
-            "Compare the experimental evidence.", make_catalog()
-        )
+    plan = QwenAgentNodes(RecordingClient(payload)).plan_artifact_actions(
+        "Compare the experimental evidence.", make_catalog()
+    )
+
+    assert [action.artifact_id for action in plan.actions] == ["artifact_fig_1"]
+    assert any("missing or unknown artifact_id" in note for note in plan.notes)
+
+
+def test_only_unknown_artifact_actions_stop_bounded_loop_but_allow_pipeline() -> None:
+    payload = valid_plan_payload()
+    payload["actions"] = [payload["actions"][0]]
+    payload["actions"][0]["artifact_id"] = "file_hallucinated"
+
+    plan = QwenAgentNodes(RecordingClient(payload)).plan_artifact_actions(
+        "Compare the experimental evidence.", make_catalog()
+    )
+
+    assert plan.actions == []
+    assert plan.should_continue is False
+    assert "normal content pipeline" in (plan.stop_reason or "")
 
 
 class AlwaysFailingClient:
@@ -200,4 +218,4 @@ def test_planner_failure_retries_then_propagates_without_fake_plan(monkeypatch: 
             "Compare the experimental evidence.", make_catalog()
         )
 
-    assert client.calls == 3
+    assert client.calls == 2

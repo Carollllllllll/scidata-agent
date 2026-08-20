@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -46,6 +47,47 @@ class _FakeAgent:
         return _FakeResult()
 
 
+class _FakeFailedResult:
+    status = "failed"
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+
+    def model_dump(self, mode: str = "json", by_alias: bool = True) -> dict:
+        return {
+            "task_id": self.task_id,
+            "status": "failed",
+            "summary": {"records_extracted": 0},
+            "quality_report": {"record_count": 0},
+            "processing_log": ["Task failed: Qwen/Bailian API key not configured."],
+            "export_files": {},
+        }
+
+
+class _FakeFailedAgent:
+    def __init__(self, output_dir: Path):
+        self.output_dir = Path(output_dir)
+
+    def run(self, research_question: str, files: list[str], *, task_id: str, **kwargs):
+        task_dir = self.output_dir / task_id
+        task_dir.mkdir(parents=True, exist_ok=True)
+        (task_dir / "agent_monitor.jsonl").write_text(
+            json.dumps(
+                {
+                    "timestamp": "2026-08-20T12:00:00+00:00",
+                    "event_type": "error",
+                    "step": "ensure_llm_ready",
+                    "status": "failed",
+                    "message": "Qwen/Bailian API key not configured.",
+                    "data": {},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return _FakeFailedResult(task_id)
+
+
 def _wait_for_status(manager: TaskManager, task_id: str, expected: str) -> dict:
     deadline = time.monotonic() + 3
     while time.monotonic() < deadline:
@@ -73,5 +115,127 @@ def test_task_manager_persists_completion_and_download_allowlist(tmp_path, monke
         assert manager.download_path(task["task_id"], "../task_state.json") is None
         assert "csv" in manager.download_urls(task["task_id"])
         assert (tmp_path / "tasks" / task["task_id"] / "task_state.json").is_file()
+        assert completed["owner_pid"] == os.getpid()
+    finally:
+        manager.shutdown()
+
+
+def test_reconciliation_preserves_live_owner_and_fails_orphan_only(tmp_path) -> None:
+    state_dir = tmp_path / "tasks"
+    live_dir = state_dir / "20260820_120000_000_live"
+    orphan_dir = state_dir / "20260820_120000_000_orphan"
+    live_dir.mkdir(parents=True)
+    orphan_dir.mkdir(parents=True)
+    (live_dir / "task_state.json").write_text(
+        json.dumps({"task_id": live_dir.name, "status": "running", "owner_pid": os.getpid()}),
+        encoding="utf-8",
+    )
+    (orphan_dir / "task_state.json").write_text(
+        json.dumps({"task_id": orphan_dir.name, "status": "queued"}),
+        encoding="utf-8",
+    )
+
+    manager = TaskManager(tmp_path / "outputs", state_dir, max_workers=1)
+    try:
+        # Construction/import is side-effect free; reconciliation is a server-start action.
+        assert manager.get_task(orphan_dir.name)["status"] == "queued"
+        manager.reconcile_interrupted_tasks()
+        assert manager.get_task(live_dir.name)["status"] == "running"
+        orphan = manager.get_task(orphan_dir.name)
+        assert orphan["status"] == "failed"
+        assert orphan["error"]["code"] == "TASK_INTERRUPTED"
+    finally:
+        manager.shutdown()
+
+
+def test_task_manager_lists_tasks_and_resolves_scoped_assets(tmp_path) -> None:
+    output_dir = tmp_path / "outputs"
+    state_dir = tmp_path / "tasks"
+    upload_dir = tmp_path / "uploads"
+    manager = TaskManager(output_dir, state_dir, max_workers=1, upload_dir=upload_dir)
+    task_id = "20260820_120000_000_abcd"
+    manager._write_state(
+        task_id,
+        {
+            "task_id": task_id,
+            "status": "completed",
+            "research_question": "question",
+            "created_at": "2026-08-20T12:00:00+00:00",
+        },
+    )
+    figure = output_dir / task_id / "figures" / "figure.png"
+    figure.parent.mkdir(parents=True, exist_ok=True)
+    figure.write_bytes(b"png")
+    upload = upload_dir / task_id / "paper.pdf"
+    upload.parent.mkdir(parents=True, exist_ok=True)
+    upload.write_bytes(b"pdf")
+
+    try:
+        tasks = manager.list_tasks()
+        assert [task["task_id"] for task in tasks] == [task_id]
+        assert manager.asset_url(task_id, figure).endswith("/assets/output/figures/figure.png")
+        assert manager.asset_url(task_id, upload).endswith("/assets/upload/paper.pdf")
+        assert manager.asset_path(task_id, "output", "figures/figure.png") == figure
+        assert manager.asset_path(task_id, "output", "../task_state.json") is None
+        assert manager.asset_url(task_id, tmp_path / "secret.txt") is None
+    finally:
+        manager.shutdown()
+
+
+def test_task_manager_preserves_failed_step_and_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(task_manager_module, "SciDataAgent", _FakeFailedAgent)
+    manager = TaskManager(tmp_path / "outputs", tmp_path / "tasks", max_workers=1)
+    try:
+        task = manager.submit(
+            task_id="20260820_120000_000_fail",
+            research_question="test question",
+            files=[],
+            run_options={},
+        )
+        failed = _wait_for_status(manager, task["task_id"], "failed")
+        assert failed["current_step"] == "ensure_llm_ready"
+        assert failed["error"] == {
+            "code": "AGENT_TASK_FAILED",
+            "message": "Qwen/Bailian API key not configured.",
+        }
+        assert failed["message"] == "Qwen/Bailian API key not configured."
+    finally:
+        manager.shutdown()
+
+
+def test_task_list_uses_latest_monitor_step_for_active_task(tmp_path) -> None:
+    output_dir = tmp_path / "outputs"
+    manager = TaskManager(output_dir, tmp_path / "tasks", max_workers=1)
+    task_id = "20260820_120000_000_live"
+    manager._write_state(
+        task_id,
+        {
+            "task_id": task_id,
+            "status": "running",
+            "research_question": "question",
+            "current_step": "starting",
+        },
+    )
+    monitor = output_dir / task_id / "agent_monitor.jsonl"
+    monitor.parent.mkdir(parents=True, exist_ok=True)
+    monitor.write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-08-20T12:00:01+00:00",
+                "event_type": "step",
+                "step": "dynamic_extraction",
+                "status": "started",
+                "message": "dynamic_extraction started.",
+                "data": {},
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        listed = manager.list_tasks()
+        assert listed[0]["current_step"] == "dynamic_extraction"
+        assert listed[0]["message"] == "dynamic_extraction started."
     finally:
         manager.shutdown()

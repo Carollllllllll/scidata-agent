@@ -1,15 +1,10 @@
-pydantic>=2
-pandas
-pypdf
-pdfplumber
-openpyxl
-reportlab
-fastapi
-uvicorn
-python-multipart
-pymupdf
-# Table Transformer (optional but recommended for robust PDF table extraction)
-torch
-torchvision
-transformers
-timm>=0.9.16
+pydantic==2.12.5
+pandas==2.2.1
+pypdf==6.16.1
+pdfplumber==0.11.10
+openpyxl==3.1.5
+reportlab==4.4.10
+fastapi==0.129.0
+uvicorn==0.24.0.post1
+python-multipart==0.0.22
+pymupdf==1.27.1

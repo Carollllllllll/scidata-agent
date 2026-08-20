@@ -111,6 +111,7 @@ def export_results(state: AgentState) -> ExportFiles:
         "needs_review_records": needs_review_dicts,
         "sources": [source.model_dump(mode="json") for source in state.sources],
         "quality_report": state.quality_report.model_dump(mode="json"),
+        "processing_log": state.processing_log,
     }
     json_path.write_text(json.dumps(json_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     log_path.write_text(json.dumps(state.processing_log, ensure_ascii=False, indent=2), encoding="utf-8")

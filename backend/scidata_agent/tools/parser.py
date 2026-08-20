@@ -39,7 +39,9 @@ SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".tsv", ".xlsx", ".xls"}
 
 
 def _use_table_transformer() -> bool:
-    return os.getenv("USE_TABLE_TRANSFORMER", "true").lower() in {"1", "true", "yes"}
+    # TATR is a large optional model.  Keep the default parser deterministic and
+    # offline-safe; deployments that have pinned/cached the model can opt in.
+    return os.getenv("USE_TABLE_TRANSFORMER", "false").lower() in {"1", "true", "yes"}
 
 
 def parse_sources(files: list[UploadedFile], max_pdf_pages: int | None = 8) -> ParsedSources:
@@ -50,7 +52,15 @@ def parse_sources(files: list[UploadedFile], max_pdf_pages: int | None = 8) -> P
             pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages)
             parsed.text_blocks.extend(pdf_blocks)
             parsed.heading_candidates.extend(extract_heading_candidates(uploaded, pdf_blocks, max_pages=max_pdf_pages))
-            parsed.tables.extend(parse_pdf_tables(uploaded, max_pages=max_pdf_pages))
+            tables, table_status = _parse_pdf_tables_with_status(uploaded, max_pages=max_pdf_pages)
+            parsed.tables.extend(tables)
+            parsed.table_extraction_status.append(table_status)
+            fallback_reason = table_status.get("fallback_reason")
+            if fallback_reason:
+                parsed.parser_warnings.append(
+                    f"Table Transformer unavailable for {uploaded.filename}; "
+                    f"used pdfplumber fallback: {fallback_reason}"
+                )
             title = extract_pdf_title(uploaded.path)
             if title:
                 parsed.file_titles[uploaded.filename] = title
@@ -267,6 +277,21 @@ def parse_pdf_tables(uploaded: UploadedFile, max_pages: int | None = 8) -> list[
     both ruled and wireless tables. Falls back to pdfplumber-based extraction
     when TATR is unavailable or disabled.
     """
+    tables, _ = _parse_pdf_tables_with_status(uploaded, max_pages=max_pages)
+    return tables
+
+
+def _parse_pdf_tables_with_status(
+    uploaded: UploadedFile,
+    max_pages: int | None = 8,
+) -> tuple[list[TableBlock], dict[str, Any]]:
+    status: dict[str, Any] = {
+        "source_file": uploaded.filename,
+        "tatr_enabled": _use_table_transformer(),
+        "method": "pdfplumber",
+        "fallback_reason": None,
+        "table_count": 0,
+    }
     if _use_table_transformer():
         try:
             from scidata_agent.tools.table_transformer import TableTransformerExtractor
@@ -280,11 +305,17 @@ def parse_pdf_tables(uploaded: UploadedFile, max_pages: int | None = 8) -> list[
             page_numbers = list(range(1, page_limit + 1))
             tables = extractor.extract_tables(uploaded, page_numbers=page_numbers)
             if tables:
-                return tables
-        except Exception:
-            # TATR may fail if dependencies are missing or models cannot download.
-            pass
-    return _parse_pdf_tables_pdfplumber(uploaded, max_pages=max_pages)
+                status["method"] = "table_transformer"
+                status["table_count"] = len(tables)
+                return tables, status
+            status["fallback_reason"] = "Table Transformer detected no usable tables."
+        except Exception as exc:
+            # Do not hide an optional-model failure: it is important provenance
+            # for both operators and downstream quality review.
+            status["fallback_reason"] = f"{type(exc).__name__}: {exc}"
+    tables = _parse_pdf_tables_pdfplumber(uploaded, max_pages=max_pages)
+    status["table_count"] = len(tables)
+    return tables, status
 
 
 def _parse_pdf_tables_pdfplumber(uploaded: UploadedFile, max_pages: int | None = 8) -> list[TableBlock]:
@@ -335,6 +366,7 @@ def _extract_page_tables(page, page_number: int) -> list[TableBlock]:
             block = _table_to_tableblock(extracted, page_number, bbox, method)
             if block:
                 block.caption = _find_caption_for_table(page, bbox)
+                block.raw.update({"page_width": float(page.width), "page_height": float(page.height)})
                 if _table_quality_acceptable(block, method=method):
                     detected_bboxes.append(bbox)
                     found.append(block)
@@ -404,7 +436,7 @@ def _table_to_tableblock(
         header.append(" ".join(parts))
 
     if not any(header):
-        return None
+        header = [f"column_{index + 1}" for index in range(max_cols)]
 
     # Ensure unique non-empty headers.
     seen: set[str] = set()
@@ -438,7 +470,13 @@ def _table_to_tableblock(
         page=page_number,
         bbox=bbox,
         extraction_method=method,
-        raw={"bbox": bbox, "row_count": len(rows), "column_count": len(header), "header_row_count": len(header_rows)},
+        raw={
+            "bbox": bbox,
+            "row_count": len(rows),
+            "column_count": len(header),
+            "header_row_count": len(header_rows),
+            "header_inferred": bool(header_rows),
+        },
     )
 
 
@@ -446,10 +484,10 @@ def _detect_header_end(extracted: list[list[Any]]) -> int:
     """Return the index just past the header rows in a pdfplumber extraction.
 
     Header rows are expected to contain mostly text; data rows mostly numbers.
-    The function scans from the top and stops at the first row where numeric
-    cells dominate. At least one header row is always kept.
+    If the first row is already numeric-dominated, return zero so callers keep
+    it as data and generate neutral column names instead of inventing headers.
     """
-    if len(extracted) <= 2:
+    if len(extracted) < 2:
         return 1
 
     for r_idx in range(min(6, len(extracted))):
@@ -470,7 +508,7 @@ def _detect_header_end(extracted: list[list[Any]]) -> int:
                 empty_count += 1
         non_empty = text_count + numeric_count
         if non_empty > 0 and numeric_count / non_empty >= 0.5:
-            return max(1, r_idx)
+            return r_idx
     return 1
 
 
@@ -533,14 +571,28 @@ def _table_quality_acceptable(block: TableBlock, method: str | None = None) -> b
     header_fill_ratio = len(non_empty_headers) / len(columns) if columns else 0.0
     if method == "pdfplumber_text":
         has_caption = bool(block.caption and str(block.caption).strip())
-        min_rows = 2 if has_caption else 3
-        min_cols = 2 if has_caption else 3
+        # Text-based table finding eagerly interprets ordinary multi-column
+        # papers as tables.  Scientific tables should have a nearby caption;
+        # without one, prefer a false negative to fabricated structured data.
+        if not has_caption:
+            return False
+        min_rows = 2
+        min_cols = 2
         if len(columns) < min_cols or len(rows) < min_rows:
             return False
         if header_fill_ratio < 0.8:
             return False
         if any(len(col) > 35 for col in non_empty_headers):
             return False
+
+        page_width = float(block.raw.get("page_width") or 0)
+        page_height = float(block.raw.get("page_height") or 0)
+        if block.bbox and page_width > 0 and page_height > 0:
+            x0, y0, x1, y1 = block.bbox
+            area_ratio = max(0.0, (x1 - x0) * (y1 - y0)) / (page_width * page_height)
+            block.raw["page_area_ratio"] = round(area_ratio, 4)
+            if area_ratio > 0.62:
+                return False
 
     total_cells = len(columns) * len(rows)
     empty_cells = sum(1 for row in rows for value in row.values() if value is None or str(value).strip() == "")
@@ -645,11 +697,6 @@ def build_section_blocks_from_plan(
             for section in (section_plan.sections if section_plan else [])
             if section.source_file in (None, source_file)
         ]
-        sections = [
-            section
-            for section in sections
-            if _anchor_exists_in_blocks(section.start_anchor, file_blocks, section.start_page)
-        ]
         sections = _dedupe_sections(sections)
         if not sections:
             section_blocks.extend(_fallback_page_section_blocks(file_blocks, max_chars=max_chars))
@@ -669,32 +716,37 @@ def build_section_blocks_from_plan(
             else:
                 end_page = max(page_text)
                 end_offset = len(page_text[end_page])
-            text = _slice_pages(page_text, start_page, start_offset, end_page, end_offset)
-            text = _compact_text(text)
-            if not text:
-                continue
             page_end = end_page if end_offset > 0 else max(start_page, end_page - 1)
-            for chunk_index, chunk in enumerate(_chunk_text(text, max_chars=max_chars), start=1):
-                section_blocks.append(
-                    SectionBlock(
-                        source_file=source_file,
-                        source_path=file_blocks[0].source_path,
-                        source_type=file_blocks[0].source_type,
-                        section_title=section.section_title,
-                        section_type=section.section_type,
-                        page_start=start_page,
-                        page_end=page_end,
-                        page=start_page,
-                        text=chunk,
-                        chunk_id=f"{file_blocks[0].source_file}_sec{index + 1}_{chunk_index}_{uuid4().hex[:6]}",
-                        confidence=section.confidence,
-                        raw={
-                            "start_anchor": section.start_anchor,
-                            "section_reason": section.reason,
-                            "used_llm_section_plan": section_plan.used_llm if section_plan else False,
-                        },
+            page_parts = _slice_page_parts(page_text, start_page, start_offset, end_page, end_offset)
+            chunk_index = 0
+            for page_number, page_part in page_parts:
+                text = _compact_text(page_part)
+                if not text:
+                    continue
+                for chunk in _chunk_text(text, max_chars=max_chars):
+                    chunk_index += 1
+                    section_blocks.append(
+                        SectionBlock(
+                            source_file=source_file,
+                            source_path=file_blocks[0].source_path,
+                            source_type=file_blocks[0].source_type,
+                            section_title=section.section_title,
+                            section_type=section.section_type,
+                            page_start=page_number,
+                            page_end=page_number,
+                            page=page_number,
+                            text=chunk,
+                            chunk_id=f"{file_blocks[0].source_file}_sec{index + 1}_{chunk_index}_{uuid4().hex[:6]}",
+                            confidence=section.confidence,
+                            raw={
+                                "start_anchor": section.start_anchor,
+                                "section_reason": section.reason,
+                                "section_page_start": start_page,
+                                "section_page_end": page_end,
+                                "used_llm_section_plan": section_plan.used_llm if section_plan else False,
+                            },
+                        )
                     )
-                )
     return section_blocks
 
 
@@ -920,37 +972,93 @@ def _page_texts(file_blocks: list[TextBlock]) -> dict[int, str]:
 
 
 def _locate_section_anchor(section, page_text: dict[int, str]) -> tuple[int, int] | None:
-    for page in sorted(page_text):
-        if page < section.start_page:
-            continue
-        offset = page_text[page].lower().find(section.start_anchor.lower())
-        if offset >= 0:
+    pages = sorted(page for page in page_text if page >= section.start_page)
+    for page in pages:
+        offset = _find_anchor_offset(page_text[page], section.start_anchor)
+        if offset is not None:
             return page, offset
     return None
 
 
 def _slice_pages(page_text: dict[int, str], start_page: int, start_offset: int, end_page: int, end_offset: int) -> str:
-    parts = []
+    return "\n".join(
+        text for _, text in _slice_page_parts(page_text, start_page, start_offset, end_page, end_offset)
+    )
+
+
+def _slice_page_parts(
+    page_text: dict[int, str],
+    start_page: int,
+    start_offset: int,
+    end_page: int,
+    end_offset: int,
+) -> list[tuple[int, str]]:
+    parts: list[tuple[int, str]] = []
     for page in range(start_page, end_page + 1):
         text = page_text.get(page, "")
         if not text:
             continue
         begin = start_offset if page == start_page else 0
         end = end_offset if page == end_page else len(text)
-        parts.append(text[begin:end])
-    return "\n".join(parts)
+        parts.append((page, text[begin:end]))
+    return parts
+
+
+def _find_anchor_offset(text: str, anchor: str) -> int | None:
+    """Find an LLM-provided heading despite PDF whitespace/punctuation drift."""
+    normalized_text, offsets = _normalise_anchor_with_offsets(text)
+    for variant in _anchor_variants(anchor):
+        exact = text.casefold().find(variant.casefold())
+        if exact >= 0:
+            return exact
+
+        normalized_anchor, _ = _normalise_anchor_with_offsets(variant)
+        if len(normalized_anchor) < 4:
+            continue
+        normalized_offset = normalized_text.find(normalized_anchor)
+        if normalized_offset >= 0:
+            return offsets[normalized_offset]
+    return None
+
+
+def _anchor_variants(anchor: str) -> list[str]:
+    """Recover the actual trailing heading from layout-merged LLM anchors."""
+    anchor = anchor.strip()
+    if not anchor:
+        return []
+    variants = [anchor]
+    numbered_heading = re.search(
+        r"(?<!\d)(\d+(?:\.\d+)*\.?\s*[A-Z][A-Za-z0-9][A-Za-z0-9 &:/()_-]{1,80})\s*$",
+        anchor,
+    )
+    if numbered_heading:
+        variants.append(numbered_heading.group(1).strip())
+    return list(dict.fromkeys(variants))
+
+
+def _normalise_anchor_with_offsets(value: str) -> tuple[str, list[int]]:
+    characters: list[str] = []
+    offsets: list[int] = []
+    for offset, character in enumerate(value.casefold()):
+        if character.isalnum():
+            characters.append(character)
+            offsets.append(offset)
+    return "".join(characters), offsets
 
 
 def _anchor_exists_in_blocks(anchor: str, blocks: list[TextBlock], start_page: int) -> bool:
-    lowered = anchor.lower()
-    return any((block.page or 0) >= start_page and lowered in block.text.lower() for block in blocks)
+    return any(
+        (block.page or 0) >= start_page and _find_anchor_offset(block.text, anchor) is not None
+        for block in blocks
+    )
 
 
 def _dedupe_sections(sections) -> list:
     result = []
     seen = set()
-    for section in sorted(sections, key=lambda item: (item.start_page, item.start_anchor.lower())):
-        key = (section.start_page, section.start_anchor.lower())
+    for section in sorted(sections, key=lambda item: (item.start_page, item.start_anchor.casefold())):
+        normalized_anchor, _ = _normalise_anchor_with_offsets(section.start_anchor)
+        key = (section.start_page, normalized_anchor)
         if key in seen:
             continue
         seen.add(key)
