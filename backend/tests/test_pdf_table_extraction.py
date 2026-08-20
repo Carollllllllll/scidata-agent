@@ -20,6 +20,8 @@ from scidata_agent.tools.parser import (
 def _make_table_pdf(path: Path, title: str = "Demo paper") -> Path:
     """Create a PDF with one page of text and one page containing a real table."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        return path
     doc = SimpleDocTemplate(str(path), pagesize=letter)
     elements = []
 
@@ -52,6 +54,8 @@ def _make_table_pdf(path: Path, title: str = "Demo paper") -> Path:
 
 def _make_text_only_pdf(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        return path
     pdf = canvas.Canvas(str(path), pagesize=letter)
     pdf.drawString(72, 740, "No tables here")
     pdf.save()
