@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from urllib.request import Request, urlopen
+from urllib.request import Request
 from uuid import uuid4
 
 from scidata_agent.agent.schemas import (
@@ -18,6 +18,7 @@ from scidata_agent.agent.schemas import (
 )
 from scidata_agent.tools.connectors.base import USER_AGENT
 from scidata_agent.tools.source_triage import SMALL_FILE_BYTES
+from scidata_agent.tools.url_safety import safe_urlopen
 
 
 TEXT_EXTENSIONS = {".txt", ".md", ".json", ".xml"}
@@ -339,20 +340,38 @@ def _file_size(file_item: dict[str, Any]) -> int | None:
 
 def _download_url(url: str, target_path: Path, max_bytes: int) -> None:
     request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=30) as response:
+    with safe_urlopen(request, timeout=30) as response:
         content = response.read(max_bytes + 1)
+        content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].lower()
     if len(content) > max_bytes:
         raise RuntimeError(f"download exceeds max_bytes={max_bytes}")
+    _validate_download_content(target_path.suffix.lower(), content, content_type)
     target_path.write_bytes(content)
 
 
 def _fetch_text(url: str, max_bytes: int, headers: dict[str, str] | None = None) -> str:
     request = Request(url, headers={"User-Agent": USER_AGENT, **(headers or {})})
-    with urlopen(request, timeout=20) as response:
+    with safe_urlopen(request, timeout=20) as response:
         content = response.read(max_bytes + 1)
+        content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].lower()
     if len(content) > max_bytes:
         raise RuntimeError(f"text fetch exceeds max_bytes={max_bytes}")
+    if content_type.startswith(("image/", "audio/", "video/")) or b"\x00" in content[:4096]:
+        raise RuntimeError(f"response is not text content: content_type={content_type or 'unknown'}")
     return content.decode("utf-8", errors="ignore")
+
+
+def _validate_download_content(suffix: str, content: bytes, content_type: str) -> None:
+    if not content:
+        raise RuntimeError("downloaded file is empty")
+    if suffix == ".pdf" and not content.lstrip().startswith(b"%PDF-"):
+        raise RuntimeError(f"downloaded content is not a PDF: content_type={content_type or 'unknown'}")
+    if suffix == ".xlsx" and not content.startswith(b"PK"):
+        raise RuntimeError("downloaded content is not an XLSX archive")
+    if suffix == ".xls" and not content.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+        raise RuntimeError("downloaded content is not an XLS workbook")
+    if suffix in {".csv", ".tsv", ".json", ".xml", ".txt", ".md"} and b"\x00" in content[:4096]:
+        raise RuntimeError("downloaded text/table content appears to be binary")
 
 
 def _content_type(path: Path) -> str | None:

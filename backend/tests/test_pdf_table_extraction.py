@@ -8,13 +8,20 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table as RLTable, TableStyle, Paragraph
 from reportlab.pdfgen import canvas
 
-from scidata_agent.agent.schemas import SourceType, UploadedFile
-from scidata_agent.tools.parser import parse_pdf_tables, parse_sources
+from scidata_agent.agent.schemas import SourceType, TableBlock, UploadedFile
+from scidata_agent.tools.parser import (
+    _detect_header_end,
+    _table_quality_acceptable,
+    parse_pdf_tables,
+    parse_sources,
+)
 
 
 def _make_table_pdf(path: Path, title: str = "Demo paper") -> Path:
     """Create a PDF with one page of text and one page containing a real table."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        return path
     doc = SimpleDocTemplate(str(path), pagesize=letter)
     elements = []
 
@@ -47,6 +54,8 @@ def _make_table_pdf(path: Path, title: str = "Demo paper") -> Path:
 
 def _make_text_only_pdf(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        return path
     pdf = canvas.Canvas(str(path), pagesize=letter)
     pdf.drawString(72, 740, "No tables here")
     pdf.save()
@@ -105,3 +114,33 @@ def test_pdf_table_quality_filter_rejects_fragment() -> None:
             1 for row in table.rows for value in row.values() if value is None or str(value).strip() == ""
         )
         assert empty / total < 0.85
+
+
+def test_text_strategy_rejects_uncaptioned_page_layout() -> None:
+    block = TableBlock(
+        source_file="paper.pdf",
+        source_path="paper.pdf",
+        source_type=SourceType.PDF_TABLE,
+        columns=["Introduction", "Related work", "Method"],
+        rows=[
+            {"Introduction": "This is ordinary paragraph text.", "Related work": "More prose", "Method": "Not a table"},
+            {"Introduction": "Another paragraph", "Related work": "More prose", "Method": "Still prose"},
+        ],
+        table_id="false_positive",
+        page=1,
+        caption=None,
+        bbox=[20, 40, 590, 740],
+        extraction_method="pdfplumber_text",
+        raw={"page_width": 612, "page_height": 792},
+    )
+
+    assert _table_quality_acceptable(block, method="pdfplumber_text") is False
+
+
+def test_numeric_first_row_is_preserved_as_data_not_header() -> None:
+    extracted = [
+        ["UAE", "0.8501", "0.017", "21.2"],
+        ["Baseline", "0.8120", "0.024", "30.1"],
+    ]
+
+    assert _detect_header_end(extracted) == 0

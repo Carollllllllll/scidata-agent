@@ -46,6 +46,8 @@ def create_csv_fixture() -> Path:
 def create_pdf_fixture() -> Path:
     EXAMPLES.mkdir(parents=True, exist_ok=True)
     path = EXAMPLES / "demo_scientific_paper.pdf"
+    if path.exists():
+        return path
     pdf = canvas.Canvas(str(path), pagesize=letter)
     pdf.setFont("Helvetica-Bold", 14)
     pdf.drawString(72, 740, "Demo Perovskite Solar Cell Study")

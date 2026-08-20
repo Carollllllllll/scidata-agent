@@ -24,6 +24,8 @@ def create_chart_pdf_fixture() -> Path:
     out_dir = ROOT / "examples"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "demo_chart_paper.pdf"
+    if path.exists():
+        return path
     pdf = canvas.Canvas(str(path), pagesize=letter)
     pdf.setFont("Helvetica-Bold", 14)
     pdf.drawString(72, 740, "Demo Chart Paper")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from typing import Any
@@ -14,6 +15,7 @@ from scidata_agent.agent.schemas import (
     ArtifactActionPlan,
     ChartExtraction,
     DynamicExtractionPlan,
+    DynamicFieldSpec,
     DynamicRecord,
     FigureAsset,
     HeadingCandidate,
@@ -67,6 +69,37 @@ from scidata_agent.tools.source_discovery import fallback_discover_sources
 
 SOURCE_SELECTION_CANDIDATE_LIMIT = 100
 DEFAULT_MAX_AUTO_RESOURCES = 30
+RESERVED_DYNAMIC_FIELDS = {
+    "source_file",
+    "source_type",
+    "page",
+    "evidence_text",
+    "confidence",
+    "warnings",
+}
+PROVENANCE_URL_FIELDS = {"paper", "paper_url", "paper_link", "source_url", "source_link", "url"}
+EXPERIMENT_CONTEXT_FIELD_ORDER = (
+    "condition",
+    "dataset_name",
+    "dataset",
+    "test_condition",
+    "dataset_or_object",
+    "experimental_context",
+    "setting",
+    "split",
+    "task",
+)
+EXPERIMENT_CONTEXT_FIELDS = set(EXPERIMENT_CONTEXT_FIELD_ORDER)
+
+
+def _node_retry_attempts(explicit: int | None) -> int:
+    if explicit is not None:
+        return max(1, min(int(explicit), 5))
+    try:
+        configured = int(os.getenv("QWEN_NODE_MAX_ATTEMPTS", "2"))
+    except ValueError:
+        configured = 2
+    return max(1, min(configured, 5))
 
 
 class QwenAgentNodes:
@@ -84,9 +117,22 @@ class QwenAgentNodes:
         system_prompt: str,
         user_prompt: str,
         temperature: float = 0.1,
-        attempts: int = 3,
+        attempts: int | None = None,
         retry_delay_seconds: float = 2.0,
     ) -> Any:
+        attempts = _node_retry_attempts(attempts)
+        if not getattr(self.client, "configured", True):
+            # Configuration errors are deterministic. Retrying them only adds
+            # delay before the official-mode failure or explicit local fallback.
+            try:
+                return self.client.generate_json(node, system_prompt, user_prompt, temperature=temperature)
+            except Exception as exc:
+                self.node_warnings.append(
+                    f"LLM call failed: node={node}, attempt=1/1, error={exc}"
+                )
+                raise LLMCallError(
+                    f"LLM node is not configured: node={node}, error={exc}"
+                ) from exc
         last_exc: Exception | None = None
         for attempt in range(1, attempts + 1):
             try:
@@ -96,6 +142,7 @@ class QwenAgentNodes:
                 warning = f"LLM call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
                 self.node_warnings.append(warning)
                 if attempt < attempts:
+                    self._emit_retry_event(node, "text", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
         raise LLMCallError(f"LLM node failed after {attempts} attempts: node={node}, error={last_exc}") from last_exc
 
@@ -284,20 +331,32 @@ class QwenAgentNodes:
             }
             for source in source_catalog
         ]
-        payload = self._generate_json_with_retries(
-            "qwen_artifact_action_planner",
-            ARTIFACT_ACTION_PLANNER_SYSTEM,
-            ARTIFACT_ACTION_PLANNER_USER.format(
-                research_question=research_question,
-                dynamic_plan_json=dynamic_plan.model_dump_json() if dynamic_plan else "null",
-                quality_report_json=quality_report.model_dump_json() if quality_report else "null",
-                source_catalog_json=json.dumps(catalog_payload, ensure_ascii=False, indent=2),
-                processing_log_json=json.dumps((processing_log or [])[-40:], ensure_ascii=False, indent=2),
-                connector_failures_json=json.dumps(connector_failures or [], ensure_ascii=False, indent=2),
+        try:
+            payload = self._generate_json_with_retries(
+                "qwen_artifact_action_planner",
+                ARTIFACT_ACTION_PLANNER_SYSTEM,
+                ARTIFACT_ACTION_PLANNER_USER.format(
+                    research_question=research_question,
+                    dynamic_plan_json=dynamic_plan.model_dump_json() if dynamic_plan else "null",
+                    quality_report_json=quality_report.model_dump_json() if quality_report else "null",
+                    source_catalog_json=json.dumps(catalog_payload, ensure_ascii=False, indent=2),
+                    processing_log_json=json.dumps((processing_log or [])[-40:], ensure_ascii=False, indent=2),
+                    connector_failures_json=json.dumps(connector_failures or [], ensure_ascii=False, indent=2),
+                    iteration=iteration,
+                ),
+                temperature=0.05,
+            )
+        except Exception as exc:
+            if not self.allow_rule_fallback:
+                raise
+            return ArtifactActionPlan(
+                research_goal=research_question,
                 iteration=iteration,
-            ),
-            temperature=0.05,
-        )
+                should_continue=False,
+                stop_reason="Deterministic local-test fallback; the normal content pipeline will parse available files.",
+                actions=[],
+                notes=[f"LLM artifact action planning failed; local testing fallback was used: {exc}"],
+            )
         if not isinstance(payload, dict):
             raise LLMCallError("Artifact Action Planner did not return a JSON object.")
         payload.setdefault("research_goal", research_question)
@@ -314,20 +373,43 @@ class QwenAgentNodes:
             for artifact in source.artifacts
         }
         global_actions = {"search_more", "validate_evidence", "stop"}
+        valid_actions = []
+        dropped_actions = []
         for action in plan.actions:
-            if action.artifact_id is not None and action.artifact_id not in artifact_ids:
-                raise LLMCallError(
-                    f"Artifact Action Planner returned unknown artifact_id={action.artifact_id!r}."
-                )
             if action.action in global_actions:
-                if action.action == "stop" and action.artifact_id is not None:
-                    raise LLMCallError("The stop action must use artifact_id=null.")
-            elif action.artifact_id is None:
-                raise LLMCallError(
-                    f"Artifact action {action.action!r} requires a concrete artifact_id."
+                if action.artifact_id is not None:
+                    plan.notes.append(
+                        f"Cleared artifact_id from global action {action.action!r}."
+                    )
+                    action.artifact_id = None
+                valid_actions.append(action)
+                continue
+            if action.artifact_id is None or action.artifact_id not in artifact_ids:
+                dropped_actions.append(action)
+                continue
+            valid_actions.append(action)
+
+        if dropped_actions:
+            invalid_ids = sorted(
+                {action.artifact_id or "null" for action in dropped_actions}
+            )
+            plan.notes.append(
+                f"Dropped {len(dropped_actions)} artifact action(s) with missing or unknown artifact_id: "
+                f"{', '.join(invalid_ids)}."
+            )
+        stop_actions = [action for action in valid_actions if action.action == "stop"]
+        if stop_actions:
+            plan.actions = [stop_actions[0]]
+            plan.should_continue = False
+            plan.stop_reason = plan.stop_reason or "The planner selected the stop action."
+        else:
+            plan.actions = valid_actions
+            if not valid_actions:
+                plan.should_continue = False
+                plan.stop_reason = (
+                    plan.stop_reason
+                    or "The planner returned no executable artifact actions; continue with the normal content pipeline."
                 )
-        if any(action.action == "stop" for action in plan.actions) and plan.should_continue:
-            raise LLMCallError("A plan containing stop must set should_continue=false.")
         return plan
 
     def plan_dynamic_extraction(self, research_question: str, task_plan: TaskPlan | None = None) -> DynamicExtractionPlan:
@@ -348,10 +430,11 @@ class QwenAgentNodes:
             payload.setdefault("dynamic_tables", [])
             payload.setdefault("quality_rules", [])
             payload.setdefault("missing_data_policy", "Use null for missing information; do not fabricate values.")
+            _normalize_dynamic_plan_payload(payload)
             plan = DynamicExtractionPlan.model_validate(payload)
             if not plan.dynamic_tables:
                 raise LLMCallError("Dynamic Schema Planner returned no dynamic tables.")
-            return plan
+            return _normalize_dynamic_extraction_plan(plan)
         except Exception as exc:
             if not self.allow_rule_fallback:
                 raise
@@ -449,8 +532,8 @@ class QwenAgentNodes:
                 dynamic_plan_json=dynamic_plan.model_dump_json(),
                 source_file=table.source_file,
                 source_type=table.source_type.value,
-                page=None,
-                page_json="null",
+                page=table.page,
+                page_json=json.dumps(table.page),
                 section_title="null",
                 section_type="null",
                 page_range="null",
@@ -458,7 +541,9 @@ class QwenAgentNodes:
             )
             try:
                 payload = self._generate_json_with_retries("qwen_dynamic_record_extractor_table", DYNAMIC_EXTRACTOR_SYSTEM, user_prompt)
-                table_records = _dynamic_records_from_payload(payload, dynamic_plan, table.source_file, table.source_type, None)
+                table_records = _dynamic_records_from_payload(
+                    payload, dynamic_plan, table.source_file, table.source_type, table.page
+                )
                 for record in table_records:
                     record.raw.setdefault("table_id", table.table_id)
                 records.extend(table_records)
@@ -550,8 +635,8 @@ class QwenAgentNodes:
                 task_plan_json=task_plan.model_dump_json(),
                 source_file=table.source_file,
                 source_type=table.source_type.value,
-                page=None,
-                page_json="null",
+                page=table.page,
+                page_json=json.dumps(table.page),
                 section_title="null",
                 section_type="null",
                 page_range="null",
@@ -559,7 +644,9 @@ class QwenAgentNodes:
             )
             try:
                 payload = self._generate_json_with_retries("qwen_record_extractor_table", RECORD_EXTRACTOR_SYSTEM, user_prompt)
-                table_records = _records_from_payload(payload, table.source_file, table.source_type, None)
+                table_records = _records_from_payload(
+                    payload, table.source_file, table.source_type, table.page
+                )
                 for record in table_records:
                     record.raw.setdefault("table_id", table.table_id)
                 records.extend(table_records)
@@ -603,9 +690,10 @@ class QwenAgentNodes:
         user_prompt: str,
         image_paths: list[str],
         temperature: float = 0.1,
-        attempts: int = 3,
+        attempts: int | None = None,
         retry_delay_seconds: float = 2.0,
     ) -> Any:
+        attempts = _node_retry_attempts(attempts)
         last_exc: Exception | None = None
         for attempt in range(1, attempts + 1):
             try:
@@ -617,8 +705,30 @@ class QwenAgentNodes:
                 warning = f"VL call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
                 self.node_warnings.append(warning)
                 if attempt < attempts:
+                    self._emit_retry_event(node, "vl", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
         raise LLMCallError(f"VL node failed after {attempts} attempts: node={node}, error={last_exc}") from last_exc
+
+    def _emit_retry_event(
+        self,
+        node: str,
+        kind: str,
+        attempt: int,
+        attempts: int,
+        exc: Exception,
+    ) -> None:
+        emit = getattr(self.client, "emit_runtime_event", None)
+        if callable(emit):
+            emit(
+                {
+                    "event": "node_retry",
+                    "kind": kind,
+                    "node": node,
+                    "attempt": attempt,
+                    "max_attempts": attempts,
+                    "error": str(exc),
+                }
+            )
 
     def classify_chart(self, figure: FigureAsset) -> dict[str, Any]:
         """Triage a rendered figure: does it contain extractable chart data?"""
@@ -1380,7 +1490,7 @@ def _records_from_payload(
             continue
         item.setdefault("source_file", source_file)
         item.setdefault("source_type", source_type.value)
-        item.setdefault("page", page)
+        _enforce_source_page(item, page)
         item.setdefault("confidence", 0.65)
         _attach_section_raw(item, block)
         if not item.get("metric_name"):
@@ -1394,6 +1504,81 @@ def _records_from_payload(
             except ValidationError:
                 continue
     return records
+
+
+def _normalize_dynamic_plan_payload(payload: dict[str, Any]) -> None:
+    """Repair harmless shape drift in model-authored schema metadata."""
+    tables = payload.get("dynamic_tables")
+    if not isinstance(tables, list):
+        return
+    for table in tables:
+        if not isinstance(table, dict) or not isinstance(table.get("fields"), list):
+            continue
+        for field in table["fields"]:
+            if not isinstance(field, dict):
+                continue
+            examples = field.get("examples")
+            if examples is None:
+                field["examples"] = []
+            elif not isinstance(examples, list):
+                field["examples"] = [examples]
+
+
+def _normalize_dynamic_extraction_plan(plan: DynamicExtractionPlan) -> DynamicExtractionPlan:
+    """Enforce the schema contract that the LLM prompt already promises.
+
+    Provenance fields live on ``DynamicRecord`` itself, so duplicating them in
+    every task-specific table creates contradictory null checks. Metric tables
+    also need an explicit experimental context to avoid comparing values from
+    unrelated datasets or settings as if they conflicted.
+    """
+    removed_reserved = False
+    relaxed_provenance_url = False
+    added_context = False
+    for table in plan.dynamic_tables:
+        filtered_fields = []
+        for field in table.fields:
+            normalized_name = field.name.strip().casefold()
+            if normalized_name in RESERVED_DYNAMIC_FIELDS:
+                removed_reserved = True
+                continue
+            if normalized_name in PROVENANCE_URL_FIELDS and "url" in field.type.casefold() and field.required:
+                field.required = False
+                relaxed_provenance_url = True
+            filtered_fields.append(field)
+        table.fields = filtered_fields
+
+        field_names = {field.name.strip().casefold() for field in table.fields}
+        has_metric_pair = "metric_name" in field_names and bool(
+            field_names.intersection({"metric_value", "value", "score", "reported_score"})
+        )
+        if has_metric_pair and not field_names.intersection(EXPERIMENT_CONTEXT_FIELDS):
+            table.fields.append(
+                DynamicFieldSpec(
+                    name="condition",
+                    type="string|null",
+                    required=False,
+                    evidence_required=True,
+                    description="Dataset, split, method variant, or experimental setting for this value.",
+                    examples=[],
+                )
+            )
+            added_context = True
+
+    if removed_reserved:
+        plan.quality_rules.append(
+            "Record-level provenance fields are stored outside dynamic table fields and must not be duplicated."
+        )
+    if relaxed_provenance_url:
+        plan.quality_rules.append(
+            "External paper/source URLs are optional when uploaded-file provenance is available."
+        )
+    if added_context:
+        plan.quality_rules.append(
+            "Metric values should include dataset, split, method variant, or experimental condition when stated."
+        )
+    plan.quality_rules = list(dict.fromkeys(plan.quality_rules))
+    return plan
 
 
 def _dynamic_records_from_payload(
@@ -1414,18 +1599,26 @@ def _dynamic_records_from_payload(
         table_name = str(item.get("table_name") or "").strip()
         if table_name not in table_specs:
             continue
-        allowed_fields = {field.name for field in table_specs[table_name].fields}
+        table_spec = table_specs[table_name]
+        allowed_fields = {field.name for field in table_spec.fields}
         raw_fields = item.get("fields") if isinstance(item.get("fields"), dict) else {}
-        fields = {key: value for key, value in raw_fields.items() if key in allowed_fields}
-        extra_fields = {key: value for key, value in raw_fields.items() if key not in allowed_fields}
-        warnings = list(item.get("warnings") or [])
+        fields, extra_fields, field_aliases = _align_dynamic_fields(raw_fields, allowed_fields)
+        warnings = _normalize_dynamic_record_warnings(item.get("warnings"), table_spec.fields, fields)
         if extra_fields:
             warnings.append("unknown dynamic fields moved to raw.extra_fields")
-        for field_spec in table_specs[table_name].fields:
+        for field_spec in table_spec.fields:
             if field_spec.required and fields.get(field_spec.name) in (None, "", []):
-                warnings.append(f"required dynamic field missing: {field_spec.name}")
+                warning = f"required dynamic field missing: {field_spec.name}"
+                if warning.casefold() not in {existing.casefold() for existing in warnings}:
+                    warnings.append(warning)
         raw = dict(item.get("raw") or {})
+        reported_page = item.get("page")
+        if page is not None and reported_page not in (None, page):
+            raw["llm_reported_page"] = reported_page
+            warnings.append(f"page corrected from {reported_page} to source block page {page}")
         _attach_section_raw_to_raw(raw, block)
+        if field_aliases:
+            raw["field_aliases"] = field_aliases
         if extra_fields:
             raw["extra_fields"] = extra_fields
         try:
@@ -1435,7 +1628,7 @@ def _dynamic_records_from_payload(
                     fields=fields,
                     source_file=str(item.get("source_file") or source_file),
                     source_type=str(item.get("source_type") or source_type.value),
-                    page=item.get("page", page),
+                    page=page if page is not None else item.get("page"),
                     evidence_text=item.get("evidence_text"),
                     confidence=item.get("confidence") or 0.65,
                     warnings=warnings,
@@ -1447,13 +1640,69 @@ def _dynamic_records_from_payload(
     return records
 
 
+def _align_dynamic_fields(
+    raw_fields: dict[str, Any],
+    allowed_fields: set[str],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, str]]:
+    """Align common context aliases without silently discarding their origin."""
+    fields = {key: value for key, value in raw_fields.items() if key in allowed_fields}
+    extra_fields = {key: value for key, value in raw_fields.items() if key not in allowed_fields}
+    field_aliases: dict[str, str] = {}
+
+    allowed_context = [field for field in allowed_fields if field.casefold() in EXPERIMENT_CONTEXT_FIELDS]
+    if len(allowed_context) == 1:
+        target = allowed_context[0]
+        if fields.get(target) in (None, "", []):
+            for source in EXPERIMENT_CONTEXT_FIELD_ORDER:
+                if source == target or extra_fields.get(source) in (None, "", []):
+                    continue
+                fields[target] = extra_fields.pop(source)
+                field_aliases[source] = target
+                break
+
+    return fields, extra_fields, field_aliases
+
+
+def _normalize_dynamic_record_warnings(
+    raw_warnings: Any,
+    field_specs: list[DynamicFieldSpec],
+    fields: dict[str, Any],
+) -> list[str]:
+    """Keep actionable extractor warnings without penalizing absent optional fields."""
+    specs = {spec.name.casefold(): spec for spec in field_specs}
+    warnings: list[str] = []
+    seen: set[str] = set()
+    for raw_warning in raw_warnings or []:
+        warning = " ".join(str(raw_warning).split())
+        normalized = warning.casefold()
+        if not warning or normalized in seen:
+            continue
+        required_match = re.search(r"required dynamic field missing:\s*([a-z0-9_]+)", normalized)
+        if required_match:
+            spec = specs.get(required_match.group(1))
+            if spec is not None and not spec.required:
+                continue
+        if "missing" in normalized:
+            optional_missing = any(
+                not spec.required
+                and fields.get(spec.name) in (None, "", [])
+                and re.search(rf"\b{re.escape(spec.name.casefold().replace('_', ' '))}\b", normalized)
+                for spec in field_specs
+            )
+            if optional_missing:
+                continue
+        seen.add(normalized)
+        warnings.append(warning)
+    return warnings
+
+
 def _repair_record_payload(item: dict[str, Any], source_file: str, source_type: SourceType, page: int | None) -> dict[str, Any]:
     repaired = dict(item)
     repaired["raw"] = dict(repaired.get("raw") or {})
     repaired["warnings"] = list(repaired.get("warnings") or [])
     repaired["source_file"] = str(repaired.get("source_file") or source_file)
     repaired["source_type"] = str(repaired.get("source_type") or source_type.value)
-    repaired["page"] = repaired.get("page", page)
+    _enforce_source_page(repaired, page)
     repaired["metric_name"] = str(repaired.get("metric_name") or "unknown_metric")
     try:
         repaired["confidence"] = float(repaired.get("confidence") or 0.5)
@@ -1467,6 +1716,24 @@ def _repair_record_payload(item: dict[str, Any], source_file: str, source_type: 
         repaired["warnings"].append(value_warning)
     repaired["metric_value"] = repaired_value
     return repaired
+
+
+def _enforce_source_page(item: dict[str, Any], page: int | None) -> None:
+    """Trust the page-scoped parser block over an unconstrained LLM page guess."""
+    reported_page = item.get("page")
+    if page is None:
+        item.setdefault("page", None)
+        return
+    if reported_page not in (None, page):
+        raw = dict(item.get("raw") or {})
+        raw["llm_reported_page"] = reported_page
+        item["raw"] = raw
+        warnings = list(item.get("warnings") or [])
+        warning = f"page corrected from {reported_page} to source block page {page}"
+        if warning not in warnings:
+            warnings.append(warning)
+        item["warnings"] = warnings
+    item["page"] = page
 
 
 def _attach_section_raw(item: dict[str, Any], block: TextBlock | SectionBlock | None) -> None:
@@ -1547,14 +1814,31 @@ def _issues_from_payload(payload: Any) -> list[QualityIssue]:
         if not isinstance(item, dict):
             continue
         try:
-            issues.append(QualityIssue.model_validate(item))
+            issue = QualityIssue.model_validate(item)
         except ValidationError:
-            issues.append(
-                QualityIssue(
-                    record_id=item.get("record_id"),
-                    level=item.get("level") if item.get("level") in {"info", "warning", "error"} else "warning",
-                    field=item.get("field"),
-                    message=str(item.get("message") or "LLM returned an incomplete quality issue."),
-                )
+            issue = QualityIssue(
+                record_id=item.get("record_id"),
+                level=item.get("level") if item.get("level") in {"info", "warning", "error"} else "warning",
+                field=item.get("field"),
+                message=str(item.get("message") or "LLM returned an incomplete quality issue."),
             )
+        if issue.level == "error" and issue.field == "unit" and _message_says_unit_is_missing(issue.message):
+            issue.level = "warning"
+        issues.append(issue)
     return issues
+
+
+def _message_says_unit_is_missing(message: str) -> bool:
+    normalized = " ".join(str(message).casefold().split())
+    return any(
+        marker in normalized
+        for marker in (
+            "missing unit",
+            "unit is missing",
+            "unit missing",
+            "缺少单位",
+            "单位缺失",
+            "未提供单位",
+            "未明确单位",
+        )
+    )

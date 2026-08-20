@@ -556,6 +556,8 @@ class ParsedSources(BaseModel):
     section_blocks: list[SectionBlock] = Field(default_factory=list)
     tables: list[TableBlock] = Field(default_factory=list)
     figure_assets: list[FigureAsset] = Field(default_factory=list)
+    parser_warnings: list[str] = Field(default_factory=list)
+    table_extraction_status: list[dict[str, Any]] = Field(default_factory=list)
     # Map source_file -> extracted full paper title. Used to backfill records
     # that do not carry an explicit paper title.
     file_titles: dict[str, str] = Field(default_factory=dict)
@@ -668,12 +670,18 @@ class ConflictIssue(BaseModel):
 
 class QualityReport(BaseModel):
     record_count: int = 0
+    dynamic_record_count: int = 0
+    total_record_count: int = 0
     issue_count: int = 0
     warning_count: int = 0
     error_count: int = 0
     conflict_count: int = 0
     evidence_coverage: float = 0.0
+    evidence_text_coverage: float = 0.0
     value_evidence_coverage: float = 0.0
+    provenance_page_coverage: float = 0.0
+    warning_free_rate: float = 0.0
+    review_count: int = 0
     field_coverage: dict[str, float] = Field(default_factory=dict)
     source_count: int = 0
     issues: list[QualityIssue] = Field(default_factory=list)
@@ -754,9 +762,15 @@ class AgentResult(BaseModel):
     artifact_action_results: list[ArtifactActionResult] = Field(default_factory=list)
     artifact_action_history: list[ArtifactActionIteration] = Field(default_factory=list)
     dynamic_extraction_plan: DynamicExtractionPlan | None = None
+    connector_status: list[dict[str, Any]] = Field(default_factory=list)
     summary: AgentSummary
     records: list[ScientificRecord]
     dynamic_records: list[DynamicRecord] = Field(default_factory=list)
+    dynamic_records_raw: list[DynamicRecord] = Field(default_factory=list)
+    needs_review_records: list[DynamicRecord] = Field(default_factory=list)
+    figures: list[FigureAsset] = Field(default_factory=list)
+    chart_extractions: list[ChartExtraction] = Field(default_factory=list)
+    chart_validations: list[ChartValidationResult] = Field(default_factory=list)
     field_schema: list[dict[str, str]]
     sources: list[SourceSummary]
     processing_log: list[str]

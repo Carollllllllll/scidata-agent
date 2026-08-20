@@ -92,3 +92,54 @@ def test_timeout_is_not_silently_converted_to_quota_failover():
     assert calls == ["text-one"]
     assert client.model == "text-one"
     assert not client.model_events
+
+
+def test_explicit_model_pool_and_empty_key_override_environment(monkeypatch):
+    monkeypatch.setenv("DASHSCOPE_API_KEY", "environment-key")
+    monkeypatch.setenv("QWEN_MODEL", "environment-primary")
+    monkeypatch.setenv("QWEN_MODELS", "environment-primary,environment-fallback")
+
+    client = QwenBailianClient(
+        api_key="",
+        model="explicit-primary",
+        models=("explicit-fallback",),
+        vl_models=("explicit-vl",),
+    )
+
+    assert client.configured is False
+    assert client.text_models == ["explicit-primary", "explicit-fallback"]
+    assert client.vl_models == ["explicit-vl"]
+
+
+def test_text_request_limit_and_usage_trace(monkeypatch):
+    captured: dict = {}
+    payload = _success_payload()
+    payload.update(
+        {
+            "id": "request-123",
+            "usage": {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+        }
+    )
+
+    def fake_urlopen(request, timeout):
+        captured.update(json.loads(request.data.decode("utf-8")))
+        return _Response(payload)
+
+    monkeypatch.setenv("QWEN_TEXT_MAX_TOKENS", "4096")
+    client = QwenBailianClient(api_key="test", models=("text-one",))
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        client.generate_text("trace_node", "system", "user")
+
+    assert captured["max_tokens"] == 4096
+    trace = client.traces[-1]
+    assert (trace.prompt_tokens, trace.completion_tokens, trace.total_tokens) == (11, 7, 18)
+    assert trace.request_id == "request-123"
+
+
+def test_truncated_text_response_fails_explicitly():
+    payload = {"choices": [{"message": {"content": "partial"}, "finish_reason": "length"}]}
+    client = QwenBailianClient(api_key="test", models=("text-one",))
+
+    with patch("urllib.request.urlopen", return_value=_Response(payload)):
+        with pytest.raises(LLMCallError, match="truncated"):
+            client.generate_text("test_node", "system", "user")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from scidata_agent.agent.schemas import ScientificRecord
+from scidata_agent.agent.schemas import DynamicRecord, ScientificRecord
 
 
 METRIC_CANONICAL = {
@@ -95,6 +95,121 @@ STRICT_NUMERIC_METRICS = {
     "short-sleeved synthesis accuracy",
     "normal output rate",
 }
+
+_DYNAMIC_METRIC_PAIRS = (
+    ("metric_name", "metric_value"),
+    ("metric_name", "value"),
+    ("primary_metric", "reported_score"),
+    ("metric", "score"),
+    ("metric_name", "score"),
+    ("metric", "value"),
+)
+
+_KNOWN_METRIC_FIELDS = {
+    "fid",
+    "rfid",
+    "kid",
+    "ssim",
+    "psnr",
+    "lpips",
+    "accuracy",
+    "pce",
+    "f1",
+    "mae",
+    "rmse",
+    "latency",
+    "fps",
+}
+
+
+def scientific_records_from_dynamic(records: list[DynamicRecord]) -> list[ScientificRecord]:
+    """Reuse the schema-driven extraction pass for the strict metric export.
+
+    This avoids sending the same PDF block to a second LLM extractor.  The
+    deterministic adapter only emits numeric metric/value pairs; if none are
+    present the caller can still fall back to the dedicated metric extractor.
+    """
+    scientific: list[ScientificRecord] = []
+    for record in records:
+        fields = record.fields
+        pairs: list[tuple[str, object]] = []
+        for metric_field, value_field in _DYNAMIC_METRIC_PAIRS:
+            metric_name = fields.get(metric_field)
+            if metric_name not in (None, "", []) and fields.get(value_field) not in (None, "", []):
+                pairs.append((str(metric_name), fields[value_field]))
+        for name, value in fields.items():
+            if _norm_key(name) in _KNOWN_METRIC_FIELDS and value not in (None, "", []):
+                pairs.append((name, value))
+
+        seen: set[tuple[str, float]] = set()
+        for metric_name, raw_value in pairs:
+            metric_value = _dynamic_numeric_value(raw_value)
+            if metric_value is None:
+                continue
+            key = (_norm_key(metric_name), metric_value)
+            if key in seen:
+                continue
+            seen.add(key)
+            scientific.append(
+                ScientificRecord(
+                    paper_title=record.paper_title,
+                    material=_first_dynamic_text(fields, "material", "composition", "entity"),
+                    method=_first_dynamic_text(
+                        fields,
+                        "method",
+                        "method_name",
+                        "model_name",
+                        "variant_name",
+                        "proposed_solution",
+                    ),
+                    metric_name=metric_name,
+                    metric_value=metric_value,
+                    unit=_dynamic_metric_unit(metric_name, raw_value, fields),
+                    condition=_first_dynamic_text(fields, "condition", "test_condition", "dataset_name", "dataset", "task"),
+                    source_file=record.source_file,
+                    source_type=record.source_type,
+                    page=record.page,
+                    evidence_text=record.evidence_text,
+                    confidence=record.confidence,
+                    warnings=list(record.warnings),
+                    raw={
+                        **record.raw,
+                        "derived_from_dynamic_record_id": record.record_id,
+                        "derived_from_dynamic_table": record.table_name,
+                    },
+                )
+            )
+    return scientific
+
+
+def _dynamic_numeric_value(value: object) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))(?:\s*%)?\s*", value.replace(",", ""))
+    return float(match.group(1)) if match else None
+
+
+def _first_dynamic_text(fields: dict[str, object], *names: str) -> str | None:
+    for name in names:
+        value = fields.get(name)
+        if value not in (None, "", []):
+            return " ".join(str(value).split())
+    return None
+
+
+def _dynamic_metric_unit(metric_name: str, raw_value: object, fields: dict[str, object]) -> str | None:
+    explicit = fields.get("unit") or fields.get("metric_unit")
+    if explicit not in (None, "", []):
+        return str(explicit)
+    if isinstance(raw_value, str) and "%" in raw_value:
+        return "%"
+    if _norm_key(metric_name) in {"pce", "power conversion efficiency", "efficiency"}:
+        return "%"
+    return None
 
 
 def normalize_records(records: list[ScientificRecord]) -> list[ScientificRecord]:

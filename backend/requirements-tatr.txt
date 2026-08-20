@@ -1,0 +1,11 @@
+-r requirements.txt
+
+# Optional Table Transformer stack. Install only when
+# USE_TABLE_TRANSFORMER=true and local model inference is required.
+numpy==1.26.4
+pillow==12.3.0
+torch==2.2.1
+torchvision==0.17.1
+transformers==4.36.2
+huggingface_hub==0.36.2
+timm==1.0.28

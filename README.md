@@ -12,7 +12,7 @@ SciData Agent 是面向“赛道二：数据场景 / 方向 A：科学数据查�
 -> PDF/CSV/Excel Parser：解析本地上传文件（PDF 正文 + pdfplumber 结构化表格）
 -> Figure Chart Branch：PyMuPDF 定位图表 caption 与图形区域并渲染 PNG -> Qwen-VL 分类与结构化读数（坐标轴/图例/数据点）-> 确定性校验（轴范围/序列/单位）
 -> Qwen Dynamic Extractor：按照动态 schema 抽取论文画像、方法、数据集、实验设置、局限性等多表记录
--> Qwen Record Extractor：从正文和表格中抽取结构化科学记录
+-> 指标适配器：优先从动态抽取结果确定性生成指标记录；无可用数值时回退 Qwen Record Extractor
 -> Schema Alignment / Normalizer：字段对齐、单位处理、重复合并
 -> Provenance Tracker：记录 source_file/source_type/page/evidence_text
 -> Rule + Qwen Quality Validator：检查证据覆盖、缺失字段、冲突值
@@ -32,6 +32,12 @@ $env:QWEN_VL_MODEL="qwen3-vl-30b-a3b-thinking"   # 图表/图像数据提取用�
 ```
 
 项目也会自动读取 `backend/.env`。不要把 `.env` 提交或公开。
+可从 `backend/.env.example` 复制完整配置；`QWEN_NODE_MAX_ATTEMPTS=2`
+限制同一逻辑节点的总尝试次数，避免模型池耗尽后长时间盲重试。非本机部署时应设置
+`SCIDATA_API_TOKEN`。可信的单用户内部环境可在前端构建时设置相同的
+`VITE_SCIDATA_API_TOKEN`，API 请求、图片预览和文件下载都会携带 Bearer Token；
+但所有 `VITE_*` 值都会进入浏览器包，公开部署必须改用登录网关或 HttpOnly 会话，
+不能把该构建变量当作服务端秘密。
 
 ## 命令行使用
 
@@ -77,17 +83,30 @@ python -m scidata_agent.cli `
 启动服务：
 
 ```powershell
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn scidata_agent.api.main:app --reload --port 8000
 ```
+
+默认安装使用 `pdfplumber` 表格解析，体积更小、启动更快。只有明确需要本地
+Table Transformer 推理时，才安装 `requirements-tatr.txt` 并设置
+`USE_TABLE_TRANSFORMER=true`。真实模型测试也需要显式启用：
+`RUN_TATR_TESTS=true pytest -m tatr`；默认测试不会加载 torch/TATR。
 
 接口：
 
 ```text
 GET  /api/health
+GET  /api/tasks
 POST /api/discover
 POST /api/analyze
 GET  /api/tasks/{task_id}
+GET  /api/tasks/{task_id}/events
+POST /api/tasks/{task_id}/cancel
+POST /api/tasks/{task_id}/retry
+POST /api/tasks/{task_id}/reviews/{record_id}
+GET  /api/tasks/{task_id}/assets/{scope}/{asset_path}
 GET  /api/tasks/{task_id}/export?format=csv
 GET  /api/tasks/{task_id}/export?format=json
 GET  /api/tasks/{task_id}/export?format=quality_report
@@ -101,6 +120,46 @@ GET  /api/tasks/{task_id}/export?format=source_discovery_plan
 - `research_question`：用户科研问题
 - `files`：可选，一个或多个 PDF/CSV/Excel 文件
 - `max_pdf_pages`：每个 PDF 最大解析页数，默认 8
+- `enable_live_search`：是否在已上传文件之外继续联网查找多源资料
+- `auto_download_sources`：是否自动下载选中的远程资料
+- `max_auto_resources`：自动选择和获取的资料上限
+- `reuse_dynamic_records_for_metrics`：复用动态抽取结果，避免重复调用指标抽取模型
+
+完整响应结构、错误码、上传限制和资源 URL 规则见
+[`backend/API_CONTRACT.md`](backend/API_CONTRACT.md)。
+
+## Web 前端
+
+前端位于 `frontend/`，使用 React、TypeScript、Vite 和 TanStack Query。
+它是科研数据工作台，不是聊天页，当前包括：
+
+- 新建完整分析或来源发现任务
+- PDF/CSV/TSV/Excel 拖拽上传和参数设置
+- 任务历史、实时节点进度和运行记录
+- 来源目录、动态数据表、原始/清洗记录切换
+- 字段证据抽屉、图表解析、质量报告和导出中心
+- 人工复核结论持久化、失败任务重跑、排队任务取消
+- 最终 Markdown 调研报告在线预览
+
+先启动后端：
+
+```bash
+cd backend
+python -m uvicorn scidata_agent.api.main:app --reload --port 8000
+```
+
+再启动前端：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+打开 `http://localhost:5173`。开发服务器默认把 `/api` 代理到
+`http://localhost:8000`。若前后端分别部署，可在前端构建时设置
+`VITE_API_BASE_URL`。任何 DashScope/Qwen 密钥都只能配置在后端，不能写入
+`VITE_*` 环境变量或浏览器存储。
 
 ## 输出文件
 
@@ -148,10 +207,7 @@ python run_tests.py
 
 ## 下一步开发重点
 
-1. 图表自校正回路：将校验疑点反馈给 Qwen-VL 二次读取，修正坐标轴/图例解析错误（赛题加分项）。
-2. 缺失数据 / 单位不一致的自动识别与修正（赛题加分项）。
-3. 人在回路修正闭环：让 `needs_review.csv` 的确认/修改能写回结果。
-4. 增加网页、补充材料（Figshare/Zenodo 独立图片文件）解析能力。
-5. 将 `ScientificRecord` 进一步通用化为 `entity/entity_type/attributes`。
-6. 增加异步任务队列和持久化任务状态，方便前端调用。
-7. 可交互前端（评分维度"作品演示、交互入口与交付完整度"）。
+1. 图表自校正回路：将校验疑点反馈给 Qwen-VL 二次读取，修正坐标轴/图例解析错误。
+2. 让人工复核的“需要修改”结论支持字段级编辑，并生成新的结果版本。
+3. 增加网页正文、Figshare/Zenodo 独立图片和更多补充材料格式的解析能力。
+4. 将本地线程任务执行器替换为可横向扩展的持久化队列。

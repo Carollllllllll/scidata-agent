@@ -496,6 +496,7 @@ Extraction requirements:
 6. If no relevant records can be extracted from this content, return [].
 7. Use section_title/section_type/page_range as reading context to decide what information is relevant.
 8. Put section_title, section_type, page_start, and page_end into raw when available.
+9. Use warnings only for ambiguous or suspect extracted values/provenance; do not warn when an optional field is absent.
 """
 
 
@@ -598,5 +599,6 @@ Check:
 4. Whether unit is missing, wrong, or conflicting with the metric.
 5. Whether the record may contain hallucination, weak evidence, or field mismatch.
 6. Whether there may be conflicts for the same entity and metric.
+7. Use error only when a record is unusable or contradicts its evidence. A missing unit is warning, not error.
 If no issues, return [].
 """

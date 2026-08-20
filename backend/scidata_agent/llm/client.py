@@ -56,6 +56,10 @@ class LLMCallTrace:
     elapsed_ms: int
     success: bool
     error: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    request_id: str | None = None
 
 
 class QwenBailianClient:
@@ -79,25 +83,40 @@ class QwenBailianClient:
         models: list[str] | tuple[str, ...] | None = None,
         vl_models: list[str] | tuple[str, ...] | None = None,
     ):
-        self.api_key = api_key or os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_BAILIAN_API_KEY")
-        self.text_models = _model_pool(
-            models or _env_model_list("QWEN_MODELS") or DEFAULT_TEXT_MODELS,
-            primary=model or os.getenv("QWEN_MODEL"),
+        self.api_key = (
+            api_key
+            if api_key is not None
+            else os.getenv("DASHSCOPE_API_KEY") or os.getenv("ALIBABA_BAILIAN_API_KEY")
         )
-        self.vl_models = _model_pool(
-            vl_models or _env_model_list("QWEN_VL_MODELS") or DEFAULT_VL_MODELS,
-            primary=os.getenv("QWEN_VL_MODEL"),
-        )
+        if models is not None:
+            self.text_models = _model_pool(models, primary=model)
+        else:
+            self.text_models = _model_pool(
+                _env_model_list("QWEN_MODELS") or DEFAULT_TEXT_MODELS,
+                primary=model if model is not None else os.getenv("QWEN_MODEL"),
+            )
+        if vl_models is not None:
+            self.vl_models = _model_pool(vl_models)
+        else:
+            self.vl_models = _model_pool(
+                _env_model_list("QWEN_VL_MODELS") or DEFAULT_VL_MODELS,
+                primary=os.getenv("QWEN_VL_MODEL"),
+            )
         self._text_index = 0
         self._vl_index = 0
         self._unavailable_text_models: set[str] = set()
         self._unavailable_vl_models: set[str] = set()
         self.model = self.text_models[0]
-        self.base_url = base_url or os.getenv(
-            "DASHSCOPE_BASE_URL",
-            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+        self.base_url = (
+            base_url
+            if base_url is not None
+            else os.getenv(
+                "DASHSCOPE_BASE_URL",
+                "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+            )
         )
-        self.timeout = timeout or int(os.getenv("QWEN_TIMEOUT_SECONDS", "60"))
+        self.timeout = timeout if timeout is not None else int(os.getenv("QWEN_TIMEOUT_SECONDS", "60"))
+        self.text_max_tokens = int(os.getenv("QWEN_TEXT_MAX_TOKENS", "8192"))
         self.vl_model = self.vl_models[0]
         self.vl_timeout = int(os.getenv("QWEN_VL_TIMEOUT_SECONDS", "180"))
         self.vl_max_tokens = int(os.getenv("QWEN_VL_MAX_TOKENS", "8192"))
@@ -112,6 +131,10 @@ class QwenBailianClient:
     def set_event_callback(self, callback: Callable[[dict[str, Any]], None] | None) -> None:
         """Attach a per-run callback for model failover monitoring."""
         self.event_callback = callback
+
+    def emit_runtime_event(self, event: dict[str, Any]) -> None:
+        """Publish node-level retry telemetry through the existing monitor hook."""
+        self._emit_event(event)
 
     def model_pool_status(self) -> dict[str, Any]:
         return {
@@ -143,10 +166,17 @@ class QwenBailianClient:
                     {"role": "user", "content": user_prompt},
                 ],
                 "temperature": temperature,
+                "max_tokens": self.text_max_tokens,
             }
             try:
                 data = self._post_json(payload, timeout=self.timeout)
-                text = data["choices"][0]["message"]["content"]
+                choice = data["choices"][0]
+                if choice.get("finish_reason") == "length":
+                    raise LLMCallError(
+                        f"Qwen output truncated at max_tokens={self.text_max_tokens}. "
+                        "Increase QWEN_TEXT_MAX_TOKENS."
+                    )
+                text = choice["message"]["content"]
                 if isinstance(text, list):
                     text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
                 if not isinstance(text, str):
@@ -160,6 +190,7 @@ class QwenBailianClient:
                         response_chars=len(text),
                         elapsed_ms=int((time.time() - started) * 1000),
                         success=True,
+                        **_trace_usage(data),
                     )
                 )
                 return text
@@ -231,6 +262,7 @@ class QwenBailianClient:
                         response_chars=len(text),
                         elapsed_ms=int((time.time() - started) * 1000),
                         success=True,
+                        **_trace_usage(data),
                     )
                 )
                 return text
@@ -377,6 +409,23 @@ class QwenBailianClient:
 def _env_model_list(name: str) -> list[str]:
     raw = os.getenv(name, "")
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _trace_usage(data: dict[str, Any]) -> dict[str, Any]:
+    usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+    return {
+        "prompt_tokens": _optional_int(usage.get("prompt_tokens")),
+        "completion_tokens": _optional_int(usage.get("completion_tokens")),
+        "total_tokens": _optional_int(usage.get("total_tokens")),
+        "request_id": str(data.get("id")) if data.get("id") else None,
+    }
+
+
+def _optional_int(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _model_pool(models: list[str] | tuple[str, ...], primary: str | None = None) -> list[str]:

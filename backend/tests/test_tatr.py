@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
 
 from scidata_agent.agent.schemas import UploadedFile
-from scidata_agent.tools.table_transformer import TableTransformerExtractor
 from tests.test_pdf_table_extraction import _make_table_pdf
 
 
@@ -16,6 +16,14 @@ def test_tatr_loads_and_extracts_without_parser_fallback(tmp_path: Path) -> None
     This intentionally bypasses parse_pdf_tables(), whose production behavior
     permits a pdfplumber fallback when TATR is unavailable.
     """
+    if os.getenv("RUN_TATR_TESTS", "false").lower() not in {"1", "true", "yes"}:
+        pytest.skip("Set RUN_TATR_TESTS=true to load the optional local TATR models.")
+
+    # Import only after the explicit opt-in. Some mismatched native torch builds
+    # abort the interpreter during import and therefore cannot be caught by
+    # pytest or a normal try/except block.
+    from scidata_agent.tools.table_transformer import TableTransformerExtractor
+
     pdf_path = _make_table_pdf(tmp_path / "tatr_fixture.pdf")
     uploaded = UploadedFile(filename=pdf_path.name, path=pdf_path)
     extractor = TableTransformerExtractor(device="cpu")

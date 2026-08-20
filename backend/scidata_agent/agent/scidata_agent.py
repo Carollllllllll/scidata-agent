@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from scidata_agent.agent.schemas import (
     ArxivSearchPlan,
     ArtifactActionIteration,
     QualityIssue,
+    ScientificRecord,
     UploadedFile,
     timestamp_task_id,
 )
@@ -29,7 +31,7 @@ from scidata_agent.tools.connectors.arxiv import (
     DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
 )
 from scidata_agent.tools.connectors.registry import execute_multi_source_search, merge_sources
-from scidata_agent.tools.normalizer import normalize_records
+from scidata_agent.tools.normalizer import normalize_records, scientific_records_from_dynamic
 from scidata_agent.tools.parser import build_section_blocks_from_plan, fallback_section_plan_from_candidates, parse_sources
 from scidata_agent.tools.provenance import build_source_summaries
 from scidata_agent.tools.quality import build_quality_report
@@ -100,17 +102,30 @@ class SciDataAgent:
         files: list[str | Path] | None = None,
         max_pdf_pages: int | None = 8,
         auto_fetch_arxiv: bool = True,
+        enable_live_search: bool | None = None,
+        auto_download_sources: bool = True,
+        discovery_only: bool = False,
         max_arxiv_papers: int | None = None,
         max_auto_resources: int = DEFAULT_MAX_AUTO_RESOURCES,
         max_dynamic_text_blocks: int | None = 20,
         max_record_text_blocks: int | None = 20,
         max_figures_per_pdf: int = 6,
         max_artifact_action_iterations: int = 1,
+        reuse_dynamic_records_for_metrics: bool = True,
         arxiv_pdf_timeout: int = DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
         arxiv_download_batch_timeout: int = DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
         task_id: str | None = None,
     ) -> AgentResult:
         resource_cap = max_arxiv_papers if max_arxiv_papers is not None else max_auto_resources
+        # Preserve the library API's historical uploaded-file behavior unless
+        # the caller makes an explicit choice.  The HTTP API always sends
+        # ``enable_live_search`` and can therefore combine uploads with live
+        # discovery without unexpectedly adding network work to local callers.
+        live_search_enabled = (
+            auto_fetch_arxiv and not (files or [])
+            if enable_live_search is None
+            else enable_live_search
+        )
         artifact_action_iterations = max(1, min(int(max_artifact_action_iterations), 5))
         uploaded_files = [UploadedFile(filename=Path(path).name, path=Path(path)) for path in (files or [])]
         state = AgentState(
@@ -136,14 +151,24 @@ class SciDataAgent:
                     f"failed={event.get('failed_model')}, next={event.get('next_model')}."
                 )
                 status = "switched"
+                step = "llm_model_failover"
+            elif event_name == "node_retry":
+                message = (
+                    f"LLM node retry: node={event.get('node')}, kind={kind}, "
+                    f"attempt={event.get('attempt')}/{event.get('max_attempts')}, "
+                    f"error={event.get('error')}."
+                )
+                status = "retrying"
+                step = "llm_retry"
             else:
                 message = (
                     f"LLM model pool exhausted: kind={kind}, "
                     f"last_failed={event.get('failed_model')}."
                 )
                 status = "failed"
+                step = "llm_model_failover"
             state.processing_log.append(message)
-            monitor.emit("llm", "llm_model_failover", status, message, event)
+            monitor.emit("llm", step, status, message, event)
 
         self.llm_client.set_event_callback(on_llm_model_event)
         monitor.task(
@@ -152,13 +177,16 @@ class SciDataAgent:
             {
                 "research_question": research_question,
                 "files_count": len(uploaded_files),
-                "auto_fetch_arxiv": auto_fetch_arxiv,
+                "enable_live_search": live_search_enabled,
+                "auto_download_sources": auto_download_sources,
+                "discovery_only": discovery_only,
                 "max_auto_resources": resource_cap,
                 "legacy_max_arxiv_papers": max_arxiv_papers,
                 "max_pdf_pages": max_pdf_pages,
                 "max_dynamic_text_blocks": max_dynamic_text_blocks,
                 "max_record_text_blocks": max_record_text_blocks,
                 "max_artifact_action_iterations": artifact_action_iterations,
+                "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
                 "arxiv_pdf_timeout": arxiv_pdf_timeout,
                 "arxiv_download_batch_timeout": arxiv_download_batch_timeout,
             },
@@ -169,7 +197,10 @@ class SciDataAgent:
             self._run_step(monitor, "task_planning", state, self._plan)
             self._run_step(monitor, "dynamic_schema_planning", state, self._plan_dynamic_schema)
             self._run_step(monitor, "source_discovery", state, self._discover_sources)
-            if auto_fetch_arxiv and not uploaded_files:
+            # Uploaded files seed the analysis; they must not disable connector
+            # search.  Search and download are separate controls so discovery-
+            # only tasks can query live providers without fetching artifacts.
+            if live_search_enabled:
                 self._run_step(monitor, "multi_source_search_planning", state, self._plan_multi_source_search)
                 self._run_step(monitor, "multi_source_search", state, self._execute_multi_source_search)
                 self._run_step(
@@ -186,41 +217,48 @@ class SciDataAgent:
                     self._triage_sources,
                     max_auto_resources=resource_cap,
                 )
-                self._run_step(monitor, "multi_source_ingestion", state, self._ingest_triaged_sources)
-                self._run_step(
+                if auto_download_sources and not discovery_only:
+                    self._run_step(monitor, "multi_source_ingestion", state, self._ingest_triaged_sources)
+                    self._run_step(
+                        monitor,
+                        "arxiv_pdf_ingestion",
+                        state,
+                        self._ingest_arxiv_pdfs,
+                        max_auto_resources=resource_cap,
+                        step_monitor=monitor,
+                        pdf_timeout=arxiv_pdf_timeout,
+                        batch_timeout=arxiv_download_batch_timeout,
+                    )
+                else:
+                    state.processing_log.append(
+                        "Source download skipped by policy: live connector results remain metadata-only."
+                    )
+            if not discovery_only:
+                self._run_artifact_action_iteration(
                     monitor,
-                    "arxiv_pdf_ingestion",
                     state,
-                    self._ingest_arxiv_pdfs,
+                    iteration=0,
                     max_auto_resources=resource_cap,
-                    step_monitor=monitor,
-                    pdf_timeout=arxiv_pdf_timeout,
-                    batch_timeout=arxiv_download_batch_timeout,
+                    arxiv_pdf_timeout=arxiv_pdf_timeout,
+                    arxiv_download_batch_timeout=arxiv_download_batch_timeout,
                 )
-            self._run_artifact_action_iteration(
-                monitor,
-                state,
-                iteration=0,
-                max_auto_resources=resource_cap,
-                arxiv_pdf_timeout=arxiv_pdf_timeout,
-                arxiv_download_batch_timeout=arxiv_download_batch_timeout,
-            )
-            self._run_content_pipeline(
-                monitor,
-                state,
-                max_pdf_pages=max_pdf_pages,
-                max_dynamic_text_blocks=max_dynamic_text_blocks,
-                max_record_text_blocks=max_record_text_blocks,
-                max_figures_per_pdf=max_figures_per_pdf,
-            )
-            if artifact_action_iterations > 1:
+                self._run_content_pipeline(
+                    monitor,
+                    state,
+                    max_pdf_pages=max_pdf_pages,
+                    max_dynamic_text_blocks=max_dynamic_text_blocks,
+                    max_record_text_blocks=max_record_text_blocks,
+                    max_figures_per_pdf=max_figures_per_pdf,
+                    reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
+                )
+            if not discovery_only and artifact_action_iterations > 1:
                 self._run_step(
                     monitor,
                     "quality_validation_before_artifact_followup",
                     state,
                     self._quality_check,
                 )
-            for iteration in range(1, artifact_action_iterations):
+            for iteration in range(1, artifact_action_iterations if not discovery_only else 1):
                 if not state.artifact_action_plan or not state.artifact_action_plan.should_continue:
                     break
                 if not state.artifact_action_plan.actions:
@@ -244,6 +282,7 @@ class SciDataAgent:
                         max_dynamic_text_blocks=max_dynamic_text_blocks,
                         max_record_text_blocks=max_record_text_blocks,
                         max_figures_per_pdf=max_figures_per_pdf,
+                        reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
                     )
                     if iteration + 1 < artifact_action_iterations:
                         self._run_step(
@@ -254,14 +293,14 @@ class SciDataAgent:
                         )
                 if not state.artifact_action_plan or not state.artifact_action_plan.should_continue:
                     break
-            if artifact_action_iterations > 1 and len(state.artifact_action_history) >= artifact_action_iterations:
+            if not discovery_only and artifact_action_iterations > 1 and len(state.artifact_action_history) >= artifact_action_iterations:
                 if state.artifact_action_plan and state.artifact_action_plan.should_continue:
                     state.processing_log.append(
                         f"Artifact action loop reached configured cap={artifact_action_iterations}."
                     )
             self._run_step(monitor, "quality_validation", state, self._quality_check)
-            self._run_step(monitor, "export", state, self._export)
             self._append_llm_trace(state)
+            self._run_step(monitor, "export", state, self._export)
             result = self._build_result(state, status="completed")
             monitor.task("completed", "Agent task completed.", _result_snapshot(result))
             self.llm_client.set_event_callback(None)
@@ -391,6 +430,7 @@ class SciDataAgent:
         max_dynamic_text_blocks: int | None,
         max_record_text_blocks: int | None,
         max_figures_per_pdf: int,
+        reuse_dynamic_records_for_metrics: bool,
     ) -> None:
         if state.files or state.parsed_sources.text_blocks or state.parsed_sources.tables:
             self._run_step(monitor, "source_parsing", state, self._parse, max_pdf_pages=max_pdf_pages)
@@ -418,6 +458,7 @@ class SciDataAgent:
                 self._extract,
                 step_monitor=monitor,
                 max_text_blocks=max_record_text_blocks,
+                reuse_dynamic_records=reuse_dynamic_records_for_metrics,
             )
             self._run_step(monitor, "normalization", state, self._normalize)
             self._run_step(monitor, "provenance_tracking", state, self._trace)
@@ -810,10 +851,16 @@ class SciDataAgent:
                 existing_table_keys.add(_table_key(table))
 
         state.parsed_sources.file_titles.update(parsed.file_titles)
+        for warning in parsed.parser_warnings:
+            if warning not in state.parsed_sources.parser_warnings:
+                state.parsed_sources.parser_warnings.append(warning)
+                state.processing_log.append(f"Parser warning: {warning}")
+        state.parsed_sources.table_extraction_status.extend(parsed.table_extraction_status)
         state.processing_log.append(
             f"Source parsing completed: text_blocks={len(state.parsed_sources.text_blocks)}, "
             f"heading_candidates={len(state.parsed_sources.heading_candidates)}, "
-            f"tables={len(state.parsed_sources.tables)}."
+            f"tables={len(state.parsed_sources.tables)}, "
+            f"parser_warnings={len(state.parsed_sources.parser_warnings)}."
         )
 
     def _extract_charts(
@@ -989,7 +1036,20 @@ class SciDataAgent:
         state: AgentState,
         step_monitor: AgentMonitor | None = None,
         max_text_blocks: int | None = None,
+        reuse_dynamic_records: bool = True,
     ) -> None:
+        if reuse_dynamic_records:
+            derived_records = scientific_records_from_dynamic(
+                state.clean_dynamic_records or state.dynamic_records
+            )
+            if derived_records:
+                state.candidate_records = derived_records
+                self._backfill_paper_titles(state, state.candidate_records)
+                state.processing_log.append(
+                    "Metric extraction reused schema-driven dynamic records: "
+                    f"derived_metrics={len(derived_records)}; duplicate PDF/table LLM pass skipped."
+                )
+                return
         if not state.task_plan:
             raise RuntimeError("Task plan missing before extraction.")
         source_blocks = state.parsed_sources.section_blocks or state.parsed_sources.text_blocks
@@ -1100,13 +1160,34 @@ class SciDataAgent:
         )
 
     def _quality_check(self, state: AgentState) -> None:
-        llm_issues = self.llm_nodes.validate_records(state.final_records)
+        validation_records = _records_for_llm_validation(state.final_records)
+        llm_issues = self.llm_nodes.validate_records(validation_records)
+        if len(validation_records) < len(state.final_records):
+            state.processing_log.append(
+                "LLM quality validation used a risk-ranked sample: "
+                f"selected={len(validation_records)}, total={len(state.final_records)}; "
+                "deterministic validation still covered every record."
+            )
         target_fields = state.task_plan.target_fields if state.task_plan else None
         state.quality_report = build_quality_report(
             state.final_records,
             llm_issues=llm_issues,
             target_fields=target_fields,
+            dynamic_records=state.clean_dynamic_records,
+            dynamic_plan=state.dynamic_extraction_plan,
+            text_blocks=state.parsed_sources.text_blocks,
+            table_blocks=state.parsed_sources.tables,
         )
+        review_issue_ids = {
+            issue.record_id
+            for issue in state.quality_report.issues
+            if issue.record_id and issue.level in {"warning", "error"}
+        }
+        review_by_id = {record.record_id: record for record in state.needs_review_records}
+        for record in state.clean_dynamic_records:
+            if record.record_id in review_issue_ids or record.warnings:
+                review_by_id[record.record_id] = record
+        state.needs_review_records = list(review_by_id.values())
         for validation in state.chart_validations:
             for issue in validation.issues:
                 state.quality_report.issues.append(
@@ -1153,7 +1234,9 @@ class SciDataAgent:
             if trace.success:
                 state.processing_log.append(
                     f"LLM trace: node={trace.node}, model={trace.model}, prompt_chars={trace.prompt_chars}, "
-                    f"response_chars={trace.response_chars}, elapsed_ms={trace.elapsed_ms}."
+                    f"response_chars={trace.response_chars}, prompt_tokens={trace.prompt_tokens}, "
+                    f"completion_tokens={trace.completion_tokens}, total_tokens={trace.total_tokens}, "
+                    f"request_id={trace.request_id}, elapsed_ms={trace.elapsed_ms}."
                 )
             else:
                 state.processing_log.append(
@@ -1178,6 +1261,7 @@ class SciDataAgent:
             artifact_action_results=state.artifact_action_results,
             artifact_action_history=state.artifact_action_history,
             dynamic_extraction_plan=state.dynamic_extraction_plan,
+            connector_status=state.connector_status,
             summary=AgentSummary(
                 files_processed=len(state.files),
                 text_blocks_processed=len(state.parsed_sources.text_blocks),
@@ -1194,7 +1278,12 @@ class SciDataAgent:
                 warnings=warnings,
             ),
             records=state.final_records,
-            dynamic_records=state.dynamic_records,
+            dynamic_records=state.clean_dynamic_records or state.dynamic_records,
+            dynamic_records_raw=state.dynamic_records,
+            needs_review_records=state.needs_review_records,
+            figures=state.parsed_sources.figure_assets,
+            chart_extractions=state.chart_extractions,
+            chart_validations=state.chart_validations,
             field_schema=FIELD_SCHEMA,
             sources=state.sources,
             processing_log=state.processing_log,
@@ -1611,6 +1700,35 @@ def _progress_callback(monitor: AgentMonitor | None, step: str):
         )
 
     return callback
+
+
+def _records_for_llm_validation(records: list[ScientificRecord]) -> list[ScientificRecord]:
+    """Select a bounded, risk-ranked sample for the expensive LLM review.
+
+    Deterministic quality checks still inspect the complete record set. This
+    second-opinion pass prioritizes records already carrying extraction risk and
+    then fills the remaining capacity in stable source order.
+    """
+    try:
+        limit = int(os.getenv("SCIDATA_LLM_VALIDATE_MAX_RECORDS", "12"))
+    except ValueError:
+        limit = 12
+    limit = max(0, min(limit, 100))
+    if len(records) <= limit:
+        return records
+
+    def risk(item: tuple[int, ScientificRecord]) -> tuple[int, int]:
+        index, record = item
+        score = 0
+        score += 4 if record.warnings else 0
+        score += 3 if not record.evidence_text else 0
+        score += 2 if record.page is None and record.source_type.value.startswith("pdf") else 0
+        score += 2 if record.confidence < 0.75 else 0
+        score += 1 if record.metric_value is None else 0
+        return (-score, index)
+
+    ranked = sorted(enumerate(records), key=risk)
+    return [record for _, record in ranked[:limit]]
 
 
 def _result_snapshot(result: AgentResult) -> dict[str, Any]:
