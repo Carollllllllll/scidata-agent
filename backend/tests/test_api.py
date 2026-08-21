@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from pathlib import Path
@@ -94,6 +95,42 @@ def _wait_until_terminal(client: TestClient, task_id: str) -> dict:
             return payload
         time.sleep(0.01)
     raise AssertionError(f"task {task_id} did not finish")
+
+
+def test_request_body_limit_rejects_before_calling_application() -> None:
+    application_called = False
+    sent: list[dict] = []
+
+    async def inner(_scope, _receive, _send):
+        nonlocal application_called
+        application_called = True
+
+    async def receive():
+        return {"type": "http.request", "body": b"12345", "more_body": False}
+
+    async def send(message):
+        sent.append(message)
+
+    middleware = api_main.RequestBodyLimitMiddleware(
+        inner,
+        max_body_bytes=4,
+        paths={"/api/analyze"},
+    )
+    asyncio.run(
+        middleware(
+            {
+                "type": "http",
+                "method": "POST",
+                "path": "/api/analyze",
+                "headers": [(b"content-length", b"5")],
+            },
+            receive,
+            send,
+        )
+    )
+
+    assert application_called is False
+    assert next(message for message in sent if message["type"] == "http.response.start")["status"] == 413
 
 
 def test_api_task_lifecycle_and_public_assets(tmp_path, monkeypatch) -> None:
@@ -216,3 +253,42 @@ def test_api_validation_and_http_errors(tmp_path, monkeypatch) -> None:
         assert unknown_review.status_code == 404
     finally:
         manager.shutdown()
+
+
+def test_api_security_handles_non_ascii_and_cors_preflight(monkeypatch) -> None:
+    monkeypatch.setenv("SCIDATA_API_TOKEN", "expected-token")
+    api_main._RATE_LIMIT_BUCKETS.clear()
+    client = TestClient(api_main.app)
+
+    preflight = client.options(
+        "/api/analyze",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert preflight.status_code == 200
+    assert preflight.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+    unauthorized = client.get(
+        "/api/tasks/not_a_real_task",
+        headers=[(b"origin", b"http://localhost:5173"), (b"authorization", b"Bearer \xff")],
+    )
+    assert unauthorized.status_code == 401
+    assert unauthorized.json()["detail"]["code"] == "UNAUTHORIZED"
+    assert unauthorized.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_invalid_token_attempts_are_rate_limited_before_auth(monkeypatch) -> None:
+    monkeypatch.setenv("SCIDATA_API_TOKEN", "expected-token")
+    monkeypatch.setattr(api_main, "RATE_LIMIT_PER_MINUTE", 1)
+    api_main._RATE_LIMIT_BUCKETS.clear()
+    client = TestClient(api_main.app)
+
+    first = client.get("/api/tasks/not_a_real_task", headers={"Authorization": "Bearer wrong-one"})
+    second = client.get("/api/tasks/not_a_real_task", headers={"Authorization": "Bearer wrong-two"})
+
+    assert first.status_code == 401
+    assert second.status_code == 429
+    assert second.json()["detail"]["code"] == "RATE_LIMITED"

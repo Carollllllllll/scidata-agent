@@ -8,7 +8,7 @@ import shutil
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import RLock
+from threading import Event, RLock
 from typing import Any
 from urllib.parse import quote
 
@@ -21,6 +21,13 @@ TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 
 class TaskQueueFullError(RuntimeError):
     pass
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.getenv(name, str(default))))
+    except (TypeError, ValueError):
+        return default
 
 
 class TaskManager:
@@ -71,9 +78,10 @@ class TaskManager:
             self.upload_dir.mkdir(parents=True, exist_ok=True)
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="scidata-agent")
         self._futures: dict[str, Future[Any]] = {}
+        self._cancel_events: dict[str, Event] = {}
         self._lock = RLock()
         self.owner_pid = os.getpid()
-        configured_pending = max_pending_tasks if max_pending_tasks is not None else int(os.getenv("SCIDATA_MAX_PENDING_TASKS", "8"))
+        configured_pending = max_pending_tasks if max_pending_tasks is not None else _positive_env_int("SCIDATA_MAX_PENDING_TASKS", 8)
         self.max_pending_tasks = max(1, configured_pending)
 
     def submit(
@@ -111,6 +119,8 @@ class TaskManager:
                     "auto_fetch_arxiv": auto_fetch_arxiv,
                 },
             )
+            cancel_event = Event()
+            self._cancel_events[task_id] = cancel_event
             future = self._executor.submit(
                 self._run,
                 task_id,
@@ -118,6 +128,7 @@ class TaskManager:
                 files,
                 run_options,
                 auto_fetch_arxiv,
+                cancel_event,
             )
             self._futures[task_id] = future
             future.add_done_callback(lambda _future, identifier=task_id: self._discard_future(identifier))
@@ -129,18 +140,26 @@ class TaskManager:
             return len(self._futures) < self.max_pending_tasks
 
     def cancel_task(self, task_id: str) -> bool:
+        cancelled_before_start = False
         with self._lock:
             future = self._futures.get(task_id)
-            if future is None or not future.cancel():
+            cancel_event = self._cancel_events.get(task_id)
+            if future is None or cancel_event is None or future.done():
                 return False
-            self._futures.pop(task_id, None)
-        self._update_state(
-            task_id,
-            status="cancelled",
-            current_step="cancelled",
-            message="Task cancelled before execution.",
-            error={"code": "TASK_CANCELLED", "message": "Task cancelled before execution."},
-        )
+            cancelled_before_start = future.cancel()
+            if cancelled_before_start:
+                self._futures.pop(task_id, None)
+                self._cancel_events.pop(task_id, None)
+            else:
+                cancel_event.set()
+        if cancelled_before_start:
+            self._mark_cancelled(task_id, "Task cancelled before execution.")
+        else:
+            self._update_state(
+                task_id,
+                current_step="cancellation_requested",
+                message="Cancellation requested; the current pipeline step will finish safely.",
+            )
         return True
 
     def retry_task(self, task_id: str, new_task_id: str | None = None) -> dict[str, Any]:
@@ -210,17 +229,35 @@ class TaskManager:
         if status is not None and status not in allowed_statuses:
             raise ValueError("Invalid task status")
 
+        candidates: list[tuple[float, str, Path]] = []
+        try:
+            entries = os.scandir(self.state_dir)
+        except OSError:
+            return []
+        with entries:
+            for entry in entries:
+                try:
+                    is_directory = entry.is_dir(follow_symlinks=False)
+                except OSError:
+                    continue
+                if not is_directory or not TASK_ID_PATTERN.fullmatch(entry.name):
+                    continue
+                task_dir = Path(entry.path)
+                candidates.append((self._task_recency(task_dir), entry.name, task_dir))
+        candidates.sort(reverse=True)
+
         tasks: list[dict[str, Any]] = []
-        for task_dir in self.state_dir.iterdir():
-            if not task_dir.is_dir() or not TASK_ID_PATTERN.fullmatch(task_dir.name):
-                continue
+        for _recency, task_id, task_dir in candidates:
             state = self._read_json(task_dir / "task_state.json")
             if state is None or (status is not None and state.get("status") != status):
                 continue
+            # Payloads, export checks and monitor tails are comparatively
+            # expensive. Only materialize them for rows that can enter the
+            # requested page rather than for the complete task history.
             payload = self._read_json(task_dir / "result_payload.json")
             item = copy.deepcopy(state)
             if item.get("status") in {"queued", "running"}:
-                event = self._latest_monitor_event(task_dir.name)
+                event = self._latest_monitor_event(task_id)
                 if event:
                     if event.get("event_type") in {"step", "progress"}:
                         item["current_step"] = event.get("step") or item.get("current_step")
@@ -235,11 +272,25 @@ class TaskManager:
             item["result"] = None
             item["summary"] = payload.get("summary") if payload else None
             item["quality_report"] = payload.get("quality_report") if payload else None
-            item["download_urls"] = self.download_urls(task_dir.name)
+            item["download_urls"] = self.download_urls(task_id)
             tasks.append(item)
+            if len(tasks) >= limit:
+                break
 
         tasks.sort(key=lambda item: str(item.get("updated_at") or item.get("created_at") or ""), reverse=True)
-        return tasks[:limit]
+        return tasks
+
+    def _task_recency(self, task_dir: Path) -> float:
+        mtimes: list[float] = []
+        for path in (
+            task_dir / "task_state.json",
+            self.output_dir / task_dir.name / "agent_monitor.jsonl",
+        ):
+            try:
+                mtimes.append(path.stat().st_mtime)
+            except OSError:
+                continue
+        return max(mtimes, default=0.0)
 
     def get_events(
         self,
@@ -283,23 +334,24 @@ class TaskManager:
     ) -> dict[str, Any]:
         if decision not in {"approved", "needs_changes", "rejected"}:
             raise ValueError("Invalid review decision")
-        payload = self._read_json(self._task_state_dir(task_id, create=False) / "result_payload.json")
-        if payload is None:
-            raise LookupError("Task result is not ready")
-        valid_ids = _reviewable_record_ids(payload)
-        if record_id not in valid_ids:
-            raise KeyError(record_id)
-        decisions = self.review_decisions(task_id)
-        review = {
-            "record_id": record_id,
-            "decision": decision,
-            "note": note.strip() if isinstance(note, str) and note.strip() else None,
-            "updated_at": _now(),
-        }
-        decisions[record_id] = review
-        self._write_json(self._task_state_dir(task_id) / "review_decisions.json", decisions)
-        self._update_state(task_id, updated_at=_now())
-        return review
+        with self._lock:
+            payload = self._read_json(self._task_state_dir(task_id, create=False) / "result_payload.json")
+            if payload is None:
+                raise LookupError("Task result is not ready")
+            valid_ids = _reviewable_record_ids(payload)
+            if record_id not in valid_ids:
+                raise KeyError(record_id)
+            decisions = self.review_decisions(task_id)
+            review = {
+                "record_id": record_id,
+                "decision": decision,
+                "note": note.strip() if isinstance(note, str) and note.strip() else None,
+                "updated_at": _now(),
+            }
+            decisions[record_id] = review
+            self._write_json(self._task_state_dir(task_id) / "review_decisions.json", decisions)
+            self._update_state(task_id, updated_at=_now())
+            return review
 
     def download_path(self, task_id: str, export_format: str) -> Path | None:
         task_dir = self._task_output_dir(task_id)
@@ -348,11 +400,16 @@ class TaskManager:
 
     def shutdown(self, wait: bool = True) -> None:
         """Stop the worker pool during application shutdown or test teardown."""
-        self._executor.shutdown(wait=wait)
+        with self._lock:
+            active_task_ids = list(self._futures)
+        for task_id in active_task_ids:
+            self.cancel_task(task_id)
+        self._executor.shutdown(wait=wait, cancel_futures=True)
 
     def _discard_future(self, task_id: str) -> None:
         with self._lock:
             self._futures.pop(task_id, None)
+            self._cancel_events.pop(task_id, None)
 
     def _prune_futures_locked(self) -> None:
         completed = [task_id for task_id, future in self._futures.items() if future.done()]
@@ -423,8 +480,13 @@ class TaskManager:
         files: list[str],
         run_options: dict[str, Any],
         auto_fetch_arxiv: bool,
+        cancel_event: Event,
     ) -> None:
+        if cancel_event.is_set():
+            self._mark_cancelled(task_id, "Task cancelled before execution.")
+            return
         self._update_state(task_id, status="running", current_step="starting", message="Agent task started.")
+        agent = None
         try:
             agent = SciDataAgent(output_dir=self.output_dir)
             result = agent.run(
@@ -432,10 +494,14 @@ class TaskManager:
                 files,
                 task_id=task_id,
                 auto_fetch_arxiv=auto_fetch_arxiv,
+                cancel_check=cancel_event.is_set,
                 **run_options,
             )
             payload = result.model_dump(mode="json", by_alias=True)
             self._write_json(self._task_state_dir(task_id) / "result_payload.json", payload)
+            if cancel_event.is_set():
+                self._mark_cancelled(task_id, "Task cancelled at a safe pipeline checkpoint.")
+                return
             failure_event = self._latest_failure_event(task_id) if result.status == "failed" else None
             failure_message = _result_failure_message(payload)
             if failure_event:
@@ -461,13 +527,33 @@ class TaskManager:
                 result_status=result.status,
             )
         except Exception as exc:  # defensive boundary for background jobs
-            self._update_state(
-                task_id,
-                status="failed",
-                current_step="failed",
-                message=f"Agent task failed: {exc}",
-                error={"code": "TASK_EXECUTION_FAILED", "message": str(exc)},
-            )
+            if cancel_event.is_set():
+                self._mark_cancelled(task_id, "Task cancelled at a safe pipeline checkpoint.")
+            else:
+                self._update_state(
+                    task_id,
+                    status="failed",
+                    current_step="failed",
+                    message=f"Agent task failed: {exc}",
+                    error={"code": "TASK_EXECUTION_FAILED", "message": str(exc)},
+                )
+        finally:
+            llm_client = getattr(agent, "llm_client", None)
+            close = getattr(llm_client, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception:
+                    pass
+
+    def _mark_cancelled(self, task_id: str, message: str) -> None:
+        self._update_state(
+            task_id,
+            status="cancelled",
+            current_step="cancelled",
+            message=message,
+            error={"code": "TASK_CANCELLED", "message": message},
+        )
 
     def _task_state_dir(self, task_id: str, *, create: bool = True) -> Path:
         _validate_task_id(task_id)
@@ -538,15 +624,17 @@ class TaskManager:
         return self._read_json(state_dir / "task_state.json")
 
     def _write_state(self, task_id: str, payload: dict[str, Any]) -> None:
-        state = dict(payload)
-        state.setdefault("created_at", _now())
-        state["updated_at"] = _now()
-        self._write_json(self._task_state_dir(task_id) / "task_state.json", state)
+        with self._lock:
+            state = dict(payload)
+            state.setdefault("created_at", _now())
+            state["updated_at"] = _now()
+            self._write_json(self._task_state_dir(task_id) / "task_state.json", state)
 
     def _update_state(self, task_id: str, **changes: Any) -> None:
-        current = self._read_state(task_id) or {"task_id": task_id, "created_at": _now()}
-        current.update(changes)
-        self._write_state(task_id, current)
+        with self._lock:
+            current = self._read_state(task_id) or {"task_id": task_id, "created_at": _now()}
+            current.update(changes)
+            self._write_state(task_id, current)
 
     @staticmethod
     def _read_json(path: Path) -> dict[str, Any] | None:

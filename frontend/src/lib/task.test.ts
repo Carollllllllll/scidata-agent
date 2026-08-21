@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { displayValue, formatBytes, progressPercent, stageLabel } from "./task";
+import { displayValue, formatBytes, overallProgressPercent, progressPercent, stageLabel } from "./task";
 
 describe("task presentation helpers", () => {
   it("maps lifecycle stages to readable Chinese labels", () => {
@@ -8,9 +8,21 @@ describe("task presentation helpers", () => {
     expect(stageLabel("custom_stage")).toBe("custom stage");
   });
 
-  it("uses explicit progress before stage-derived progress", () => {
-    expect(progressPercent("running", "source_discovery", { current: 3, total: 4 })).toBe(75);
+  it("maps stage-local progress into the overall pipeline", () => {
+    expect(progressPercent("running", "figure_chart_extraction", { current: 1, total: 12 })).toBe(65);
+    expect(progressPercent("running", "figure_chart_extraction", { current: 12, total: 12 })).toBe(70);
+    expect(progressPercent("running", "source_parsing", null, "completed")).toBe(64);
     expect(progressPercent("completed", "source_discovery", null)).toBe(100);
+  });
+
+  it("keeps progress monotonic across dynamic follow-up and nested stages", () => {
+    const events = [
+      { event_type: "step", step: "artifact_action_execution", status: "completed" },
+      { event_type: "step", step: "artifact_search_more_source_selection", status: "started" },
+      { event_type: "progress", step: "arxiv_pdf_ingestion", status: "started" },
+    ];
+    expect(overallProgressPercent("running", events, "arxiv_pdf_ingestion", { current: 1, total: 2 })).toBe(52);
+    expect(stageLabel("artifact_search_more_source_selection")).toBe("扩展检索：筛选来源");
   });
 
   it("formats empty and structured values without fabricating data", () => {

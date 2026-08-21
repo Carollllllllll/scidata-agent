@@ -1,26 +1,50 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
 import time
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from threading import Lock
+from typing import Any, Callable
 
 from pydantic import BaseModel
+
+
+LOGGER = logging.getLogger(__name__)
+TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 
 
 class AgentMonitor:
     """Console and JSONL monitor for Agent workflow checkpoints."""
 
-    def __init__(self, task_id: str, output_dir: Path, console: bool = True, enabled: bool = True):
+    def __init__(
+        self,
+        task_id: str,
+        output_dir: Path,
+        console: bool = True,
+        enabled: bool = True,
+        cancel_check: Callable[[], bool] | None = None,
+    ):
+        if not task_id or not TASK_ID_PATTERN.fullmatch(task_id):
+            raise ValueError("Invalid task ID")
         self.task_id = task_id
         self.console = console
         self.enabled = enabled
-        self.task_dir = output_dir / task_id
+        self._cancel_check = cancel_check
+        output_root = Path(output_dir).expanduser().resolve()
+        self.task_dir = (output_root / task_id).resolve()
+        if self.task_dir.parent != output_root:
+            raise ValueError("Invalid task output path")
         self.task_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = self.task_dir / "agent_monitor.jsonl"
         self._step_started_at: dict[str, float] = {}
+        self._emit_lock = Lock()
+
+    def cancel_requested(self) -> bool:
+        return bool(self._cancel_check and self._cancel_check())
 
     def start(self, step: str, message: str, data: dict[str, Any] | None = None) -> None:
         self._step_started_at[step] = time.perf_counter()
@@ -68,11 +92,18 @@ class AgentMonitor:
             "message": message,
             "data": _jsonable(data or {}),
         }
-        line = json.dumps(event, ensure_ascii=False)
-        with self.log_path.open("a", encoding="utf-8") as handle:
-            handle.write(line + "\n")
-        if self.console:
-            print(_format_console_event(event), flush=True)
+        with self._emit_lock:
+            try:
+                line = json.dumps(event, ensure_ascii=False)
+                with self.log_path.open("a", encoding="utf-8") as handle:
+                    handle.write(line + "\n")
+            except (OSError, TypeError, ValueError):
+                LOGGER.warning("Agent monitor file write failed for task %s", self.task_id, exc_info=True)
+            if self.console:
+                try:
+                    print(_format_console_event(event), flush=True)
+                except (OSError, TypeError, ValueError):
+                    LOGGER.warning("Agent monitor console write failed for task %s", self.task_id, exc_info=True)
 
 
 def _format_console_event(event: dict[str, Any]) -> str:

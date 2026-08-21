@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 import os
 import re
 import hmac
 import time
-from collections import defaultdict, deque
+from collections import deque
 from pathlib import Path
 from pathlib import PureWindowsPath
 from threading import Lock
@@ -71,14 +72,122 @@ def _positive_env_int(name: str, default: int) -> int:
 MAX_UPLOAD_FILES = _positive_env_int("SCIDATA_MAX_UPLOAD_FILES", 20)
 MAX_UPLOAD_BYTES = _positive_env_int("SCIDATA_MAX_UPLOAD_BYTES", 50 * 1024 * 1024)
 MAX_UPLOAD_TOTAL_BYTES = _positive_env_int("SCIDATA_MAX_UPLOAD_TOTAL_BYTES", 200 * 1024 * 1024)
+MAX_REQUEST_BODY_BYTES = _positive_env_int(
+    "SCIDATA_MAX_REQUEST_BODY_BYTES",
+    MAX_UPLOAD_TOTAL_BYTES + 1024 * 1024,
+)
 RATE_LIMIT_PER_MINUTE = _positive_env_int("SCIDATA_RATE_LIMIT_PER_MINUTE", 60)
 _RATE_LIMIT_LOCK = Lock()
-_RATE_LIMIT_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+_RATE_LIMIT_BUCKETS: dict[str, deque[float]] = {}
+
+
+class _RequestBodyTooLarge(Exception):
+    pass
+
+
+class RequestBodyLimitMiddleware:
+    """Reject oversized request bodies before multipart parsing/spooling."""
+
+    def __init__(self, app, max_body_bytes: int, paths: set[str] | None = None) -> None:
+        self.app = app
+        self.max_body_bytes = max(1, int(max_body_bytes))
+        self.paths = paths
+
+    async def __call__(self, scope, receive, send) -> None:
+        if (
+            scope.get("type") != "http"
+            or (self.paths is not None and scope.get("path") not in self.paths)
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        headers = {key.lower(): value for key, value in scope.get("headers", [])}
+        raw_content_length = headers.get(b"content-length")
+        if raw_content_length is not None:
+            try:
+                if int(raw_content_length) > self.max_body_bytes:
+                    await self._reject(scope, receive, send)
+                    return
+            except ValueError:
+                pass
+
+        received_bytes = 0
+        response_started = False
+
+        async def limited_receive():
+            nonlocal received_bytes
+            message = await receive()
+            if message.get("type") == "http.request":
+                received_bytes += len(message.get("body", b""))
+                if received_bytes > self.max_body_bytes:
+                    raise _RequestBodyTooLarge
+            return message
+
+        async def tracked_send(message):
+            nonlocal response_started
+            if message.get("type") == "http.response.start":
+                response_started = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, tracked_send)
+        except _RequestBodyTooLarge:
+            if not response_started:
+                await self._reject(scope, receive, send)
+
+    async def _reject(self, scope, receive, send) -> None:
+        response = JSONResponse(
+            status_code=413,
+            content={
+                "detail": {
+                    "code": "REQUEST_BODY_TOO_LARGE",
+                    "message": "请求体超过允许的上传大小。",
+                }
+            },
+        )
+        await response(scope, receive, send)
 
 
 def _cors_origins() -> list[str]:
     configured = os.getenv("SCIDATA_CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
     return [origin.strip() for origin in configured.split(",") if origin.strip()]
+
+
+def _truthy_env(name: str) -> bool:
+    return os.getenv(name, "").strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _client_rate_limit_key(request: Request) -> str:
+    if _truthy_env("SCIDATA_TRUST_PROXY_HEADERS"):
+        forwarded = request.headers.get("X-Forwarded-For", "")
+        candidate = forwarded.split(",", 1)[0].strip()
+        if candidate:
+            return candidate
+    return request.client.host if request.client else "unknown"
+
+
+def _request_is_rate_limited(request: Request, now: float) -> bool:
+    client_key = _client_rate_limit_key(request)
+    with _RATE_LIMIT_LOCK:
+        # Sweep expired/empty buckets as part of normal traffic so rotating
+        # client addresses cannot grow this process-wide map without bound.
+        for key, existing in list(_RATE_LIMIT_BUCKETS.items()):
+            while existing and now - existing[0] >= 60:
+                existing.popleft()
+            if not existing:
+                _RATE_LIMIT_BUCKETS.pop(key, None)
+
+        bucket = _RATE_LIMIT_BUCKETS.setdefault(client_key, deque())
+        if len(bucket) >= RATE_LIMIT_PER_MINUTE:
+            return True
+        bucket.append(now)
+        return False
+
+
+def _authorization_matches(supplied: str, expected: str) -> bool:
+    # compare_digest(str, str) rejects non-ASCII input with TypeError. Header
+    # values are untrusted, so compare encoded bytes and return a normal 401.
+    return hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8"))
 
 
 def _save_uploads(
@@ -290,11 +399,46 @@ async def _app_lifespan(_app):
     try:
         yield
     finally:
-        TASK_MANAGER.shutdown()
+        # Executor shutdown may wait for long PDF/LLM jobs. Keep that blocking
+        # wait off the event loop so the server can finish other shutdown work.
+        await asyncio.to_thread(TASK_MANAGER.shutdown)
 
 
 if FastAPI is not None:
     app = FastAPI(title="SciData Agent API", version=API_VERSION, lifespan=_app_lifespan)
+
+    @app.middleware("http")
+    async def api_security_guard(request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        if request.url.path.startswith("/api") and request.url.path != "/api/health":
+            configured_token = os.getenv("SCIDATA_API_TOKEN", "").strip()
+            authorized = True
+            if configured_token:
+                supplied = request.headers.get("Authorization", "")
+                expected = f"Bearer {configured_token}"
+                authorized = _authorization_matches(supplied, expected)
+            should_rate_limit = request.method in {"POST", "PUT", "PATCH", "DELETE"} or not authorized
+            if should_rate_limit and _request_is_rate_limited(request, time.monotonic()):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": {"code": "RATE_LIMITED", "message": "请求过于频繁，请稍后再试。"}},
+                )
+            if not authorized:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": {"code": "UNAUTHORIZED", "message": "缺少或无效的 API 访问令牌。"}},
+                )
+        return await call_next(request)
+
+    app.add_middleware(
+        RequestBodyLimitMiddleware,
+        max_body_bytes=MAX_REQUEST_BODY_BYTES,
+        paths={"/api/analyze"},
+    )
+
+    # Added after the security/body middleware so CORS is the outer layer. It must
+    # handle browser preflight and decorate security/rate-limit responses too.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
@@ -302,33 +446,6 @@ if FastAPI is not None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-    @app.middleware("http")
-    async def api_security_guard(request: Request, call_next):
-        if request.url.path.startswith("/api") and request.url.path != "/api/health":
-            configured_token = os.getenv("SCIDATA_API_TOKEN", "").strip()
-            if configured_token:
-                supplied = request.headers.get("Authorization", "")
-                expected = f"Bearer {configured_token}"
-                if not hmac.compare_digest(supplied, expected):
-                    return JSONResponse(
-                        status_code=401,
-                        content={"detail": {"code": "UNAUTHORIZED", "message": "缺少或无效的 API 访问令牌。"}},
-                    )
-            if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
-                client_key = request.client.host if request.client else "unknown"
-                now = time.monotonic()
-                with _RATE_LIMIT_LOCK:
-                    bucket = _RATE_LIMIT_BUCKETS[client_key]
-                    while bucket and now - bucket[0] >= 60:
-                        bucket.popleft()
-                    if len(bucket) >= RATE_LIMIT_PER_MINUTE:
-                        return JSONResponse(
-                            status_code=429,
-                            content={"detail": {"code": "RATE_LIMITED", "message": "请求过于频繁，请稍后再试。"}},
-                        )
-                    bucket.append(now)
-        return await call_next(request)
 
     @app.get("/api/health", response_model=HealthResponse)
     def health() -> dict[str, Any]:
@@ -488,10 +605,10 @@ if FastAPI is not None:
     @app.post("/api/tasks/{task_id}/cancel", response_model=TaskResponse)
     def cancel_task(task_id: str) -> dict[str, Any]:
         task = _task_or_404(task_id)
-        if task.get("status") != "queued" or not TASK_MANAGER.cancel_task(task_id):
+        if task.get("status") not in {"queued", "running"} or not TASK_MANAGER.cancel_task(task_id):
             raise HTTPException(
                 status_code=409,
-                detail={"code": "TASK_NOT_CANCELLABLE", "message": "任务已经开始执行或已经结束，无法直接取消。"},
+                detail={"code": "TASK_NOT_CANCELLABLE", "message": "任务已经结束或取消请求无法提交。"},
             )
         return _public_task_response(_task_or_404(task_id))
 

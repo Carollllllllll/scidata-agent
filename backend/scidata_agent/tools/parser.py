@@ -4,6 +4,7 @@ import math
 import os
 import re
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pandas as pd
@@ -36,6 +37,7 @@ from scidata_agent.agent.schemas import (
 
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".tsv", ".xlsx", ".xls"}
+_UNSET = object()
 
 
 def _use_table_transformer() -> bool:
@@ -49,29 +51,77 @@ def parse_sources(files: list[UploadedFile], max_pdf_pages: int | None = 8) -> P
     for uploaded in files:
         suffix = uploaded.path.suffix.lower()
         if suffix == ".pdf":
-            pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages)
-            parsed.text_blocks.extend(pdf_blocks)
-            parsed.heading_candidates.extend(extract_heading_candidates(uploaded, pdf_blocks, max_pages=max_pdf_pages))
-            tables, table_status = _parse_pdf_tables_with_status(uploaded, max_pages=max_pdf_pages)
-            parsed.tables.extend(tables)
-            parsed.table_extraction_status.append(table_status)
-            fallback_reason = table_status.get("fallback_reason")
-            if fallback_reason:
-                parsed.parser_warnings.append(
-                    f"Table Transformer unavailable for {uploaded.filename}; "
-                    f"used pdfplumber fallback: {fallback_reason}"
-                )
-            title = extract_pdf_title(uploaded.path)
-            if title:
-                parsed.file_titles[uploaded.filename] = title
+            reader = None
+            pdf_document = None
+            try:
+                if PdfReader is None:
+                    raise ImportError("PDF text parsing requires the 'pypdf' package.")
+                reader = PdfReader(str(uploaded.path))
+            except Exception as exc:
+                parsed.parser_warnings.append(f"PDF reader failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+            try:
+                if pdfplumber is not None:
+                    pdf_document = pdfplumber.open(str(uploaded.path))
+            except Exception as exc:
+                parsed.parser_warnings.append(f"PDF layout reader failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+            try:
+                pdf_blocks: list[TextBlock] = []
+                if reader is not None:
+                    try:
+                        pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages, reader=reader)
+                        parsed.text_blocks.extend(pdf_blocks)
+                    except Exception as exc:
+                        parsed.parser_warnings.append(f"PDF text parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+                try:
+                    parsed.heading_candidates.extend(
+                        extract_heading_candidates(
+                            uploaded,
+                            pdf_blocks,
+                            max_pages=max_pdf_pages,
+                            pdf_document=pdf_document,
+                        )
+                    )
+                except Exception as exc:
+                    parsed.parser_warnings.append(f"PDF heading parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+                try:
+                    tables, table_status = _parse_pdf_tables_with_status(
+                        uploaded,
+                        max_pages=max_pdf_pages,
+                        pdf_document=pdf_document,
+                    )
+                    parsed.tables.extend(tables)
+                    parsed.table_extraction_status.append(table_status)
+                    fallback_reason = table_status.get("fallback_reason")
+                    if fallback_reason:
+                        parsed.parser_warnings.append(
+                            f"Table Transformer unavailable for {uploaded.filename}; "
+                            f"used pdfplumber fallback: {fallback_reason}"
+                        )
+                except Exception as exc:
+                    parsed.parser_warnings.append(f"PDF table parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+                try:
+                    title = extract_pdf_title(uploaded.path, reader=reader)
+                    if title:
+                        parsed.file_titles[uploaded.filename] = title
+                except Exception as exc:
+                    parsed.parser_warnings.append(f"PDF title parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+            finally:
+                if pdf_document is not None:
+                    pdf_document.close()
         elif suffix in {".csv", ".tsv"}:
-            parsed.tables.append(parse_csv(uploaded))
+            try:
+                parsed.tables.append(parse_csv(uploaded))
+            except Exception as exc:
+                parsed.parser_warnings.append(f"Table parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
         elif suffix in {".xlsx", ".xls"}:
-            parsed.tables.extend(parse_excel(uploaded))
+            try:
+                parsed.tables.extend(parse_excel(uploaded))
+            except Exception as exc:
+                parsed.parser_warnings.append(f"Workbook parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
     return parsed
 
 
-def extract_pdf_title(path: str | Path, max_chars: int = 220) -> str | None:
+def extract_pdf_title(path: str | Path, max_chars: int = 220, *, reader: Any = _UNSET) -> str | None:
     """Extract the full paper title from a PDF.
 
     First try the PDF metadata title field. If it is missing, fall back to
@@ -80,21 +130,28 @@ def extract_pdf_title(path: str | Path, max_chars: int = 220) -> str | None:
     looks like a title.
     """
     path = Path(path)
-    if PdfReader is None:
-        return None
-    try:
-        reader = PdfReader(str(path))
-        meta = reader.metadata or {}
-        meta_title = meta.get("title") or meta.get("Title")
-        if meta_title and isinstance(meta_title, str):
-            cleaned = _compact_text(meta_title)
-            if _looks_like_title(cleaned):
-                return cleaned[:max_chars]
-    except Exception:
-        pass
+    if reader is _UNSET:
+        if PdfReader is None:
+            reader = None
+        else:
+            try:
+                reader = PdfReader(str(path))
+            except Exception:
+                reader = None
+    if reader is not None:
+        try:
+            meta = reader.metadata or {}
+            meta_title = meta.get("title") or meta.get("Title")
+            if meta_title and isinstance(meta_title, str):
+                cleaned = _compact_text(meta_title)
+                if _looks_like_title(cleaned):
+                    return cleaned[:max_chars]
+        except Exception:
+            pass
 
     if fitz is None:
         return None
+    doc = None
     try:
         doc = fitz.open(str(path))
         if len(doc) == 0:
@@ -175,6 +232,9 @@ def extract_pdf_title(path: str | Path, max_chars: int = 220) -> str | None:
             return max(candidates, key=lambda item: item[0])[1][:max_chars]
     except Exception:
         pass
+    finally:
+        if doc is not None:
+            doc.close()
     return None
 
 
@@ -243,10 +303,13 @@ def _looks_like_title(text: str) -> bool:
     return True
 
 
-def parse_pdf(uploaded: UploadedFile, max_pages: int | None = 8) -> list[TextBlock]:
-    if PdfReader is None:
-        raise ImportError("PDF text parsing requires the 'pypdf' package.")
-    reader = PdfReader(str(uploaded.path))
+def parse_pdf(uploaded: UploadedFile, max_pages: int | None = 8, *, reader: Any = _UNSET) -> list[TextBlock]:
+    if reader is _UNSET:
+        if PdfReader is None:
+            raise ImportError("PDF text parsing requires the 'pypdf' package.")
+        reader = PdfReader(str(uploaded.path))
+    if reader is None:
+        raise ValueError("PDF reader is unavailable")
     blocks: list[TextBlock] = []
     total_pages = len(reader.pages)
     page_limit = total_pages if max_pages is None else min(total_pages, max_pages)
@@ -284,6 +347,8 @@ def parse_pdf_tables(uploaded: UploadedFile, max_pages: int | None = 8) -> list[
 def _parse_pdf_tables_with_status(
     uploaded: UploadedFile,
     max_pages: int | None = 8,
+    *,
+    pdf_document: Any | None = None,
 ) -> tuple[list[TableBlock], dict[str, Any]]:
     status: dict[str, Any] = {
         "source_file": uploaded.filename,
@@ -299,11 +364,18 @@ def _parse_pdf_tables_with_status(
             extractor = TableTransformerExtractor()
             if pdfplumber is None:
                 raise ImportError("PDF table parsing requires the 'pdfplumber' package.")
-            with pdfplumber.open(str(uploaded.path)) as pdf:
-                total_pages = len(pdf.pages)
+            if pdf_document is not None:
+                total_pages = len(pdf_document.pages)
+            else:
+                with pdfplumber.open(str(uploaded.path)) as pdf:
+                    total_pages = len(pdf.pages)
             page_limit = total_pages if max_pages is None else min(total_pages, max_pages)
             page_numbers = list(range(1, page_limit + 1))
-            tables = extractor.extract_tables(uploaded, page_numbers=page_numbers)
+            tables = extractor.extract_tables(
+                uploaded,
+                page_numbers=page_numbers,
+                pdf_document=pdf_document,
+            )
             if tables:
                 status["method"] = "table_transformer"
                 status["table_count"] = len(tables)
@@ -313,30 +385,45 @@ def _parse_pdf_tables_with_status(
             # Do not hide an optional-model failure: it is important provenance
             # for both operators and downstream quality review.
             status["fallback_reason"] = f"{type(exc).__name__}: {exc}"
-    tables = _parse_pdf_tables_pdfplumber(uploaded, max_pages=max_pages)
+    tables = _parse_pdf_tables_pdfplumber(
+        uploaded,
+        max_pages=max_pages,
+        pdf_document=pdf_document,
+    )
     status["table_count"] = len(tables)
     return tables, status
 
 
-def _parse_pdf_tables_pdfplumber(uploaded: UploadedFile, max_pages: int | None = 8) -> list[TableBlock]:
+def _parse_pdf_tables_pdfplumber(
+    uploaded: UploadedFile,
+    max_pages: int | None = 8,
+    *,
+    pdf_document: Any | None = None,
+) -> list[TableBlock]:
     """Fallback pdfplumber-based table extraction."""
     if pdfplumber is None:
         return []
     tables: list[TableBlock] = []
+    owns_document = pdf_document is None
+    pdf = pdf_document
     try:
-        with pdfplumber.open(str(uploaded.path)) as pdf:
-            total_pages = len(pdf.pages)
-            page_limit = total_pages if max_pages is None else min(total_pages, max_pages)
-            for page_index in range(page_limit):
-                page = pdf.pages[page_index]
-                page_number = page_index + 1
-                page_tables = _extract_page_tables(page, page_number)
-                for table in page_tables:
-                    table.source_file = uploaded.filename
-                    table.source_path = str(uploaded.path)
-                tables.extend(page_tables)
+        if pdf is None:
+            pdf = pdfplumber.open(str(uploaded.path))
+        total_pages = len(pdf.pages)
+        page_limit = total_pages if max_pages is None else min(total_pages, max_pages)
+        for page_index in range(page_limit):
+            page = pdf.pages[page_index]
+            page_number = page_index + 1
+            page_tables = _extract_page_tables(page, page_number)
+            for table in page_tables:
+                table.source_file = uploaded.filename
+                table.source_path = str(uploaded.path)
+            tables.extend(page_tables)
     except Exception:
         return []
+    finally:
+        if owns_document and pdf is not None:
+            pdf.close()
     return _dedupe_pdf_tables(tables)
 
 
@@ -652,7 +739,16 @@ def _table_fingerprint(table: TableBlock) -> str:
 
 def parse_csv(uploaded: UploadedFile) -> TableBlock:
     separator = "\t" if uploaded.path.suffix.lower() == ".tsv" else ","
-    dataframe = pd.read_csv(uploaded.path, sep=separator)
+    last_error: Exception | None = None
+    for encoding in ("utf-8-sig", "gb18030"):
+        try:
+            dataframe = pd.read_csv(uploaded.path, sep=separator, encoding=encoding)
+            break
+        except UnicodeDecodeError as exc:
+            last_error = exc
+    else:
+        assert last_error is not None
+        raise last_error
     return _dataframe_to_table(uploaded, dataframe, SourceType.CSV, uploaded.path.stem)
 
 
@@ -669,8 +765,14 @@ def extract_heading_candidates(
     text_blocks: list[TextBlock],
     max_pages: int | None = 8,
     max_candidates_per_file: int = 80,
+    *,
+    pdf_document: Any | None = None,
 ) -> list[HeadingCandidate]:
-    candidates = _extract_layout_heading_candidates(uploaded, max_pages=max_pages)
+    candidates = _extract_layout_heading_candidates(
+        uploaded,
+        max_pages=max_pages,
+        pdf_document=pdf_document,
+    )
     if not candidates:
         candidates = _extract_text_heading_candidates(text_blocks)
     return sorted(candidates, key=lambda candidate: (candidate.page, candidate.line_index, -candidate.score))[
@@ -777,50 +879,61 @@ def fallback_section_plan_from_candidates(candidates: list[HeadingCandidate]) ->
     )
 
 
-def _extract_layout_heading_candidates(uploaded: UploadedFile, max_pages: int | None) -> list[HeadingCandidate]:
+def _extract_layout_heading_candidates(
+    uploaded: UploadedFile,
+    max_pages: int | None,
+    *,
+    pdf_document: Any | None = None,
+) -> list[HeadingCandidate]:
     candidates: list[HeadingCandidate] = []
     if pdfplumber is None:
         return candidates
+    owns_document = pdf_document is None
+    pdf = pdf_document
     try:
-        with pdfplumber.open(str(uploaded.path)) as pdf:
-            page_limit = len(pdf.pages) if max_pages is None else min(len(pdf.pages), max_pages)
-            for page_index in range(page_limit):
-                page = pdf.pages[page_index]
-                words = page.extract_words(extra_attrs=["fontname", "size"], keep_blank_chars=False) or []
-                lines = _words_to_lines(words)
-                if not lines:
+        if pdf is None:
+            pdf = pdfplumber.open(str(uploaded.path))
+        page_limit = len(pdf.pages) if max_pages is None else min(len(pdf.pages), max_pages)
+        for page_index in range(page_limit):
+            page = pdf.pages[page_index]
+            words = page.extract_words(extra_attrs=["fontname", "size"], keep_blank_chars=False) or []
+            lines = _words_to_lines(words)
+            if not lines:
+                continue
+            sizes = [word.get("size") for word in words if isinstance(word.get("size"), int | float)]
+            median_size = _median(sizes) if sizes else 0.0
+            for line_index, line in enumerate(lines):
+                text = _compact_heading_text(line["text"])
+                if not text:
                     continue
-                sizes = [word.get("size") for word in words if isinstance(word.get("size"), int | float)]
-                median_size = _median(sizes) if sizes else 0.0
-                for line_index, line in enumerate(lines):
-                    text = _compact_heading_text(line["text"])
-                    if not text:
-                        continue
-                    font_size = float(line.get("font_size") or 0.0)
-                    is_bold = bool(line.get("is_bold"))
-                    score = _heading_candidate_score(text, line_index, font_size, median_size, is_bold)
-                    if score < 2.5:
-                        continue
-                    before = " ".join(item["text"] for item in lines[max(0, line_index - 2):line_index])
-                    after = " ".join(item["text"] for item in lines[line_index + 1:line_index + 4])
-                    candidates.append(
-                        HeadingCandidate(
-                            source_file=uploaded.filename,
-                            source_path=str(uploaded.path),
-                            page=page_index + 1,
-                            line_index=line_index,
-                            text=text,
-                            before_text=before[:800] or None,
-                            after_text=after[:1200] or None,
-                            font_size=font_size or None,
-                            is_bold=is_bold,
-                            y_position=line.get("top"),
-                            extraction_method="layout",
-                            score=score,
-                        )
+                font_size = float(line.get("font_size") or 0.0)
+                is_bold = bool(line.get("is_bold"))
+                score = _heading_candidate_score(text, line_index, font_size, median_size, is_bold)
+                if score < 2.5:
+                    continue
+                before = " ".join(item["text"] for item in lines[max(0, line_index - 2):line_index])
+                after = " ".join(item["text"] for item in lines[line_index + 1:line_index + 4])
+                candidates.append(
+                    HeadingCandidate(
+                        source_file=uploaded.filename,
+                        source_path=str(uploaded.path),
+                        page=page_index + 1,
+                        line_index=line_index,
+                        text=text,
+                        before_text=before[:800] or None,
+                        after_text=after[:1200] or None,
+                        font_size=font_size or None,
+                        is_bold=is_bold,
+                        y_position=line.get("top"),
+                        extraction_method="layout",
+                        score=score,
                     )
+                )
     except Exception:
         return []
+    finally:
+        if owns_document and pdf is not None:
+            pdf.close()
     return _dedupe_candidates(candidates)
 
 

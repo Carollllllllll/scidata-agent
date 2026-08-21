@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from scidata_agent.agent.field_schema import FIELD_SCHEMA
 from scidata_agent.agent.action_executor import ArtifactActionExecutor
@@ -64,6 +65,11 @@ CATALOG_REFRESH_STEPS = frozenset(
         "quality_validation",
     }
 )
+LOGGER = logging.getLogger(__name__)
+
+
+class AgentCancellationRequested(RuntimeError):
+    """Raised between pipeline steps after an API cancellation request."""
 
 
 class SciDataAgent:
@@ -115,6 +121,7 @@ class SciDataAgent:
         arxiv_pdf_timeout: int = DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
         arxiv_download_batch_timeout: int = DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
         task_id: str | None = None,
+        cancel_check: Callable[[], bool] | None = None,
     ) -> AgentResult:
         resource_cap = max_arxiv_papers if max_arxiv_papers is not None else max_auto_resources
         # Preserve the library API's historical uploaded-file behavior unless
@@ -139,6 +146,7 @@ class SciDataAgent:
             output_dir=state.output_dir,
             console=self.monitor_console,
             enabled=self.monitor_enabled,
+            cancel_check=cancel_check,
         )
         state.monitor_log_path = monitor.log_path
 
@@ -170,6 +178,7 @@ class SciDataAgent:
             state.processing_log.append(message)
             monitor.emit("llm", step, status, message, event)
 
+        trace_start_index = len(self.llm_client.traces)
         self.llm_client.set_event_callback(on_llm_model_event)
         monitor.task(
             "started",
@@ -299,26 +308,37 @@ class SciDataAgent:
                         f"Artifact action loop reached configured cap={artifact_action_iterations}."
                     )
             self._run_step(monitor, "quality_validation", state, self._quality_check)
-            self._append_llm_trace(state)
+            self._append_llm_trace(state, start_index=trace_start_index)
             self._run_step(monitor, "export", state, self._export)
             result = self._build_result(state, status="completed")
             monitor.task("completed", "Agent task completed.", _result_snapshot(result))
-            self.llm_client.set_event_callback(None)
             return result
+        except AgentCancellationRequested:
+            message = "Task cancellation requested."
+            state.processing_log.append(message)
+            monitor.task("cancelled", message, _state_snapshot(state))
+            self._append_llm_trace(state, start_index=trace_start_index)
+            return self._build_result(state, status="failed")
         except Exception as exc:
+            LOGGER.exception("SciData Agent task %s failed", state.task_id)
             state.processing_log.append(f"Task failed: {exc}")
             monitor.error("task", f"Agent task failed: {exc}", _state_snapshot(state))
-            self._append_llm_trace(state)
+            self._append_llm_trace(state, start_index=trace_start_index)
             result = self._build_result(state, status="failed")
             monitor.task("failed", "Agent task failed.", _result_snapshot(result))
-            self.llm_client.set_event_callback(None)
             return result
+        finally:
+            self.llm_client.set_event_callback(None)
 
     def _run_step(self, monitor: AgentMonitor, step: str, state: AgentState, func, **kwargs) -> None:
+        if monitor.cancel_requested():
+            raise AgentCancellationRequested
         monitor.start(step, f"{step} started.", _state_snapshot(state))
         warning_start = len(self.llm_nodes.node_warnings)
         try:
             func(state, **kwargs)
+            if monitor.cancel_requested():
+                raise AgentCancellationRequested
             if step in CATALOG_REFRESH_STEPS:
                 self._refresh_catalog(state, step)
         except Exception as exc:
@@ -1177,6 +1197,7 @@ class SciDataAgent:
             dynamic_plan=state.dynamic_extraction_plan,
             text_blocks=state.parsed_sources.text_blocks,
             table_blocks=state.parsed_sources.tables,
+            mutate_records=True,
         )
         review_issue_ids = {
             issue.record_id
@@ -1227,10 +1248,11 @@ class SciDataAgent:
             "Export completed: generated CSV, JSON, source_selection, source_triage, processing log, and quality_report files."
         )
 
-    def _append_llm_trace(self, state: AgentState) -> None:
-        if not self.llm_client.traces:
+    def _append_llm_trace(self, state: AgentState, *, start_index: int = 0) -> None:
+        traces = self.llm_client.traces[start_index:]
+        if not traces:
             return
-        for trace in self.llm_client.traces:
+        for trace in traces:
             if trace.success:
                 state.processing_log.append(
                     f"LLM trace: node={trace.node}, model={trace.model}, prompt_chars={trace.prompt_chars}, "

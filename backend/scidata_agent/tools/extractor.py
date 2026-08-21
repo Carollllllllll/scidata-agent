@@ -229,7 +229,14 @@ def _coerce_number_and_unit(value: Any) -> tuple[float | None, str | None]:
     if isinstance(value, (int, float)):
         return float(value), None
     text = str(value)
-    match = re.search(r"([-+]?\d+(?:\.\d+)?)\s*([A-Za-z%/°0-9.-]+)?", text)
+    # Do not treat digits embedded in identifiers such as ``GPT-4`` or
+    # ``model_v2`` as scientific measurements.  Including sign characters in
+    # both boundaries is intentional: otherwise the engine can skip the
+    # optional ``-`` and still match the ``4`` in ``GPT-4``.
+    match = re.search(
+        r"(?<![\w.+-])([-+]?\d+(?:\.\d+)?)(?![\w.+-])\s*([A-Za-z%/°0-9.-]+)?",
+        text,
+    )
     if not match:
         return None, None
     return float(match.group(1)), _normalize_unit(match.group(2)) if match.group(2) else None

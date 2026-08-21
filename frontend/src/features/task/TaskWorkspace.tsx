@@ -1,12 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError, cancelTask, getTask, getTaskEvents, retryTask } from "../../api/client";
 import { Icon, type IconName } from "../../components/Icon";
 import { StatusBadge } from "../../components/StatusBadge";
-import { AGENT_STAGES, formatDate, progressPercent, stageLabel } from "../../lib/task";
-import type { EvidenceRecord, TaskResponse } from "../../types/api";
+import { formatDate, overallProgressPercent, stageLabel } from "../../lib/task";
+import type { EvidenceRecord, TaskEvent, TaskResponse } from "../../types/api";
 import {
   ChartsPanel,
   DynamicDataPanel,
@@ -33,6 +33,18 @@ export function TaskWorkspace() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [selectedRecord, setSelectedRecord] = useState<EvidenceRecord | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const copyResetTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSelectedRecord(null);
+    setActiveTab("overview");
+    setCopyError(null);
+  }, [taskId]);
+
+  useEffect(() => () => {
+    if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
+  }, []);
 
   const taskQuery = useQuery({
     queryKey: ["task", taskId],
@@ -41,16 +53,35 @@ export function TaskWorkspace() {
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       if (status !== "queued" && status !== "running") return false;
-      return typeof document !== "undefined" && document.hidden ? 7_000 : 2_000;
+      return typeof document !== "undefined" && document.hidden ? false : 2_000;
+    },
+  });
+  const progressEventsQuery = useQuery({
+    queryKey: ["task-progress-events", taskId],
+    queryFn: () => getTaskEvents(taskId, 120),
+    enabled: Boolean(taskId),
+    refetchInterval: () => {
+      const status = taskQuery.data?.status;
+      if (status !== "queued" && status !== "running") return false;
+      return typeof document !== "undefined" && document.hidden ? false : 4_000;
     },
   });
   const cancelMutation = useMutation({
     mutationFn: () => cancelTask(taskId),
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey: ["task", taskId] }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["task", taskId] }),
+        queryClient.invalidateQueries({ queryKey: ["task-progress-events", taskId] }),
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+      ]);
+    },
   });
   const retryMutation = useMutation({
     mutationFn: () => retryTask(taskId),
-    onSuccess: (task) => navigate(`/tasks/${task.task_id}`),
+    onSuccess: async (task) => {
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      navigate(`/tasks/${task.task_id}`);
+    },
   });
 
   if (taskQuery.isLoading) return <TaskLoading />;
@@ -76,10 +107,24 @@ export function TaskWorkspace() {
   ];
 
   async function copyTaskId() {
-    await navigator.clipboard.writeText(task.task_id);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    try {
+      await navigator.clipboard.writeText(task.task_id);
+      setCopyError(null);
+      setCopied(true);
+      if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = window.setTimeout(() => {
+        setCopied(false);
+        copyResetTimer.current = null;
+      }, 1600);
+    } catch {
+      setCopied(false);
+      setCopyError("复制失败，请手动选择任务 ID。浏览器可能未授予剪贴板权限。");
+    }
   }
+
+  const actionError = copyError
+    ?? (cancelMutation.error instanceof ApiError ? cancelMutation.error.message : cancelMutation.isError ? "取消任务失败，请稍后重试。" : null)
+    ?? (retryMutation.error instanceof ApiError ? retryMutation.error.message : retryMutation.isError ? "重新运行失败，请稍后重试。" : null);
 
   return (
     <div className="task-page">
@@ -97,6 +142,13 @@ export function TaskWorkspace() {
         </div>
       </div>
 
+      {actionError && (
+        <div className="failure-banner action-failure">
+          <Icon name="warning" size={18} />
+          <div><strong>操作未完成</strong><p>{actionError}</p></div>
+        </div>
+      )}
+
       <section className="task-hero">
         <div className="task-hero-main">
           <div className="task-identity">
@@ -107,7 +159,7 @@ export function TaskWorkspace() {
           <h1>{task.research_question || "未命名科研任务"}</h1>
           <p className="task-message">{task.message || stageLabel(task.current_step)}</p>
         </div>
-        <TaskProgressCard task={task} />
+        <TaskProgressCard task={task} events={progressEventsQuery.data?.events} />
       </section>
 
       {task.status === "failed" && (
@@ -151,15 +203,30 @@ export function TaskWorkspace() {
   );
 }
 
-function TaskProgressCard({ task }: { task: TaskResponse }) {
-  const percent = progressPercent(task.status, task.current_step, task.progress);
-  const stageIndex = AGENT_STAGES.indexOf(task.current_step as (typeof AGENT_STAGES)[number]);
+function TaskProgressCard({ task, events }: { task: TaskResponse; events?: TaskEvent[] }) {
+  const eventStatus = typeof task.event?.status === "string" ? task.event.status : null;
+  const computedPercent = overallProgressPercent(
+    task.status,
+    events,
+    task.current_step,
+    task.progress,
+    eventStatus,
+  );
+  const stableProgress = useRef({ taskId: task.task_id, percent: computedPercent });
+  if (stableProgress.current.taskId !== task.task_id) {
+    stableProgress.current = { taskId: task.task_id, percent: computedPercent };
+  } else if (task.status === "cancelled") {
+    stableProgress.current.percent = 0;
+  } else {
+    stableProgress.current.percent = Math.max(stableProgress.current.percent, computedPercent);
+  }
+  const percent = task.status === "completed" ? 100 : stableProgress.current.percent;
   const milestones = [
-    { stage: "task_planning", label: "规划" },
-    { stage: "source_discovery", label: "来源" },
-    { stage: "source_parsing", label: "解析" },
-    { stage: "quality_validation", label: "校验" },
-    { stage: "export", label: "导出" },
+    { start: 0, end: 12, label: "规划" },
+    { start: 12, end: 58, label: "来源" },
+    { start: 58, end: 92, label: "解析" },
+    { start: 92, end: 98, label: "校验" },
+    { start: 98, end: 100, label: "导出" },
   ];
 
   return (
@@ -168,10 +235,9 @@ function TaskProgressCard({ task }: { task: TaskResponse }) {
       <div className="progress-track"><span style={{ width: `${percent}%` }} /></div>
       <div className="milestone-row">
         {milestones.map((milestone) => {
-          const index = AGENT_STAGES.indexOf(milestone.stage as (typeof AGENT_STAGES)[number]);
-          const done = task.status === "completed" || stageIndex > index;
-          const active = task.status === "running" && (task.current_step === milestone.stage || (stageIndex >= index && stageIndex < AGENT_STAGES.indexOf(milestones[milestones.indexOf(milestone) + 1]?.stage as (typeof AGENT_STAGES)[number])));
-          return <span key={milestone.stage} className={done ? "done" : active ? "active" : ""}><i>{done ? <Icon name="check" size={11} /> : null}</i>{milestone.label}</span>;
+          const done = task.status === "completed" || percent >= milestone.end;
+          const active = task.status === "running" && percent >= milestone.start && percent < milestone.end;
+          return <span key={milestone.label} className={done ? "done" : active ? "active" : ""}><i>{done ? <Icon name="check" size={11} /> : null}</i>{milestone.label}</span>;
         })}
       </div>
       <div className="current-stage"><span className={task.status === "running" ? "pulse-dot" : "static-dot"} /><div><small>当前阶段</small><strong>{stageLabel(task.current_step)}</strong></div></div>
@@ -183,7 +249,10 @@ function EventsPanel({ taskId, status }: { taskId: string; status: TaskResponse[
   const events = useQuery({
     queryKey: ["task-events", taskId],
     queryFn: () => getTaskEvents(taskId, 80),
-    refetchInterval: status === "queued" || status === "running" ? 4_000 : false,
+    refetchInterval: () => {
+      if (status !== "queued" && status !== "running") return false;
+      return typeof document !== "undefined" && document.hidden ? false : 4_000;
+    },
   });
 
   return (

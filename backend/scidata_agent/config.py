@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass
 from pathlib import Path
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def load_dotenv(path: str | Path | None = None) -> None:
@@ -11,15 +15,45 @@ def load_dotenv(path: str | Path | None = None) -> None:
     env_path = Path(path) if path else Path(__file__).resolve().parents[1] / ".env"
     if not env_path.exists():
         return
-    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+    try:
+        content = env_path.read_text(encoding="utf-8-sig")
+    except (OSError, UnicodeDecodeError):
+        LOGGER.warning("Unable to read dotenv file as UTF-8: %s", env_path, exc_info=True)
+        return
+    for raw_line in content.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
         key = key.strip().lstrip("\ufeff")
-        value = value.strip().strip('"').strip("'")
+        value = _parse_dotenv_value(value)
         if key and key not in os.environ:
             os.environ[key] = value
+
+
+def _parse_dotenv_value(raw: str) -> str:
+    value = raw.strip()
+    if not value:
+        return ""
+    if value[0] in {"'", '"'}:
+        quote = value[0]
+        escaped = False
+        for index in range(1, len(value)):
+            character = value[index]
+            if character == "\\" and not escaped:
+                escaped = True
+                continue
+            if character == quote and not escaped:
+                remainder = value[index + 1 :].strip()
+                if not remainder or remainder.startswith("#"):
+                    return value[1:index]
+                return value
+            escaped = False
+        return value
+    for index, character in enumerate(value):
+        if character == "#" and index > 0 and value[index - 1].isspace():
+            return value[:index].rstrip()
+    return value
 
 
 @dataclass(frozen=True)

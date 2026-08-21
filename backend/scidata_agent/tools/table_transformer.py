@@ -80,6 +80,7 @@ class TableTransformerExtractor:
         dpi: int = 200,
         detection_threshold: float = 0.9,
         structure_threshold: float = 0.7,
+        pdf_document: Any | None = None,
     ) -> list[TableBlock]:
         """Extract TableBlocks from selected pages of a PDF."""
         self._load_models()
@@ -88,34 +89,49 @@ class TableTransformerExtractor:
         # in this process, avoiding a Windows segfault with torch).
         import pdfplumber
 
-        with pdfplumber.open(pdf_path) as pdf:
-            total_pages = len(pdf.pages)
-        pages = page_numbers or list(range(1, total_pages + 1))
-        page_images = _render_pages_in_subprocess(pdf_path, pages, dpi)
-
         all_tables: list[TableBlock] = []
-        for page_num in pages:
-            image_path = page_images.get(page_num)
-            if not image_path or not Path(image_path).exists():
-                continue
-            image = Image.open(image_path).convert("RGB")
-            table_bboxes = self._detect_tables(image, threshold=detection_threshold)
-            for bbox in table_bboxes:
-                structure = self._recognize_structure(
-                    image, bbox, threshold=structure_threshold
-                )
-                caption = _find_caption_pdfplumber(pdf_path, page_num, bbox, dpi)
-                table = self._build_tableblock(
-                    uploaded=uploaded,
-                    page_number=page_num,
-                    image=image,
-                    table_bbox=bbox,
-                    structure=structure,
-                    caption=caption,
-                    dpi=dpi,
-                )
-                if table:
-                    all_tables.append(table)
+        # Keep one pdfplumber document open for the whole extraction.  The old
+        # implementation reopened the complete PDF once per cell (and again
+        # for captions/headers), which made a 50x10 table perform 500+ opens.
+        owns_document = pdf_document is None
+        pdf = pdf_document or pdfplumber.open(pdf_path)
+        try:
+            total_pages = len(pdf.pages)
+            pages = page_numbers or list(range(1, total_pages + 1))
+            page_images = _render_pages_in_subprocess(pdf_path, pages, dpi)
+            for page_num in pages:
+                if page_num < 1 or page_num > total_pages:
+                    continue
+                image_path = page_images.get(page_num)
+                if not image_path or not Path(image_path).exists():
+                    continue
+                pdf_page = pdf.pages[page_num - 1]
+                with Image.open(image_path) as rendered:
+                    image = rendered.convert("RGB")
+                try:
+                    table_bboxes = self._detect_tables(image, threshold=detection_threshold)
+                    for bbox in table_bboxes:
+                        structure = self._recognize_structure(
+                            image, bbox, threshold=structure_threshold
+                        )
+                        caption = _find_caption_on_page(pdf_page, bbox, dpi)
+                        table = self._build_tableblock(
+                            uploaded=uploaded,
+                            page_number=page_num,
+                            pdf_page=pdf_page,
+                            image=image,
+                            table_bbox=bbox,
+                            structure=structure,
+                            caption=caption,
+                            dpi=dpi,
+                        )
+                        if table:
+                            all_tables.append(table)
+                finally:
+                    image.close()
+        finally:
+            if owns_document:
+                pdf.close()
         return all_tables
 
     def _detect_tables(self, image: Image.Image, threshold: float = 0.9) -> list[list[int]]:
@@ -182,6 +198,7 @@ class TableTransformerExtractor:
         self,
         uploaded: UploadedFile,
         page_number: int,
+        pdf_page: Any,
         image: Image.Image,
         table_bbox: list[int],
         structure: dict[str, Any],
@@ -201,7 +218,7 @@ class TableTransformerExtractor:
         cell_texts: dict[tuple[int, int], str] = {}
         for cell in cells:
             text = self._extract_cell_text_from_pdf(
-                uploaded.path, page_number, cell["bbox"], image.size, dpi
+                pdf_page, cell["bbox"], dpi
             )
             cell_texts[(cell["row"], cell["col"])] = text
 
@@ -219,12 +236,10 @@ class TableTransformerExtractor:
                 header_top = min(rows[r][1] for r in range(header_row_count))
                 header_bottom = max(rows[r][3] for r in range(header_row_count))
                 h = self._extract_header_text_from_pdf(
-                    uploaded.path,
-                    page_number,
+                    pdf_page,
                     col,
                     header_top,
                     header_bottom,
-                    image.size,
                     dpi,
                 )
             header.append(h)
@@ -276,39 +291,31 @@ class TableTransformerExtractor:
 
     def _extract_cell_text_from_pdf(
         self,
-        pdf_path: Path,
-        page_number: int,
+        page: Any,
         image_bbox: list[float],
-        image_size: tuple[int, int],
         dpi: int,
     ) -> str:
         """Map image bbox to PDF points and extract text with pdfplumber."""
-        import pdfplumber
-
         pdf_bbox = _image_bbox_to_pdf_points(image_bbox, dpi)
-        with pdfplumber.open(str(pdf_path)) as pdf:
-            page = pdf.pages[page_number - 1]
-            page_width = float(page.width)
-            page_height = float(page.height)
-            # Clamp to page bounds.
-            x0 = max(0, pdf_bbox[0])
-            y0 = max(0, pdf_bbox[1])
-            x1 = min(page_width, pdf_bbox[2])
-            y1 = min(page_height, pdf_bbox[3])
-            if x1 <= x0 or y1 <= y0:
-                return ""
-            cropped = page.crop((x0, y0, x1, y1))
-            text = cropped.extract_text() or ""
+        page_width = float(page.width)
+        page_height = float(page.height)
+        # Clamp to page bounds.
+        x0 = max(0, pdf_bbox[0])
+        y0 = max(0, pdf_bbox[1])
+        x1 = min(page_width, pdf_bbox[2])
+        y1 = min(page_height, pdf_bbox[3])
+        if x1 <= x0 or y1 <= y0:
+            return ""
+        cropped = page.crop((x0, y0, x1, y1))
+        text = cropped.extract_text() or ""
         return text.strip()
 
     def _extract_header_text_from_pdf(
         self,
-        pdf_path: Path,
-        page_number: int,
+        page: Any,
         col_bbox: list[float],
         header_top: float,
         header_bottom: float,
-        image_size: tuple[int, int],
         dpi: int,
     ) -> str:
         """Extract text for a header column from the full header vertical span.
@@ -317,25 +324,21 @@ class TableTransformerExtractor:
         outside the detected cell; reading the whole column header area gives
         a second chance to recover the label.
         """
-        import pdfplumber
-
         # Slightly widen the column to catch text near the cell edges.
         x_pad = 4
         pdf_col = _image_bbox_to_pdf_points(col_bbox, dpi)
         pdf_top = header_top * (72.0 / dpi)
         pdf_bottom = header_bottom * (72.0 / dpi)
-        with pdfplumber.open(str(pdf_path)) as pdf:
-            page = pdf.pages[page_number - 1]
-            page_width = float(page.width)
-            page_height = float(page.height)
-            x0 = max(0, pdf_col[0] - x_pad)
-            y0 = max(0, pdf_top)
-            x1 = min(page_width, pdf_col[2] + x_pad)
-            y1 = min(page_height, pdf_bottom)
-            if x1 <= x0 or y1 <= y0:
-                return ""
-            cropped = page.crop((x0, y0, x1, y1))
-            text = cropped.extract_text() or ""
+        page_width = float(page.width)
+        page_height = float(page.height)
+        x0 = max(0, pdf_col[0] - x_pad)
+        y0 = max(0, pdf_top)
+        x1 = min(page_width, pdf_col[2] + x_pad)
+        y1 = min(page_height, pdf_bottom)
+        if x1 <= x0 or y1 <= y0:
+            return ""
+        cropped = page.crop((x0, y0, x1, y1))
+        text = cropped.extract_text() or ""
         return text.strip()
 
 
@@ -458,23 +461,30 @@ def _render_pages_in_subprocess(pdf_path: str, page_numbers: list[int], dpi: int
         raise FileNotFoundError(f"PDF renderer helper not found: {renderer}")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = subprocess.run(
-            [
-                str(Path(sys.executable)),
-                str(renderer),
-                "--pdf",
-                pdf_path,
-                "--output-dir",
-                tmpdir,
-                "--pages",
-                ",".join(str(p) for p in page_numbers),
-                "--dpi",
-                str(dpi),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        timeout_seconds = _positive_env_int("SCIDATA_PDF_RENDER_TIMEOUT_SECONDS", 180)
+        try:
+            result = subprocess.run(
+                [
+                    str(Path(sys.executable)),
+                    str(renderer),
+                    "--pdf",
+                    pdf_path,
+                    "--output-dir",
+                    tmpdir,
+                    "--pages",
+                    ",".join(str(p) for p in page_numbers),
+                    "--dpi",
+                    str(dpi),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(
+                f"PDF rendering subprocess timed out after {timeout_seconds} seconds"
+            ) from exc
         if result.returncode != 0:
             raise RuntimeError(
                 f"PDF rendering subprocess failed: {result.stderr or result.stdout}"
@@ -493,8 +503,6 @@ def _render_pages_in_subprocess(pdf_path: str, page_numbers: list[int], dpi: int
         final: dict[int, str] = {}
         for page_num, src in mapping.items():
             dest = stable_dir / f"{Path(pdf_path).stem}_p{page_num}.png"
-            import shutil
-
             shutil.copy2(src, dest)
             final[page_num] = str(dest)
     return final
@@ -510,35 +518,49 @@ def _find_caption_pdfplumber(
     import pdfplumber
     import re
 
-    pdf_bbox = _image_bbox_to_pdf_points(table_image_bbox, dpi)
-    pattern = re.compile(r"^(?:Table|Tab\.)\s*\d+[:.)\s]", re.IGNORECASE)
     with pdfplumber.open(pdf_path) as pdf:
         page = pdf.pages[page_number - 1]
-        table_top = pdf_bbox[1]
-        table_bottom = pdf_bbox[3]
-        words = page.extract_words() or []
-        # Group words by line.
-        lines: dict[int, list[dict]] = {}
-        for word in words:
-            top = int(round(float(word.get("top", 0)) / 2.0))
-            lines.setdefault(top, []).append(word)
+        return _find_caption_on_page(page, table_image_bbox, dpi)
 
-        candidates: list[tuple[float, str]] = []
-        for line_words in lines.values():
-            line_words = sorted(line_words, key=lambda w: float(w.get("x0", 0)))
-            text = " ".join(str(w.get("text", "")).strip() for w in line_words)
-            if not pattern.match(text):
-                continue
-            y = min(float(w.get("top", 0)) for w in line_words)
-            candidates.append((y, text))
 
-        above = [(y, t) for y, t in candidates if y < table_top]
-        below = [(y, t) for y, t in candidates if y > table_bottom]
-        if above:
-            return max(above, key=lambda item: item[0])[1]
-        if below:
-            return min(below, key=lambda item: item[0])[1]
+def _find_caption_on_page(page: Any, table_image_bbox: list[int], dpi: int) -> str | None:
+    """Find the nearest caption while reusing an already-open PDF page."""
+    import re
+
+    pdf_bbox = _image_bbox_to_pdf_points(table_image_bbox, dpi)
+    pattern = re.compile(r"^(?:Table|Tab\.)\s*\d+[:.)\s]", re.IGNORECASE)
+    table_top = pdf_bbox[1]
+    table_bottom = pdf_bbox[3]
+    words = page.extract_words() or []
+    lines: dict[int, list[dict[str, Any]]] = {}
+    for word in words:
+        top = int(round(float(word.get("top", 0)) / 2.0))
+        lines.setdefault(top, []).append(word)
+
+    candidates: list[tuple[float, str]] = []
+    for line_words in lines.values():
+        line_words = sorted(line_words, key=lambda word: float(word.get("x0", 0)))
+        text = " ".join(str(word.get("text", "")).strip() for word in line_words)
+        if not pattern.match(text):
+            continue
+        y = min(float(word.get("top", 0)) for word in line_words)
+        candidates.append((y, text))
+
+    above = [(y, text) for y, text in candidates if y < table_top]
+    below = [(y, text) for y, text in candidates if y > table_bottom]
+    if above:
+        return max(above, key=lambda item: item[0])[1]
+    if below:
+        return min(below, key=lambda item: item[0])[1]
     return None
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
 
 
 def _clean_cell_value(value: Any) -> Any:

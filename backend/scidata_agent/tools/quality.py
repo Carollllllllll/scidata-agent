@@ -55,6 +55,8 @@ def build_quality_report(
     dynamic_plan: DynamicExtractionPlan | None = None,
     text_blocks: list[TextBlock] | None = None,
     table_blocks: list[TableBlock] | None = None,
+    *,
+    mutate_records: bool = False,
 ) -> QualityReport:
     """Build the competition-facing quality report for the Data Agent loop.
 
@@ -63,24 +65,31 @@ def build_quality_report(
     coverage should be measurable.
     """
 
+    checked_records = records if mutate_records else [record.model_copy(deep=True) for record in records]
+    supplied_dynamic_records = dynamic_records or []
+    checked_dynamic_records = (
+        supplied_dynamic_records
+        if mutate_records
+        else [record.model_copy(deep=True) for record in supplied_dynamic_records]
+    )
+
     issues: list[QualityIssue] = []
-    for record in records:
+    for record in checked_records:
         issues.extend(_check_record(record))
 
     if llm_issues:
         issues.extend(llm_issues)
 
-    dynamic_records = dynamic_records or []
     required_fields = _dynamic_required_fields(dynamic_plan)
-    for record in dynamic_records:
+    for record in checked_dynamic_records:
         issues.extend(_check_dynamic_record(record, required_fields.get(record.table_name, set())))
 
     provenance_matches, provenance_total, provenance_issues = _validate_provenance_pages(
-        [*records, *dynamic_records], text_blocks or [], table_blocks or []
+        [*checked_records, *checked_dynamic_records], text_blocks or [], table_blocks or []
     )
     issues.extend(provenance_issues)
 
-    conflicts = detect_conflicts(records)
+    conflicts = detect_conflicts(checked_records)
     for conflict in conflicts:
         issues.append(
             QualityIssue(
@@ -90,12 +99,12 @@ def build_quality_report(
             )
         )
 
-    evidence_count = sum(1 for record in records if record.evidence_text)
-    all_records: list[Any] = [*records, *dynamic_records]
+    evidence_count = sum(1 for record in checked_records if record.evidence_text)
+    all_records: list[Any] = [*checked_records, *checked_dynamic_records]
     all_evidence_count = sum(1 for record in all_records if record.evidence_text)
-    value_supported_count = sum(1 for record in records if _value_supported_by_evidence(record))
-    field_coverage = _field_coverage(records, target_fields or REQUIRED_FIELDS)
-    source_count = len({record.source_file for record in records if record.source_file})
+    value_supported_count = sum(1 for record in checked_records if _value_supported_by_evidence(record))
+    field_coverage = _field_coverage(checked_records, target_fields or REQUIRED_FIELDS)
+    source_count = len({record.source_file for record in checked_records if record.source_file})
     warning_count = sum(1 for issue in issues if issue.level == "warning")
     error_count = sum(1 for issue in issues if issue.level == "error")
     review_ids = {issue.record_id for issue in issues if issue.record_id and issue.level in {"warning", "error"}}
@@ -105,22 +114,22 @@ def build_quality_report(
         "Quality report follows the Data Agent loop: provenance, schema coverage, evidence support, and conflict checks.",
         "A parser-only result is not sufficient for official evaluation; every critical value should keep source evidence.",
     ]
-    if not records:
+    if not checked_records:
         notes.append("No records were extracted. Check whether the question matches the uploaded sources.")
     if conflicts:
         notes.append("Conflicts are retained instead of overwritten so reviewers can inspect source disagreement.")
 
     return QualityReport(
-        record_count=len(records),
-        dynamic_record_count=len(dynamic_records),
+        record_count=len(checked_records),
+        dynamic_record_count=len(checked_dynamic_records),
         total_record_count=len(all_records),
         issue_count=len(issues),
         warning_count=warning_count,
         error_count=error_count,
         conflict_count=len(conflicts),
-        evidence_coverage=_ratio(evidence_count, len(records)),
+        evidence_coverage=_ratio(evidence_count, len(checked_records)),
         evidence_text_coverage=_ratio(all_evidence_count, len(all_records)),
-        value_evidence_coverage=_ratio(value_supported_count, len(records)),
+        value_evidence_coverage=_ratio(value_supported_count, len(checked_records)),
         provenance_page_coverage=_ratio(provenance_matches, provenance_total),
         warning_free_rate=_ratio(warning_free_count, len(all_records)),
         review_count=len(review_ids),
@@ -366,7 +375,10 @@ def _value_supported_by_evidence(record: ScientificRecord) -> bool:
         return False
     evidence = _compact_number_text(record.evidence_text)
     candidates = _number_strings(record.metric_value)
-    return any(candidate in evidence for candidate in candidates)
+    return any(
+        re.search(rf"(?<![\d.]){re.escape(candidate)}(?!\d|\.\d)", evidence) is not None
+        for candidate in candidates
+    )
 
 
 def _number_strings(value: float) -> set[str]:

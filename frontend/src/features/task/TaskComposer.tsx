@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ApiError, createAnalysisTask, createDiscoveryTask } from "../../api/client";
@@ -19,11 +19,13 @@ export function TaskComposer() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragDepthRef = useRef(0);
   const [mode, setMode] = useState<"analysis" | "discovery">("analysis");
   const [question, setQuestion] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [dragging, setDragging] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [maxPdfPages, setMaxPdfPages] = useState(8);
   const [maxAutoResources, setMaxAutoResources] = useState(5);
@@ -37,24 +39,29 @@ export function TaskComposer() {
   const mutation = useMutation({
     mutationFn: () => {
       if (mode === "discovery") return createDiscoveryTask(question);
-      return createAnalysisTask({
-        researchQuestion: question,
-        files,
-        maxPdfPages,
-        maxArxivPapers: null,
-        maxAutoResources,
-        enableLiveSearch,
-        autoDownloadSources,
-        maxDynamicTextBlocks,
-        maxRecordTextBlocks,
-        maxFiguresPerPdf,
-        reuseDynamicRecordsForMetrics,
-      });
+      setUploadProgress(0);
+      return createAnalysisTask(
+        {
+          researchQuestion: question,
+          files,
+          maxPdfPages,
+          maxArxivPapers: null,
+          maxAutoResources,
+          enableLiveSearch,
+          autoDownloadSources,
+          maxDynamicTextBlocks,
+          maxRecordTextBlocks,
+          maxFiguresPerPdf,
+          reuseDynamicRecordsForMetrics,
+        },
+        setUploadProgress,
+      );
     },
     onSuccess: async (task) => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] });
       navigate(`/tasks/${task.task_id}`);
     },
+    onError: () => setUploadProgress(null),
   });
 
   function addFiles(incoming: File[]) {
@@ -71,13 +78,12 @@ export function TaskComposer() {
       setFormError(`${oversized.name} 超过 50 MB 单文件限制。`);
       return;
     }
-    setFiles((current) => {
-      const known = new Set(current.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
-      return [
-        ...current,
-        ...incoming.filter((file) => !known.has(`${file.name}:${file.size}:${file.lastModified}`)),
-      ].slice(0, 20);
-    });
+    const known = new Set(files.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+    const additions = incoming.filter((file) => !known.has(`${file.name}:${file.size}:${file.lastModified}`));
+    if (files.length + additions.length > 20) {
+      setFormError(`每个任务最多上传 20 个文件；本次仅加入前 ${Math.max(0, 20 - files.length)} 个。`);
+    }
+    setFiles([...files, ...additions].slice(0, 20));
   }
 
   function submit(event: React.FormEvent) {
@@ -141,17 +147,29 @@ export function TaskComposer() {
             type="file"
             accept={ACCEPTED_EXTENSIONS.join(",")}
             multiple
-            onChange={(event) => addFiles(Array.from(event.target.files ?? []))}
+            onChange={(event) => {
+              addFiles(Array.from(event.target.files ?? []));
+              event.currentTarget.value = "";
+            }}
           />
           <button
             className={`dropzone${dragging ? " dragging" : ""}`}
             type="button"
             onClick={() => inputRef.current?.click()}
-            onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              dragDepthRef.current += 1;
+              setDragging(true);
+            }}
             onDragOver={(event) => event.preventDefault()}
-            onDragLeave={() => setDragging(false)}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+              if (dragDepthRef.current === 0) setDragging(false);
+            }}
             onDrop={(event) => {
               event.preventDefault();
+              dragDepthRef.current = 0;
               setDragging(false);
               addFiles(Array.from(event.dataTransfer.files));
             }}
@@ -224,14 +242,27 @@ export function TaskComposer() {
         <div className="form-error"><Icon name="warning" size={17} /> {formError ?? mutationError}</div>
       )}
 
+      {mutation.isPending && mode === "analysis" && uploadProgress !== null && (
+        <div className="upload-progress" aria-live="polite">
+          <div><span>正在上传与创建任务</span><strong>{uploadProgress}%</strong></div>
+          <progress max={100} value={uploadProgress} />
+        </div>
+      )}
+
       <div className="composer-footer">
         <div className="privacy-copy"><Icon name="shield" size={16} /> 文件仅交给当前后端任务处理，不在浏览器调用模型。</div>
         <button className="primary-button" type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? <><span className="spinner" /> 正在创建任务</> : <>{mode === "analysis" ? "开始分析" : "发现数据来源"}<Icon name="arrow" size={18} /></>}
+          {mutation.isPending ? <><span className="spinner" /> {uploadProgress !== null && uploadProgress < 100 ? `正在上传 ${uploadProgress}%` : "正在创建任务"}</> : <>{mode === "analysis" ? "开始分析" : "发现数据来源"}<Icon name="arrow" size={18} /></>}
         </button>
       </div>
     </form>
   );
+}
+
+export function parseNumberDraft(value: string): number | null {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function NumberField({
@@ -247,15 +278,31 @@ function NumberField({
   max: number;
   onChange: (value: number) => void;
 }) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => setDraft(String(value)), [value]);
+
   return (
     <label className="number-field">
       <span>{label}</span>
       <input
         type="number"
-        value={value}
+        value={draft}
         min={min}
         max={max}
-        onChange={(event) => onChange(Math.max(min, Math.min(max, Number(event.target.value))))}
+        step={1}
+        onChange={(event) => {
+          const next = event.target.value;
+          setDraft(next);
+          const parsed = parseNumberDraft(next);
+          if (parsed !== null && parsed >= min && parsed <= max) onChange(parsed);
+        }}
+        onBlur={() => {
+          const parsed = parseNumberDraft(draft);
+          const committed = parsed === null ? value : Math.max(min, Math.min(max, parsed));
+          onChange(committed);
+          setDraft(String(committed));
+        }}
       />
     </label>
   );

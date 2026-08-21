@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import time
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
+from typing import Any, Callable
 
 from pydantic import ValidationError
 
@@ -102,6 +105,16 @@ def _node_retry_attempts(explicit: int | None) -> int:
     return max(1, min(configured, 5))
 
 
+def _llm_block_workers(block_count: int) -> int:
+    try:
+        configured = int(os.getenv("SCIDATA_LLM_BLOCK_WORKERS", "2"))
+    except (TypeError, ValueError):
+        configured = 2
+    # Keep concurrency deliberately bounded: extraction calls are expensive
+    # and providers commonly impose per-workspace request limits.
+    return max(1, min(configured, max(1, block_count), 4))
+
+
 class QwenAgentNodes:
     """LLM-backed nodes used by the controlled SciData Agent workflow."""
 
@@ -110,6 +123,67 @@ class QwenAgentNodes:
         self.allow_rule_fallback = allow_rule_fallback
         self.node_warnings: list[str] = []
         self.extraction_warnings: list[str] = []
+        self._warning_lock = Lock()
+
+    def _append_node_warning(self, warning: str) -> None:
+        with self._warning_lock:
+            self.node_warnings.append(warning)
+
+    def _append_extraction_warning(self, warning: str) -> None:
+        with self._warning_lock:
+            self.extraction_warnings.append(warning)
+
+    def _clear_extraction_warnings(self) -> None:
+        with self._warning_lock:
+            self.extraction_warnings.clear()
+
+    def _run_block_jobs(self, jobs: list[Callable[[], Any]]) -> list[Any | Exception]:
+        """Run independent LLM extraction calls concurrently and merge traces."""
+        if not jobs:
+            return []
+        workers = _llm_block_workers(len(jobs))
+        if workers == 1:
+            outcomes: list[Any | Exception] = []
+            for job in jobs:
+                try:
+                    outcomes.append(job())
+                except Exception as exc:
+                    outcomes.append(exc)
+            return outcomes
+
+        client_supports_context = isinstance(self.client, QwenBailianClient)
+        parent_callback = self.client.event_callback if client_supports_context else None
+
+        def invoke(job: Callable[[], Any]):
+            if client_supports_context:
+                self.client.set_event_callback(parent_callback)
+                trace_start = len(self.client.traces)
+                event_start = len(self.client.model_events)
+            else:
+                trace_start = event_start = 0
+            try:
+                value: Any | None = job()
+                error: Exception | None = None
+            except Exception as exc:
+                value = None
+                error = exc
+            finally:
+                traces = list(self.client.traces[trace_start:]) if client_supports_context else []
+                events = list(self.client.model_events[event_start:]) if client_supports_context else []
+                if client_supports_context:
+                    self.client.set_event_callback(None)
+            return value, error, traces, events
+
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="scidata-llm-block") as pool:
+            futures = [pool.submit(invoke, job) for job in jobs]
+            outcomes = []
+            for future in futures:
+                value, error, traces, events = future.result()
+                if client_supports_context:
+                    self.client.traces.extend(traces)
+                    self.client.model_events.extend(events)
+                outcomes.append(error if error is not None else value)
+        return outcomes
 
     def _generate_json_with_retries(
         self,
@@ -127,7 +201,7 @@ class QwenAgentNodes:
             try:
                 return self.client.generate_json(node, system_prompt, user_prompt, temperature=temperature)
             except Exception as exc:
-                self.node_warnings.append(
+                self._append_node_warning(
                     f"LLM call failed: node={node}, attempt=1/1, error={exc}"
                 )
                 raise LLMCallError(
@@ -140,7 +214,7 @@ class QwenAgentNodes:
             except Exception as exc:
                 last_exc = exc
                 warning = f"LLM call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
-                self.node_warnings.append(warning)
+                self._append_node_warning(warning)
                 if attempt < attempts:
                     self._emit_retry_event(node, "text", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
@@ -491,9 +565,8 @@ class QwenAgentNodes:
     ) -> list[DynamicRecord]:
         records: list[DynamicRecord] = []
         ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
-        for index, block in enumerate(ranked_blocks, start=1):
-            if progress_callback:
-                progress_callback(index, len(ranked_blocks), block, len(records))
+        jobs: list[Callable[[], list[DynamicRecord]]] = []
+        for block in ranked_blocks:
             user_prompt = DYNAMIC_EXTRACTOR_USER.format(
                 dynamic_plan_json=dynamic_plan.model_dump_json(),
                 source_file=block.source_file,
@@ -505,15 +578,35 @@ class QwenAgentNodes:
                 page_range=_block_page_range(block),
                 content=_trim_content_for_extraction(block.text),
             )
-            try:
-                payload = self._generate_json_with_retries("qwen_dynamic_record_extractor_pdf", DYNAMIC_EXTRACTOR_SYSTEM, user_prompt)
-                records.extend(_dynamic_records_from_payload(payload, dynamic_plan, block.source_file, block.source_type, block.page, block=block))
-            except Exception as exc:
-                self.extraction_warnings.append(
+
+            def extract(current_block=block, prompt=user_prompt) -> list[DynamicRecord]:
+                payload = self._generate_json_with_retries(
+                    "qwen_dynamic_record_extractor_pdf",
+                    DYNAMIC_EXTRACTOR_SYSTEM,
+                    prompt,
+                )
+                return _dynamic_records_from_payload(
+                    payload,
+                    dynamic_plan,
+                    current_block.source_file,
+                    current_block.source_type,
+                    current_block.page,
+                    block=current_block,
+                )
+
+            jobs.append(extract)
+
+        outcomes = self._run_block_jobs(jobs)
+        for index, (block, outcome) in enumerate(zip(ranked_blocks, outcomes), start=1):
+            if progress_callback:
+                progress_callback(index, len(ranked_blocks), block, len(records))
+            if isinstance(outcome, Exception):
+                self._append_extraction_warning(
                     f"Qwen dynamic extraction skipped one block: source_file={block.source_file}, "
-                    f"page={block.page}, section={getattr(block, 'section_title', None)}, error={exc}"
+                    f"page={block.page}, section={getattr(block, 'section_title', None)}, error={outcome}"
                 )
                 continue
+            records.extend(outcome)
         return records
 
     def extract_dynamic_from_tables(
@@ -548,7 +641,7 @@ class QwenAgentNodes:
                     record.raw.setdefault("table_id", table.table_id)
                 records.extend(table_records)
             except Exception as exc:
-                self.extraction_warnings.append(
+                self._append_extraction_warning(
                     f"Qwen dynamic extraction skipped one table: source_file={table.source_file}, "
                     f"table_id={table.table_id}, error={exc}"
                 )
@@ -556,33 +649,7 @@ class QwenAgentNodes:
         return records
 
     def extract_from_text_blocks(self, task_plan: TaskPlan, text_blocks: list[TextBlock | SectionBlock]) -> list[ScientificRecord]:
-        records: list[ScientificRecord] = []
-        self.extraction_warnings.clear()
-        for block in _rank_text_blocks(text_blocks):
-            user_prompt = RECORD_EXTRACTOR_USER.format(
-                task_plan_json=task_plan.model_dump_json(),
-                source_file=block.source_file,
-                source_type=block.source_type.value,
-                page=block.page,
-                page_json=json.dumps(block.page),
-                section_title=json.dumps(getattr(block, "section_title", None), ensure_ascii=False),
-                section_type=json.dumps(getattr(block, "section_type", None), ensure_ascii=False),
-                page_range=_block_page_range(block),
-                content=_trim_content_for_extraction(block.text),
-            )
-            try:
-                payload = self._generate_json_with_retries("qwen_record_extractor_pdf", RECORD_EXTRACTOR_SYSTEM, user_prompt)
-                records.extend(_records_from_payload(payload, block.source_file, block.source_type, block.page, block=block))
-            except Exception as exc:
-                warning = (
-                    f"Qwen text extraction skipped one block: source_file={block.source_file}, "
-                    f"page={block.page}, error={exc}"
-                )
-                self.extraction_warnings.append(warning)
-                if self.allow_rule_fallback:
-                    records.extend(extract_records_from_text_blocks([block]))
-                continue
-        return records
+        return self.extract_from_text_blocks_limited(task_plan, text_blocks, max_blocks=None)
 
     def extract_from_text_blocks_limited(
         self,
@@ -592,11 +659,10 @@ class QwenAgentNodes:
         progress_callback=None,
     ) -> list[ScientificRecord]:
         records: list[ScientificRecord] = []
-        self.extraction_warnings.clear()
+        self._clear_extraction_warnings()
         ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
-        for index, block in enumerate(ranked_blocks, start=1):
-            if progress_callback:
-                progress_callback(index, len(ranked_blocks), block, len(records))
+        jobs: list[Callable[[], list[ScientificRecord]]] = []
+        for block in ranked_blocks:
             user_prompt = RECORD_EXTRACTOR_USER.format(
                 task_plan_json=task_plan.model_dump_json(),
                 source_file=block.source_file,
@@ -608,18 +674,37 @@ class QwenAgentNodes:
                 page_range=_block_page_range(block),
                 content=_trim_content_for_extraction(block.text),
             )
-            try:
-                payload = self._generate_json_with_retries("qwen_record_extractor_pdf", RECORD_EXTRACTOR_SYSTEM, user_prompt)
-                records.extend(_records_from_payload(payload, block.source_file, block.source_type, block.page, block=block))
-            except Exception as exc:
+
+            def extract(current_block=block, prompt=user_prompt) -> list[ScientificRecord]:
+                payload = self._generate_json_with_retries(
+                    "qwen_record_extractor_pdf",
+                    RECORD_EXTRACTOR_SYSTEM,
+                    prompt,
+                )
+                return _records_from_payload(
+                    payload,
+                    current_block.source_file,
+                    current_block.source_type,
+                    current_block.page,
+                    block=current_block,
+                )
+
+            jobs.append(extract)
+
+        outcomes = self._run_block_jobs(jobs)
+        for index, (block, outcome) in enumerate(zip(ranked_blocks, outcomes), start=1):
+            if progress_callback:
+                progress_callback(index, len(ranked_blocks), block, len(records))
+            if isinstance(outcome, Exception):
                 warning = (
                     f"Qwen text extraction skipped one block: source_file={block.source_file}, "
-                    f"page={block.page}, error={exc}"
+                    f"page={block.page}, error={outcome}"
                 )
-                self.extraction_warnings.append(warning)
+                self._append_extraction_warning(warning)
                 if self.allow_rule_fallback:
                     records.extend(extract_records_from_text_blocks([block]))
                 continue
+            records.extend(outcome)
         return records
 
     def extract_from_tables(self, task_plan: TaskPlan, tables: list[TableBlock]) -> list[ScientificRecord]:
@@ -655,7 +740,7 @@ class QwenAgentNodes:
                     f"Qwen table extraction skipped one table: source_file={table.source_file}, "
                     f"table_id={table.table_id}, error={exc}"
                 )
-                self.extraction_warnings.append(warning)
+                self._append_extraction_warning(warning)
                 if self.allow_rule_fallback:
                     records.extend(extract_records_from_tables([table]))
                 continue
@@ -703,7 +788,7 @@ class QwenAgentNodes:
             except Exception as exc:
                 last_exc = exc
                 warning = f"VL call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
-                self.node_warnings.append(warning)
+                self._append_node_warning(warning)
                 if attempt < attempts:
                     self._emit_retry_event(node, "vl", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
@@ -1621,6 +1706,9 @@ def _dynamic_records_from_payload(
             raw["field_aliases"] = field_aliases
         if extra_fields:
             raw["extra_fields"] = extra_fields
+        confidence, confidence_warning = _coerce_dynamic_confidence(item.get("confidence"))
+        if confidence_warning:
+            warnings.append(confidence_warning)
         try:
             records.append(
                 DynamicRecord(
@@ -1630,7 +1718,7 @@ def _dynamic_records_from_payload(
                     source_type=str(item.get("source_type") or source_type.value),
                     page=page if page is not None else item.get("page"),
                     evidence_text=item.get("evidence_text"),
-                    confidence=item.get("confidence") or 0.65,
+                    confidence=confidence,
                     warnings=warnings,
                     raw=raw,
                 )
@@ -1638,6 +1726,19 @@ def _dynamic_records_from_payload(
         except ValidationError:
             continue
     return records
+
+
+def _coerce_dynamic_confidence(value: Any, default: float = 0.65) -> tuple[float, str | None]:
+    """Keep valid zero confidence and recover from malformed LLM values."""
+    if value in (None, ""):
+        return default, None
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return default, f"invalid confidence replaced with default {default:g}"
+    if not math.isfinite(confidence):
+        return default, f"invalid confidence replaced with default {default:g}"
+    return max(0.0, min(1.0, confidence)), None
 
 
 def _align_dynamic_fields(
