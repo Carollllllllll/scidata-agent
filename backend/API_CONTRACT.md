@@ -26,6 +26,10 @@ Health data never returns the API key.
 - `max_dynamic_text_blocks`: integer 1-500, default `20`
 - `max_record_text_blocks`: integer 1-500, default `20`
 - `max_figures_per_pdf`: integer 0-50, default `6`
+- `max_pdf_parse_workers`: optional integer 1-16; overrides `SCIDATA_PDF_PARSE_MAX_WORKERS`
+- `max_chart_workers`: optional integer 1-16; overrides `SCIDATA_CHART_MAX_WORKERS`
+- `max_text_extraction_workers`: optional integer 1-16; overrides `SCIDATA_TEXT_EXTRACTION_MAX_WORKERS`
+- `max_table_extraction_workers`: optional integer 1-16; overrides `SCIDATA_TABLE_EXTRACTION_MAX_WORKERS`
 - `reuse_dynamic_records_for_metrics`: boolean, default `true`
 
 The default guardrails are 20 uploaded files, 50 MiB per file, and 200 MiB per

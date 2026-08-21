@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+from threading import RLock
 from typing import Any, Callable
 
 
@@ -123,6 +124,7 @@ class QwenBailianClient:
         self.traces: list[LLMCallTrace] = []
         self.model_events: list[dict[str, Any]] = []
         self.event_callback: Callable[[dict[str, Any]], None] | None = None
+        self._state_lock = RLock()
 
     @property
     def configured(self) -> bool:
@@ -130,21 +132,23 @@ class QwenBailianClient:
 
     def set_event_callback(self, callback: Callable[[dict[str, Any]], None] | None) -> None:
         """Attach a per-run callback for model failover monitoring."""
-        self.event_callback = callback
+        with self._state_lock:
+            self.event_callback = callback
 
     def emit_runtime_event(self, event: dict[str, Any]) -> None:
         """Publish node-level retry telemetry through the existing monitor hook."""
         self._emit_event(event)
 
     def model_pool_status(self) -> dict[str, Any]:
-        return {
-            "text_models": list(self.text_models),
-            "active_text_model": self.model,
-            "unavailable_text_models": sorted(self._unavailable_text_models),
-            "vl_models": list(self.vl_models),
-            "active_vl_model": self.vl_model,
-            "unavailable_vl_models": sorted(self._unavailable_vl_models),
-        }
+        with self._state_lock:
+            return {
+                "text_models": list(self.text_models),
+                "active_text_model": self.model,
+                "unavailable_text_models": sorted(self._unavailable_text_models),
+                "vl_models": list(self.vl_models),
+                "active_vl_model": self.vl_model,
+                "unavailable_vl_models": sorted(self._unavailable_vl_models),
+            }
 
     def require_configured(self) -> None:
         if not self.configured:
@@ -181,18 +185,17 @@ class QwenBailianClient:
                     text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
                 if not isinstance(text, str):
                     raise LLMCallError("Provider returned non-text message content.")
-                self._set_active_model("text", model)
-                self.traces.append(
-                    LLMCallTrace(
-                        node=node,
-                        model=model,
-                        prompt_chars=prompt_chars,
-                        response_chars=len(text),
-                        elapsed_ms=int((time.time() - started) * 1000),
-                        success=True,
-                        **_trace_usage(data),
-                    )
+                trace = LLMCallTrace(
+                    node=node,
+                    model=model,
+                    prompt_chars=prompt_chars,
+                    response_chars=len(text),
+                    elapsed_ms=int((time.time() - started) * 1000),
+                    success=True,
+                    **_trace_usage(data),
                 )
+                self._set_active_model("text", model)
+                self._record_trace(trace)
                 return text
             except Exception as exc:
                 last_exc = exc
@@ -253,18 +256,17 @@ class QwenBailianClient:
                     text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
                 if not isinstance(text, str):
                     raise LLMCallError("Provider returned non-text VL message content.")
-                self._set_active_model("vl", model)
-                self.traces.append(
-                    LLMCallTrace(
-                        node=node,
-                        model=model,
-                        prompt_chars=prompt_chars,
-                        response_chars=len(text),
-                        elapsed_ms=int((time.time() - started) * 1000),
-                        success=True,
-                        **_trace_usage(data),
-                    )
+                trace = LLMCallTrace(
+                    node=node,
+                    model=model,
+                    prompt_chars=prompt_chars,
+                    response_chars=len(text),
+                    elapsed_ms=int((time.time() - started) * 1000),
+                    success=True,
+                    **_trace_usage(data),
                 )
+                self._set_active_model("vl", model)
+                self._record_trace(trace)
                 return text
             except Exception as exc:
                 last_exc = exc
@@ -318,35 +320,51 @@ class QwenBailianClient:
         return data
 
     def _available_models(self, kind: str) -> list[str]:
-        models = self.text_models if kind == "text" else self.vl_models
-        unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
-        index = self._text_index if kind == "text" else self._vl_index
-        ordered = models[index:] + models[:index]
-        return [model for model in ordered if model not in unavailable]
+        with self._state_lock:
+            models = self.text_models if kind == "text" else self.vl_models
+            unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
+            index = self._text_index if kind == "text" else self._vl_index
+            ordered = models[index:] + models[:index]
+            return [model for model in ordered if model not in unavailable]
 
     def _set_active_model(self, kind: str, model: str) -> None:
-        models = self.text_models if kind == "text" else self.vl_models
-        index = models.index(model)
-        if kind == "text":
-            self._text_index = index
-            self.model = model
-        else:
-            self._vl_index = index
-            self.vl_model = model
+        with self._state_lock:
+            models = self.text_models if kind == "text" else self.vl_models
+            if model not in models:
+                return
+            unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
+            if model in unavailable:
+                return
+            index = models.index(model)
+            if kind == "text":
+                self._text_index = index
+                self.model = model
+            else:
+                self._vl_index = index
+                self.vl_model = model
 
     def _disable_and_switch(self, kind: str, failed_model: str, exc: Exception) -> None:
-        models = self.text_models if kind == "text" else self.vl_models
-        unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
-        unavailable.add(failed_model)
-        current_index = models.index(failed_model)
-        next_model = next(
-            (
-                model
-                for model in models[current_index + 1 :] + models[:current_index]
-                if model not in unavailable
-            ),
-            None,
-        )
+        with self._state_lock:
+            models = self.text_models if kind == "text" else self.vl_models
+            unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
+            unavailable.add(failed_model)
+            current_index = models.index(failed_model)
+            next_model = next(
+                (
+                    model
+                    for model in models[current_index + 1 :] + models[:current_index]
+                    if model not in unavailable
+                ),
+                None,
+            )
+            if next_model is not None:
+                index = models.index(next_model)
+                if kind == "text":
+                    self._text_index = index
+                    self.model = next_model
+                else:
+                    self._vl_index = index
+                    self.vl_model = next_model
         if next_model is None:
             self._emit_event(
                 {
@@ -357,7 +375,6 @@ class QwenBailianClient:
                 }
             )
             return
-        self._set_active_model(kind, next_model)
         self._emit_event(
             {
                 "event": "model_switched",
@@ -369,7 +386,7 @@ class QwenBailianClient:
         )
 
     def _record_failure(self, node: str, model: str, prompt_chars: int, started: float, exc: Exception) -> None:
-        self.traces.append(
+        self._record_trace(
             LLMCallTrace(
                 node=node,
                 model=model,
@@ -381,10 +398,16 @@ class QwenBailianClient:
             )
         )
 
+    def _record_trace(self, trace: LLMCallTrace) -> None:
+        with self._state_lock:
+            self.traces.append(trace)
+
     def _emit_event(self, event: dict[str, Any]) -> None:
-        self.model_events.append(event)
-        if self.event_callback is not None:
-            self.event_callback(event)
+        with self._state_lock:
+            self.model_events.append(event)
+            callback = self.event_callback
+        if callback is not None:
+            callback(event)
 
     @staticmethod
     def _should_failover(exc: Exception) -> bool:

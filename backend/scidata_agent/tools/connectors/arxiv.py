@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import os
 import re
 import shutil
 import time
@@ -20,6 +22,7 @@ ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 DEFAULT_PDF_READ_TIMEOUT_SECONDS = 30
 DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS = 600
 DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS = 3600
+DEFAULT_ARXIV_DOWNLOAD_WORKERS = 3
 PDF_CHUNK_SIZE = 1024 * 1024
 
 
@@ -85,6 +88,78 @@ def search_arxiv(query: str, max_results: int = 5, timeout: int = 20, retries: i
     return [_entry_to_source(entry, normalized_query) for entry in root.findall("atom:entry", ATOM_NS)]
 
 
+def _download_worker_count(max_workers: int | None) -> int:
+    configured = max_workers
+    if configured is None:
+        try:
+            configured = int(os.getenv("SCIDATA_PDF_DOWNLOAD_MAX_WORKERS", str(DEFAULT_ARXIV_DOWNLOAD_WORKERS)))
+        except ValueError:
+            configured = DEFAULT_ARXIV_DOWNLOAD_WORKERS
+    return max(1, int(configured))
+
+
+def _download_one_arxiv_source(
+    source: DiscoveredSource,
+    index: int,
+    total: int,
+    download_dir: Path,
+    timeout: int,
+    retries: int,
+    downloader: Callable[[str, Path, int], None],
+    total_timeout: int,
+    progress_callback: Callable[[str, dict[str, Any]], None] | None,
+    reuse_dirs: list[Path],
+) -> tuple[Path | None, dict[str, Any]]:
+    pdf_url = source.metadata.get("pdf_url")
+    if not isinstance(pdf_url, str) or not pdf_url:
+        return None, {
+            "status": "skipped",
+            "title": source.title,
+            "note": f"arXiv PDF download skipped: no pdf_url for '{source.title}'.",
+        }
+
+    filename = build_pdf_filename(source)
+    target_path = download_dir / filename
+    reused_path = _find_reusable_pdf(target_path, reuse_dirs)
+    copy_note: str | None = None
+    if reused_path is not None and reused_path != target_path:
+        try:
+            shutil.copy2(reused_path, target_path)
+            copy_note = (
+                f"arXiv PDF copied from previous task: title='{source.title}', "
+                f"file='{target_path.name}'."
+            )
+        except OSError:
+            _remove_quietly(target_path)
+
+    if _is_valid_pdf(target_path):
+        note = copy_note or f"arXiv PDF reused: title='{source.title}', file='{target_path.name}'."
+        _notify(progress_callback, "reused", {"index": index, "total": total, "title": source.title, "path": str(target_path)})
+        return target_path, {"status": "reused", "title": source.title, "note": note}
+
+    if target_path.exists():
+        _remove_quietly(target_path)
+    _notify(progress_callback, "started", {"index": index, "total": total, "title": source.title, "path": str(target_path)})
+    try:
+        _download_with_retry(
+            pdf_url,
+            target_path,
+            timeout,
+            retries,
+            downloader,
+            total_timeout=total_timeout,
+            progress_callback=progress_callback,
+        )
+    except Exception as exc:
+        note = f"arXiv PDF download failed for '{source.title}' after {retries + 1} attempt(s): {exc}"
+        _notify(progress_callback, "failed", {"index": index, "total": total, "title": source.title, "error": str(exc)})
+        return None, {"status": "failed", "title": source.title, "note": note}
+
+    note = f"arXiv PDF downloaded: title='{source.title}', file='{target_path.name}'."
+    _notify(progress_callback, "completed", {"index": index, "total": total, "title": source.title, "path": str(target_path)})
+    return target_path, {"status": "completed", "title": source.title, "note": note}
+
+
 def download_arxiv_pdfs(
     plan: SourceDiscoveryPlan,
     download_dir: Path,
@@ -97,6 +172,7 @@ def download_arxiv_pdfs(
     batch_timeout: int = DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
     progress_callback: Callable[[str, dict[str, Any]], None] | None = None,
     reuse_dirs: list[Path] | None = None,
+    max_workers: int | None = None,
 ) -> list[Path]:
     """Download selected arXiv PDFs with per-file and batch deadlines.
 
@@ -108,67 +184,68 @@ def download_arxiv_pdfs(
     batch_started = time.monotonic()
 
     downloaded: list[Path] = []
-    selected_sources = select_arxiv_papers(plan, max_papers=None, allowed_source_ids=allowed_source_ids)
-    for index, source in enumerate(selected_sources, start=1):
-        if len(downloaded) >= max(0, max_papers):
-            break
-        if batch_timeout > 0 and time.monotonic() - batch_started >= batch_timeout:
-            message = (
-                f"arXiv PDF batch timeout reached after {batch_timeout}s; "
-                f"skipping remaining sources starting at {index}/{len(selected_sources)}."
-            )
-            plan.notes.append(message)
-            _notify(progress_callback, "batch_timeout", {"index": index, "total": len(selected_sources)})
-            break
-        pdf_url = source.metadata.get("pdf_url")
-        if not isinstance(pdf_url, str) or not pdf_url:
-            plan.notes.append(f"arXiv PDF download skipped: no pdf_url for '{source.title}'.")
-            _notify(progress_callback, "skipped", {"index": index, "total": len(selected_sources), "title": source.title, "reason": "missing_pdf_url"})
-            continue
+    # Select at most the configured download cap before scheduling work. This
+    # preserves the hard resource limit while allowing those downloads to run concurrently.
+    selected_sources = select_arxiv_papers(
+        plan,
+        max_papers=max(0, max_papers),
+        allowed_source_ids=allowed_source_ids,
+    )
+    if not selected_sources:
+        return downloaded
+    if batch_timeout > 0 and time.monotonic() - batch_started >= batch_timeout:
+        message = f"arXiv PDF batch timeout reached before starting {len(selected_sources)} source(s)."
+        plan.notes.append(message)
+        _notify(progress_callback, "batch_timeout", {"index": 1, "total": len(selected_sources)})
+        return downloaded
 
-        filename = build_pdf_filename(source)
-        target_path = download_dir / filename
-        reused_path = _find_reusable_pdf(target_path, reuse_dirs or [])
-        if reused_path is not None and reused_path != target_path:
-            try:
-                shutil.copy2(reused_path, target_path)
-                plan.notes.append(
-                    f"arXiv PDF copied from previous task: title='{source.title}', "
-                    f"file='{target_path.name}'."
-                )
-            except OSError:
-                _remove_quietly(target_path)
-        if _is_valid_pdf(target_path):
-            source.metadata["downloaded_path"] = str(target_path)
-            downloaded.append(target_path)
-            plan.notes.append(f"arXiv PDF reused: title='{source.title}', file='{target_path.name}'.")
-            _notify(progress_callback, "reused", {"index": index, "total": len(selected_sources), "title": source.title, "path": str(target_path)})
-            continue
-        if target_path.exists():
-            _remove_quietly(target_path)
-        _notify(progress_callback, "started", {"index": index, "total": len(selected_sources), "title": source.title, "path": str(target_path)})
-        try:
-            _download_with_retry(
-                pdf_url,
-                target_path,
+    workers = min(_download_worker_count(max_workers), len(selected_sources))
+    plan.notes.append(
+        f"arXiv PDF download scheduled {len(selected_sources)} source(s) with max_workers={workers}."
+    )
+    reuse_dirs = reuse_dirs or []
+    if workers == 1:
+        outcomes = [
+            _download_one_arxiv_source(
+                source,
+                index,
+                len(selected_sources),
+                download_dir,
                 timeout,
                 retries,
                 downloader,
-                total_timeout=total_timeout,
-                progress_callback=progress_callback,
+                total_timeout,
+                progress_callback,
+                reuse_dirs,
             )
-        except Exception as exc:
-            plan.notes.append(
-                f"arXiv PDF download failed for '{source.title}' after {retries + 1} attempt(s): {exc}"
-            )
-            _notify(progress_callback, "failed", {"index": index, "total": len(selected_sources), "title": source.title, "error": str(exc)})
-            continue
+            for index, source in enumerate(selected_sources, start=1)
+        ]
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="arxiv-download") as executor:
+            futures = [
+                executor.submit(
+                    _download_one_arxiv_source,
+                    source,
+                    index,
+                    len(selected_sources),
+                    download_dir,
+                    timeout,
+                    retries,
+                    downloader,
+                    total_timeout,
+                    progress_callback,
+                    reuse_dirs,
+                )
+                for index, source in enumerate(selected_sources, start=1)
+            ]
+            outcomes = [future.result() for future in futures]
 
-        source.metadata["downloaded_path"] = str(target_path)
-        downloaded.append(target_path)
-        plan.notes.append(f"arXiv PDF downloaded: title='{source.title}', file='{target_path.name}'.")
-        _notify(progress_callback, "completed", {"index": index, "total": len(selected_sources), "title": source.title, "path": str(target_path)})
-
+    for source, (path, result) in zip(selected_sources, outcomes, strict=True):
+        if result.get("note"):
+            plan.notes.append(str(result["note"]))
+        if path is not None:
+            source.metadata["downloaded_path"] = str(path)
+            downloaded.append(path)
     return downloaded
 
 

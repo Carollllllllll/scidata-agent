@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from threading import RLock
 from typing import Any
 
 from pydantic import BaseModel
@@ -21,6 +22,7 @@ class AgentMonitor:
         self.task_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = self.task_dir / "agent_monitor.jsonl"
         self._step_started_at: dict[str, float] = {}
+        self._emit_lock = RLock()
 
     def start(self, step: str, message: str, data: dict[str, Any] | None = None) -> None:
         self._step_started_at[step] = time.perf_counter()
@@ -69,10 +71,11 @@ class AgentMonitor:
             "data": _jsonable(data or {}),
         }
         line = json.dumps(event, ensure_ascii=False)
-        with self.log_path.open("a", encoding="utf-8") as handle:
-            handle.write(line + "\n")
-        if self.console:
-            print(_format_console_event(event), flush=True)
+        with self._emit_lock:
+            with self.log_path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
+            if self.console:
+                print(_format_console_event(event), flush=True)
 
 
 def _format_console_event(event: dict[str, Any]) -> str:
