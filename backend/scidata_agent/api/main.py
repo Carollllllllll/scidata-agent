@@ -368,6 +368,10 @@ if FastAPI is not None:
         max_dynamic_text_blocks: int = Form(20, ge=1, le=500),
         max_record_text_blocks: int = Form(20, ge=1, le=500),
         max_figures_per_pdf: int = Form(6, ge=0, le=50),
+        max_pdf_parse_workers: int | None = Form(None, ge=1, le=16),
+        max_chart_workers: int | None = Form(None, ge=1, le=16),
+        max_text_extraction_workers: int | None = Form(None, ge=1, le=16),
+        max_table_extraction_workers: int | None = Form(None, ge=1, le=16),
         reuse_dynamic_records_for_metrics: bool = Form(True),
     ) -> dict[str, Any]:
         if not TASK_MANAGER.can_accept():
@@ -391,6 +395,10 @@ if FastAPI is not None:
                     "max_dynamic_text_blocks": max_dynamic_text_blocks,
                     "max_record_text_blocks": max_record_text_blocks,
                     "max_figures_per_pdf": max_figures_per_pdf,
+                    "max_pdf_parse_workers": max_pdf_parse_workers,
+                    "max_chart_workers": max_chart_workers,
+                    "max_text_extraction_workers": max_text_extraction_workers,
+                    "max_table_extraction_workers": max_table_extraction_workers,
                     "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
                 },
                 auto_fetch_arxiv=enable_live_search,

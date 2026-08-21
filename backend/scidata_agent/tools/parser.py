@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pandas as pd
@@ -36,6 +38,7 @@ from scidata_agent.agent.schemas import (
 
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".tsv", ".xlsx", ".xls"}
+DEFAULT_PDF_PARSE_MAX_WORKERS = 2
 
 
 def _use_table_transformer() -> bool:
@@ -44,30 +47,78 @@ def _use_table_transformer() -> bool:
     return os.getenv("USE_TABLE_TRANSFORMER", "false").lower() in {"1", "true", "yes"}
 
 
-def parse_sources(files: list[UploadedFile], max_pdf_pages: int | None = 8) -> ParsedSources:
+def _parse_worker_count(max_workers: int | None) -> int:
+    configured = max_workers
+    if configured is None:
+        try:
+            configured = int(os.getenv("SCIDATA_PDF_PARSE_MAX_WORKERS", str(DEFAULT_PDF_PARSE_MAX_WORKERS)))
+        except ValueError:
+            configured = DEFAULT_PDF_PARSE_MAX_WORKERS
+    return max(1, int(configured))
+
+
+def _parse_one_file(
+    uploaded: UploadedFile,
+    max_pdf_pages: int | None,
+) -> tuple[list[TextBlock], list[HeadingCandidate], list[TableBlock], str | None, dict[str, Any] | None, str | None]:
+    suffix = uploaded.path.suffix.lower()
+    if suffix == ".pdf":
+        pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages)
+        tables, table_status = _parse_pdf_tables_with_status(uploaded, max_pages=max_pdf_pages)
+        fallback_reason = table_status.get("fallback_reason")
+        warning = None
+        if fallback_reason:
+            warning = (
+                f"Table Transformer unavailable for {uploaded.filename}; "
+                f"used pdfplumber fallback: {fallback_reason}"
+            )
+        return (
+            pdf_blocks,
+            extract_heading_candidates(uploaded, pdf_blocks, max_pages=max_pdf_pages),
+            tables,
+            extract_pdf_title(uploaded.path),
+            table_status,
+            warning,
+        )
+    if suffix in {".csv", ".tsv"}:
+        return [], [], [parse_csv(uploaded)], None, None, None
+    if suffix in {".xlsx", ".xls"}:
+        return [], [], parse_excel(uploaded), None, None, None
+    return [], [], [], None, None, None
+
+
+def parse_sources(
+    files: list[UploadedFile],
+    max_pdf_pages: int | None = 8,
+    max_workers: int | None = None,
+) -> ParsedSources:
     parsed = ParsedSources()
-    for uploaded in files:
-        suffix = uploaded.path.suffix.lower()
-        if suffix == ".pdf":
-            pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages)
-            parsed.text_blocks.extend(pdf_blocks)
-            parsed.heading_candidates.extend(extract_heading_candidates(uploaded, pdf_blocks, max_pages=max_pdf_pages))
-            tables, table_status = _parse_pdf_tables_with_status(uploaded, max_pages=max_pdf_pages)
-            parsed.tables.extend(tables)
+    if not files:
+        return parsed
+
+    workers = min(_parse_worker_count(max_workers), len(files))
+    if workers == 1:
+        outcomes = [_parse_one_file(uploaded, max_pdf_pages) for uploaded in files]
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="pdf-parse") as executor:
+            futures = [
+                executor.submit(_parse_one_file, uploaded, max_pdf_pages)
+                for uploaded in files
+            ]
+            # Consume in file order to keep evidence and exports deterministic.
+            outcomes = [future.result() for future in futures]
+
+    for uploaded, outcome in zip(files, outcomes, strict=True):
+        text_blocks, heading_candidates, tables, title, table_status, warning = outcome
+        parsed.text_blocks.extend(text_blocks)
+        parsed.heading_candidates.extend(heading_candidates)
+        parsed.tables.extend(tables)
+        if table_status is not None:
             parsed.table_extraction_status.append(table_status)
-            fallback_reason = table_status.get("fallback_reason")
-            if fallback_reason:
-                parsed.parser_warnings.append(
-                    f"Table Transformer unavailable for {uploaded.filename}; "
-                    f"used pdfplumber fallback: {fallback_reason}"
-                )
-            title = extract_pdf_title(uploaded.path)
-            if title:
-                parsed.file_titles[uploaded.filename] = title
-        elif suffix in {".csv", ".tsv"}:
-            parsed.tables.append(parse_csv(uploaded))
-        elif suffix in {".xlsx", ".xls"}:
-            parsed.tables.extend(parse_excel(uploaded))
+        if warning:
+            parsed.parser_warnings.append(warning)
+        if title:
+            parsed.file_titles[uploaded.filename] = title
     return parsed
 
 

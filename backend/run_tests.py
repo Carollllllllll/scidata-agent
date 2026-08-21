@@ -54,6 +54,18 @@ from tests.test_pdf_table_extraction import (
     test_parse_sources_includes_pdf_tables,
     test_pdf_table_quality_filter_rejects_fragment,
 )
+from tests.test_parallel_processing import (
+    test_table_extraction_is_parallel_and_ordered,
+    test_text_extraction_is_parallel_and_ordered,
+    test_text_extraction_isolates_one_worker_failure,
+)
+from tests.test_structured_output import (
+    test_agent_processing_log_records_normalization_events,
+    test_ambiguous_values_are_not_silently_discarded,
+    test_normalization_events_are_recorded_by_agent_nodes,
+    test_schema_driven_normalization_recurses_through_nested_models,
+    test_schema_driven_normalization_repairs_common_shape_drift,
+)
 
 
 def main() -> None:
@@ -153,6 +165,22 @@ def main() -> None:
     print("parse_sources_includes_pdf_tables: PASS")
     test_pdf_table_quality_filter_rejects_fragment()
     print("pdf_table_quality_filter_rejects_fragment: PASS")
+    test_text_extraction_is_parallel_and_ordered()
+    print("text_extraction_is_parallel_and_ordered: PASS")
+    test_text_extraction_isolates_one_worker_failure()
+    print("text_extraction_isolates_one_worker_failure: PASS")
+    test_table_extraction_is_parallel_and_ordered()
+    print("table_extraction_is_parallel_and_ordered: PASS")
+    test_schema_driven_normalization_repairs_common_shape_drift()
+    print("schema_driven_normalization_repairs_common_shape_drift: PASS")
+    test_schema_driven_normalization_recurses_through_nested_models()
+    print("schema_driven_normalization_recurses_through_nested_models: PASS")
+    test_normalization_events_are_recorded_by_agent_nodes()
+    print("normalization_events_are_recorded_by_agent_nodes: PASS")
+    test_ambiguous_values_are_not_silently_discarded()
+    print("ambiguous_values_are_not_silently_discarded: PASS")
+    test_agent_processing_log_records_normalization_events()
+    print("agent_processing_log_records_normalization_events: PASS")
 
 
 if __name__ == "__main__":

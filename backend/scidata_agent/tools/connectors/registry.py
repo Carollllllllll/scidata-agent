@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+import os
 from typing import Any
 
 from scidata_agent.agent.schemas import DiscoveredSource, MultiSourceSearchPlan, SourceSearchRequest
@@ -15,6 +17,50 @@ from scidata_agent.tools.connectors.zenodo import ZenodoConnector
 
 
 SearchFn = Callable[[SourceSearchRequest], list[DiscoveredSource]]
+DEFAULT_SEARCH_MAX_WORKERS = 4
+
+
+def _search_worker_count(max_workers: int | None) -> int:
+    configured = max_workers
+    if configured is None:
+        try:
+            configured = int(os.getenv("SCIDATA_SEARCH_MAX_WORKERS", str(DEFAULT_SEARCH_MAX_WORKERS)))
+        except ValueError:
+            configured = DEFAULT_SEARCH_MAX_WORKERS
+    return max(1, int(configured))
+
+
+def _search_one_request(
+    request: SourceSearchRequest,
+    connectors: dict[str, BaseConnector],
+    searchers: dict[str, SearchFn],
+) -> tuple[SourceSearchRequest, list[DiscoveredSource], dict[str, Any]]:
+    searcher = searchers.get(request.connector_name)
+    connector = connectors.get(request.connector_name)
+    if searcher is None and connector is None:
+        return request, [], {
+            "connector": request.connector_name,
+            "query": request.query,
+            "status": "failed",
+            "error": "connector is not available",
+            "added": 0,
+        }
+    try:
+        sources = searcher(request) if searcher else connector.search(request)  # type: ignore[union-attr]
+    except Exception as exc:
+        return request, [], {
+            "connector": request.connector_name,
+            "query": request.query,
+            "status": "failed",
+            "error": str(exc),
+            "added": 0,
+        }
+    return request, sources, {
+        "connector": request.connector_name,
+        "query": request.query,
+        "status": "completed",
+        "added": 0,
+    }
 
 
 def available_connectors() -> dict[str, BaseConnector]:
@@ -33,6 +79,7 @@ def available_connectors() -> dict[str, BaseConnector]:
 def execute_multi_source_search(
     plan: MultiSourceSearchPlan,
     searchers: dict[str, SearchFn] | None = None,
+    max_workers: int | None = None,
 ) -> tuple[list[DiscoveredSource], dict[str, Any]]:
     if not plan.should_search:
         return [], {"status": "skipped", "searched": 0, "added": 0, "failed": 0, "connector_status": []}
@@ -42,37 +89,24 @@ def execute_multi_source_search(
     existing_keys: set[str] = set()
     connector_status: list[dict[str, Any]] = []
     failed = 0
-    searched = 0
+    requests = list(plan.search_requests)
+    searchers_map = searchers or {}
+    workers = min(_search_worker_count(max_workers), max(1, len(requests)))
+    if workers == 1 or len(requests) <= 1:
+        outcomes = [_search_one_request(request, connectors, searchers_map) for request in requests]
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="source-search") as executor:
+            futures = [
+                executor.submit(_search_one_request, request, connectors, searchers_map)
+                for request in requests
+            ]
+            # Consume in request order so downstream exports remain deterministic.
+            outcomes = [future.result() for future in futures]
 
-    for request in plan.search_requests:
-        searched += 1
-        searcher = (searchers or {}).get(request.connector_name)
-        connector = connectors.get(request.connector_name)
-        if searcher is None and connector is None:
+    for request, sources, status_entry in outcomes:
+        if status_entry["status"] == "failed":
             failed += 1
-            connector_status.append(
-                {
-                    "connector": request.connector_name,
-                    "query": request.query,
-                    "status": "failed",
-                    "error": "connector is not available",
-                    "added": 0,
-                }
-            )
-            continue
-        try:
-            sources = searcher(request) if searcher else connector.search(request)  # type: ignore[union-attr]
-        except Exception as exc:
-            failed += 1
-            connector_status.append(
-                {
-                    "connector": request.connector_name,
-                    "query": request.query,
-                    "status": "failed",
-                    "error": str(exc),
-                    "added": 0,
-                }
-            )
+            connector_status.append(status_entry)
             continue
 
         added = 0
@@ -89,14 +123,9 @@ def execute_multi_source_search(
             found.append(source)
             existing_keys.add(key)
             added += 1
-        connector_status.append(
-            {
-                "connector": request.connector_name,
-                "query": request.query,
-                "status": "completed",
-                "added": added,
-            }
-        )
+        connector_status.append({**status_entry, "added": added})
+
+    searched = len(requests)
 
     status = "completed"
     if searched == 0:
@@ -112,6 +141,7 @@ def execute_multi_source_search(
             "searched": searched,
             "added": len(found),
             "failed": failed,
+            "max_workers": workers,
             "connector_status": connector_status,
         },
     )
