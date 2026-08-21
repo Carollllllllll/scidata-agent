@@ -33,8 +33,10 @@ $env:QWEN_VL_MODEL="qwen3-vl-30b-a3b-thinking"   # 图表/图像数据提取用�
 
 项目也会自动读取 `backend/.env`。不要把 `.env` 提交或公开。
 可从 `backend/.env.example` 复制完整配置；`QWEN_NODE_MAX_ATTEMPTS=2`
-限制同一逻辑节点的总尝试次数，避免模型池耗尽后长时间盲重试。非本机部署时应设置
-`SCIDATA_API_TOKEN`。可信的单用户内部环境可在前端构建时设置相同的
+限制同一逻辑节点的总尝试次数，避免模型池耗尽后长时间盲重试。上传、并发、下载和
+渲染等安全边界也集中列在该示例文件中。非本机部署时应设置 `SCIDATA_API_TOKEN`。
+只有部署在会覆盖转发头的可信反向代理后，才可开启
+`SCIDATA_TRUST_PROXY_HEADERS=true`。可信的单用户内部环境可在前端构建时设置相同的
 `VITE_SCIDATA_API_TOKEN`，API 请求、图片预览和文件下载都会携带 Bearer Token；
 但所有 `VITE_*` 值都会进入浏览器包，公开部署必须改用登录网关或 HttpOnly 会话，
 不能把该构建变量当作服务端秘密。
@@ -138,7 +140,7 @@ GET  /api/tasks/{task_id}/export?format=source_discovery_plan
 - 任务历史、实时节点进度和运行记录
 - 来源目录、动态数据表、原始/清洗记录切换
 - 字段证据抽屉、图表解析、质量报告和导出中心
-- 人工复核结论持久化、失败任务重跑、排队任务取消
+- 人工复核结论持久化、失败任务重跑、排队/运行中任务协作式取消
 - 最终 Markdown 调研报告在线预览
 
 先启动后端：

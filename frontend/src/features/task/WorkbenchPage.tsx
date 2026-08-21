@@ -1,15 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
-import { getHealth, listTasks } from "../../api/client";
+import { listTasks } from "../../api/client";
 import { Icon } from "../../components/Icon";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate, stageLabel } from "../../lib/task";
 import { TaskComposer } from "./TaskComposer";
 
 export function WorkbenchPage() {
-  const health = useQuery({ queryKey: ["health"], queryFn: getHealth });
-  const tasks = useQuery({ queryKey: ["tasks", 12], queryFn: () => listTasks(12) });
+  const tasks = useQuery({
+    queryKey: ["tasks", 12],
+    queryFn: () => listTasks(12),
+    refetchInterval: (query) => {
+      const hasActiveTask = query.state.data?.tasks.some((task) => task.status === "queued" || task.status === "running");
+      if (!hasActiveTask) return false;
+      return typeof document !== "undefined" && document.hidden ? false : 4_000;
+    },
+    refetchOnWindowFocus: true,
+  });
 
   return (
     <div className="workbench-page">
@@ -19,32 +27,9 @@ export function WorkbenchPage() {
           <h1>科研数据整合工作台</h1>
           <p>把论文、数据库、表格与图表组织成可追溯、可复核、可导出的结构化科研数据。</p>
         </div>
-        <div className="heading-status">
-          <span className={`service-indicator ${health.isSuccess ? "online" : health.isError ? "offline" : "checking"}`} />
-          <div><strong>{health.data?.qwen_configured ? "Agent 就绪" : health.isSuccess ? "API 已连接" : health.isError ? "API 未连接" : "检查服务中"}</strong><small>{health.data?.qwen_configured ? "Qwen 已配置" : "在线模型尚未配置"}</small></div>
-        </div>
       </section>
 
-      <section className="home-grid">
-        <TaskComposer />
-        <aside className="workflow-card">
-          <div className="workflow-card-heading">
-            <span className="section-icon"><Icon name="layers" size={19} /></span>
-            <div><strong>Agent 工作流</strong><small>每一步都有状态与证据</small></div>
-          </div>
-          <ol className="workflow-list">
-            <WorkflowItem index="01" title="理解问题" text="生成本次任务专属的字段与质量规则" />
-            <WorkflowItem index="02" title="发现来源" text="检索论文、开放数据库、附件与图表" />
-            <WorkflowItem index="03" title="解析与对齐" text="处理正文、表格、图片，合并多源字段" />
-            <WorkflowItem index="04" title="核验证据" text="标注页码、原文、置信度、冲突与警告" />
-            <WorkflowItem index="05" title="结构化交付" text="生成 CSV、JSON、质量报告和调研报告" />
-          </ol>
-          <div className="truth-note">
-            <Icon name="shield" size={18} />
-            <span><strong>结果不补写空缺事实</strong><small>未找到、低置信度和来源失败会被明确展示。</small></span>
-          </div>
-        </aside>
-      </section>
+      <TaskComposer />
 
       <section className="recent-section">
         <div className="section-heading-row">
@@ -83,8 +68,4 @@ export function WorkbenchPage() {
       </section>
     </div>
   );
-}
-
-function WorkflowItem({ index, title, text }: { index: string; title: string; text: string }) {
-  return <li><span>{index}</span><div><strong>{title}</strong><small>{text}</small></div></li>;
 }

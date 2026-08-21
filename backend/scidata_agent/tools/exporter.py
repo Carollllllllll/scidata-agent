@@ -10,6 +10,23 @@ from scidata_agent.agent.schemas import AgentState, ExportFiles, DynamicRecord
 from scidata_agent.tools.source_catalog import build_source_catalog, source_catalog_rows, source_catalog_summary
 
 
+CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _sanitize_csv_value(value):
+    """Keep untrusted text inert when a CSV is opened in a spreadsheet."""
+
+    if isinstance(value, str) and value.startswith(CSV_FORMULA_PREFIXES):
+        return "'" + value
+    return value
+
+
+def _write_csv(data, path: Path) -> None:
+    frame = data if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
+    frame = frame.map(_sanitize_csv_value)
+    frame.to_csv(path, index=False, encoding="utf-8-sig")
+
+
 def export_results(state: AgentState) -> ExportFiles:
     task_dir = state.output_dir / state.task_id
     task_dir.mkdir(parents=True, exist_ok=True)
@@ -65,7 +82,7 @@ def export_results(state: AgentState) -> ExportFiles:
     summary_json_path = task_dir / "summary.json"
     final_report_path = task_dir / "final_report.md"
 
-    pd.DataFrame(record_dicts).to_csv(csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(record_dicts, csv_path)
     summary_payload = _summary_payload(state)
     raw_dynamic_record_dicts = [record.model_dump(mode="json") for record in state.dynamic_records]
     clean_dynamic_records = state.clean_dynamic_records or state.dynamic_records
@@ -136,13 +153,13 @@ def export_results(state: AgentState) -> ExportFiles:
         encoding="utf-8",
     )
     connector_status_rows = _connector_status_rows(state)
-    pd.DataFrame(connector_status_rows).to_csv(connector_status_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(connector_status_rows, connector_status_csv_path)
     connector_status_json_path.write_text(
         json.dumps(connector_status_rows, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     discovered_source_rows = _discovered_source_rows(state)
-    pd.DataFrame(discovered_source_rows).to_csv(discovered_sources_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(discovered_source_rows, discovered_sources_csv_path)
     discovered_sources_json_path.write_text(
         json.dumps(discovered_source_rows, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -153,15 +170,15 @@ def export_results(state: AgentState) -> ExportFiles:
         encoding="utf-8",
     )
     source_selection_rows = _source_selection_rows(state)
-    pd.DataFrame(source_selection_rows).to_csv(source_selection_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(source_selection_rows, source_selection_csv_path)
     source_triage_rows = _source_triage_rows(state)
-    pd.DataFrame(source_triage_rows).to_csv(source_triage_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(source_triage_rows, source_triage_csv_path)
     source_triage_json_path.write_text(
         json.dumps(source_triage_rows, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     source_insight_rows = _source_insight_rows(state)
-    pd.DataFrame(source_insight_rows).to_csv(source_research_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(source_insight_rows, source_research_csv_path)
     source_research_json_path.write_text(
         json.dumps(source_insight_rows, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -174,7 +191,7 @@ def export_results(state: AgentState) -> ExportFiles:
         ),
         encoding="utf-8",
     )
-    pd.DataFrame(catalog_rows).to_csv(source_catalog_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(catalog_rows, source_catalog_csv_path)
     artifact_action_plan_path.write_text(
         json.dumps(
             state.artifact_action_plan.model_dump(mode="json") if state.artifact_action_plan else None,
@@ -201,7 +218,7 @@ def export_results(state: AgentState) -> ExportFiles:
     )
     section_plan_path.write_text(json.dumps(_section_payload(state), ensure_ascii=False, indent=2), encoding="utf-8")
     paper_survey_records = build_paper_survey_records(state)
-    pd.DataFrame(paper_survey_records).to_csv(paper_survey_csv_path, index=False, encoding="utf-8-sig")
+    _write_csv(paper_survey_records, paper_survey_csv_path)
     paper_survey_json_path.write_text(
         json.dumps(paper_survey_records, ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -212,11 +229,7 @@ def export_results(state: AgentState) -> ExportFiles:
     clean_dynamic_records_path.write_text(json.dumps(clean_dynamic_record_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
     raw_dynamic_records_path.write_text(json.dumps(raw_dynamic_record_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
     needs_review_json_path.write_text(json.dumps(needs_review_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
-    pd.DataFrame(_dynamic_records_to_rows(state.needs_review_records)).to_csv(
-        needs_review_csv_path,
-        index=False,
-        encoding="utf-8-sig",
-    )
+    _write_csv(_dynamic_records_to_rows(state.needs_review_records), needs_review_csv_path)
     export_dynamic_tables(state, dynamic_tables_dir, records=clean_dynamic_records)
     export_chart_data(state, chart_tables_dir)
     chart_extractions_path.write_text(
@@ -510,10 +523,10 @@ def export_dynamic_tables(state: AgentState, output_dir: Path, records: list[Dyn
         rows = grouped.get(table_name, [])
         path = output_dir / f"{_safe_filename(table_name)}.csv"
         if rows:
-            pd.DataFrame(rows).to_csv(path, index=False, encoding="utf-8-sig")
+            _write_csv(rows, path)
         else:
             columns = _dynamic_table_columns(state, table_name)
-            pd.DataFrame(columns=columns).to_csv(path, index=False, encoding="utf-8-sig")
+            _write_csv(pd.DataFrame(columns=columns), path)
 
 
 def export_chart_data(state: AgentState, output_dir: Path) -> None:
@@ -542,7 +555,7 @@ def export_chart_data(state: AgentState, output_dir: Path) -> None:
         if not rows:
             continue
         csv_name = f"chart_data_{_safe_filename(extraction.extraction_id)}.csv"
-        pd.DataFrame(rows).to_csv(output_dir / csv_name, index=False, encoding="utf-8-sig")
+        _write_csv(rows, output_dir / csv_name)
         index_rows.append(
             {
                 "extraction_id": extraction.extraction_id,
@@ -567,7 +580,7 @@ def export_chart_data(state: AgentState, output_dir: Path) -> None:
             }
         )
     if index_rows:
-        pd.DataFrame(index_rows).to_csv(output_dir / "chart_data_index.csv", index=False, encoding="utf-8-sig")
+        _write_csv(index_rows, output_dir / "chart_data_index.csv")
 
 
 def _dynamic_table_columns(state: AgentState, table_name: str) -> list[str]:

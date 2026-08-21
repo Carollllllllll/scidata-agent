@@ -5,10 +5,11 @@ import time
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.parse import urlencode, urlsplit
+from urllib.request import Request
 
 from scidata_agent.agent.schemas import DiscoveredSource, SourceSearchRequest
+from scidata_agent.tools.url_safety import safe_urlopen
 
 
 USER_AGENT = "SciDataAgent/0.1 (scientific multi-source discovery; contact=local)"
@@ -51,7 +52,8 @@ def fetch_json(
     last_exc: Exception | None = None
     for attempt in range(1, attempts + 1):
         try:
-            with urlopen(request, timeout=timeout) as response:
+            host = urlsplit(full_url).hostname
+            with safe_urlopen(request, timeout=timeout, allowed_hosts={host} if host else None) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:  # pragma: no cover - depends on public network state.
             last_exc = exc

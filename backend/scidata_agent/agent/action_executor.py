@@ -176,6 +176,7 @@ class ArtifactActionExecutor:
                 state.final_records,
                 llm_issues=llm_issues,
                 target_fields=target_fields,
+                mutate_records=True,
             )
             state.processing_log.append(
                 "Artifact evidence validation completed: "

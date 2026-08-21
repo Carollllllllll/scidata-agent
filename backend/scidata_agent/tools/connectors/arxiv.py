@@ -10,11 +10,12 @@ import time
 from typing import Any
 from urllib.parse import urlencode, urlparse
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request
 import xml.etree.ElementTree as ET
 
 from scidata_agent.agent.schemas import ArxivSearchPlan, DiscoveredSource, SourceDiscoveryPlan, SourceSearchRequest
 from scidata_agent.tools.connectors.base import BaseConnector
+from scidata_agent.tools.url_safety import safe_urlopen
 
 
 ARXIV_API_URL = "https://export.arxiv.org/api/query"
@@ -24,6 +25,8 @@ DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS = 600
 DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS = 3600
 DEFAULT_ARXIV_DOWNLOAD_WORKERS = 3
 PDF_CHUNK_SIZE = 1024 * 1024
+DEFAULT_PDF_MAX_BYTES = 100 * 1024 * 1024
+ARXIV_ALLOWED_HOSTS = {"arxiv.org", "export.arxiv.org"}
 
 
 class ArxivConnectorError(RuntimeError):
@@ -63,7 +66,7 @@ def search_arxiv(query: str, max_results: int = 5, timeout: int = 20, retries: i
     attempts = max(1, retries + 1)
     for attempt in range(1, attempts + 1):
         try:
-            with urlopen(request, timeout=timeout) as response:
+            with safe_urlopen(request, timeout=timeout, allowed_hosts={"export.arxiv.org"}) as response:
                 xml_text = response.read()
             break
         except HTTPError as exc:  # pragma: no cover - exercised by integration/smoke tests.
@@ -254,6 +257,7 @@ def download_pdf(
     target_path: Path,
     timeout: int = DEFAULT_PDF_READ_TIMEOUT_SECONDS,
     total_timeout: int = DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
+    max_bytes: int | None = None,
     progress_callback: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> None:
     """Stream one PDF with socket-read and total-deadline protection."""
@@ -261,14 +265,32 @@ def download_pdf(
     partial_path = target_path.with_name(target_path.name + ".part")
     started = time.monotonic()
     bytes_written = 0
+    byte_limit = max_bytes if max_bytes is not None else _positive_env_int(
+        "SCIDATA_ARXIV_MAX_PDF_BYTES",
+        DEFAULT_PDF_MAX_BYTES,
+    )
     try:
-        with urlopen(request, timeout=timeout) as response, partial_path.open("wb") as handle:
+        with safe_urlopen(request, timeout=timeout, allowed_hosts=ARXIV_ALLOWED_HOSTS) as response, partial_path.open("wb") as handle:
+            content_length = response.headers.get("Content-Length")
+            if content_length:
+                try:
+                    declared_size = int(content_length)
+                except (TypeError, ValueError):
+                    declared_size = 0
+                if declared_size > byte_limit:
+                    raise ArxivConnectorError(
+                        f"PDF exceeds download size limit ({declared_size} > {byte_limit} bytes)"
+                    )
             while True:
                 if total_timeout > 0 and time.monotonic() - started >= total_timeout:
                     raise TimeoutError(f"PDF total download timeout after {total_timeout}s")
                 chunk = response.read(PDF_CHUNK_SIZE)
                 if not chunk:
                     break
+                if bytes_written + len(chunk) > byte_limit:
+                    raise ArxivConnectorError(
+                        f"PDF exceeds download size limit ({byte_limit} bytes)"
+                    )
                 handle.write(chunk)
                 bytes_written += len(chunk)
                 _notify(progress_callback, "progress", {"path": str(target_path), "bytes": bytes_written})
@@ -362,6 +384,13 @@ def _remove_quietly(path: Path) -> None:
         path.unlink(missing_ok=True)
     except OSError:
         pass
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.getenv(name, str(default))))
+    except (TypeError, ValueError):
+        return default
 
 
 def _notify(callback: Callable[[str, dict[str, Any]], None] | None, status: str, data: dict[str, Any]) -> None:

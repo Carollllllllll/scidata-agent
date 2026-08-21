@@ -4,14 +4,13 @@ import base64
 import json
 import os
 import re
-import socket
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from threading import RLock
+from threading import RLock, local
 from typing import Any, Callable
+
+import httpx
 
 
 DEFAULT_TEXT_MODELS = (
@@ -83,7 +82,10 @@ class QwenBailianClient:
         timeout: int | None = None,
         models: list[str] | tuple[str, ...] | None = None,
         vl_models: list[str] | tuple[str, ...] | None = None,
+        http_client: httpx.Client | None = None,
     ):
+        self._run_local = local()
+        self._model_lock = RLock()
         self.api_key = (
             api_key
             if api_key is not None
@@ -105,8 +107,6 @@ class QwenBailianClient:
             )
         self._text_index = 0
         self._vl_index = 0
-        self._unavailable_text_models: set[str] = set()
-        self._unavailable_vl_models: set[str] = set()
         self.model = self.text_models[0]
         self.base_url = (
             base_url
@@ -116,15 +116,41 @@ class QwenBailianClient:
                 "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
             )
         )
-        self.timeout = timeout if timeout is not None else int(os.getenv("QWEN_TIMEOUT_SECONDS", "60"))
-        self.text_max_tokens = int(os.getenv("QWEN_TEXT_MAX_TOKENS", "8192"))
+        self.timeout = timeout if timeout is not None else _positive_env_int("QWEN_TIMEOUT_SECONDS", 60)
+        self.text_max_tokens = _positive_env_int("QWEN_TEXT_MAX_TOKENS", 8192)
         self.vl_model = self.vl_models[0]
-        self.vl_timeout = int(os.getenv("QWEN_VL_TIMEOUT_SECONDS", "180"))
-        self.vl_max_tokens = int(os.getenv("QWEN_VL_MAX_TOKENS", "8192"))
-        self.traces: list[LLMCallTrace] = []
-        self.model_events: list[dict[str, Any]] = []
-        self.event_callback: Callable[[dict[str, Any]], None] | None = None
-        self._state_lock = RLock()
+        self.vl_timeout = _positive_env_int("QWEN_VL_TIMEOUT_SECONDS", 180)
+        self.vl_max_tokens = _positive_env_int("QWEN_VL_MAX_TOKENS", 8192)
+        self._owns_http_client = http_client is None
+        self._http_client = http_client or httpx.Client(
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+
+    def _unavailable_models(self, kind: str) -> set[str]:
+        attribute = f"unavailable_{kind}_models"
+        if not hasattr(self._run_local, attribute):
+            setattr(self._run_local, attribute, set())
+        return getattr(self._run_local, attribute)
+
+    @property
+    def traces(self) -> list[LLMCallTrace]:
+        if not hasattr(self._run_local, "traces"):
+            self._run_local.traces = []
+        return self._run_local.traces
+
+    @property
+    def model_events(self) -> list[dict[str, Any]]:
+        if not hasattr(self._run_local, "model_events"):
+            self._run_local.model_events = []
+        return self._run_local.model_events
+
+    @property
+    def event_callback(self) -> Callable[[dict[str, Any]], None] | None:
+        return getattr(self._run_local, "event_callback", None)
+
+    @event_callback.setter
+    def event_callback(self, callback: Callable[[dict[str, Any]], None] | None) -> None:
+        self._run_local.event_callback = callback
 
     @property
     def configured(self) -> bool:
@@ -132,23 +158,21 @@ class QwenBailianClient:
 
     def set_event_callback(self, callback: Callable[[dict[str, Any]], None] | None) -> None:
         """Attach a per-run callback for model failover monitoring."""
-        with self._state_lock:
-            self.event_callback = callback
+        self.event_callback = callback
 
     def emit_runtime_event(self, event: dict[str, Any]) -> None:
         """Publish node-level retry telemetry through the existing monitor hook."""
         self._emit_event(event)
 
     def model_pool_status(self) -> dict[str, Any]:
-        with self._state_lock:
-            return {
-                "text_models": list(self.text_models),
-                "active_text_model": self.model,
-                "unavailable_text_models": sorted(self._unavailable_text_models),
-                "vl_models": list(self.vl_models),
-                "active_vl_model": self.vl_model,
-                "unavailable_vl_models": sorted(self._unavailable_vl_models),
-            }
+        return {
+            "text_models": list(self.text_models),
+            "active_text_model": self.model,
+            "unavailable_text_models": sorted(self._unavailable_models("text")),
+            "vl_models": list(self.vl_models),
+            "active_vl_model": self.vl_model,
+            "unavailable_vl_models": sorted(self._unavailable_models("vl")),
+        }
 
     def require_configured(self) -> None:
         if not self.configured:
@@ -159,6 +183,9 @@ class QwenBailianClient:
 
     def generate_text(self, node: str, system_prompt: str, user_prompt: str, temperature: float = 0.1) -> str:
         self.require_configured()
+        # Failover exclusions are scoped to one request. A transient provider
+        # outage must not permanently drain a long-lived process model pool.
+        self._unavailable_models("text").clear()
         prompt_chars = len(system_prompt) + len(user_prompt)
         last_exc: Exception | None = None
         for model in self._available_models("text"):
@@ -185,17 +212,18 @@ class QwenBailianClient:
                     text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
                 if not isinstance(text, str):
                     raise LLMCallError("Provider returned non-text message content.")
-                trace = LLMCallTrace(
-                    node=node,
-                    model=model,
-                    prompt_chars=prompt_chars,
-                    response_chars=len(text),
-                    elapsed_ms=int((time.time() - started) * 1000),
-                    success=True,
-                    **_trace_usage(data),
-                )
                 self._set_active_model("text", model)
-                self._record_trace(trace)
+                self.traces.append(
+                    LLMCallTrace(
+                        node=node,
+                        model=model,
+                        prompt_chars=prompt_chars,
+                        response_chars=len(text),
+                        elapsed_ms=int((time.time() - started) * 1000),
+                        success=True,
+                        **_trace_usage(data),
+                    )
+                )
                 return text
             except Exception as exc:
                 last_exc = exc
@@ -222,6 +250,7 @@ class QwenBailianClient:
     ) -> str:
         """Call the Qwen-VL model with local images in OpenAI-compatible mode."""
         self.require_configured()
+        self._unavailable_models("vl").clear()
         content: list[dict[str, Any]] = []
         for image_path in image_paths:
             path = Path(image_path)
@@ -256,17 +285,18 @@ class QwenBailianClient:
                     text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
                 if not isinstance(text, str):
                     raise LLMCallError("Provider returned non-text VL message content.")
-                trace = LLMCallTrace(
-                    node=node,
-                    model=model,
-                    prompt_chars=prompt_chars,
-                    response_chars=len(text),
-                    elapsed_ms=int((time.time() - started) * 1000),
-                    success=True,
-                    **_trace_usage(data),
-                )
                 self._set_active_model("vl", model)
-                self._record_trace(trace)
+                self.traces.append(
+                    LLMCallTrace(
+                        node=node,
+                        model=model,
+                        prompt_chars=prompt_chars,
+                        response_chars=len(text),
+                        elapsed_ms=int((time.time() - started) * 1000),
+                        success=True,
+                        **_trace_usage(data),
+                    )
+                )
                 return text
             except Exception as exc:
                 last_exc = exc
@@ -291,26 +321,21 @@ class QwenBailianClient:
             raise LLMCallError(f"Qwen-VL returned invalid JSON: {exc}") from exc
 
     def _post_json(self, payload: dict[str, Any], timeout: int) -> dict[str, Any]:
-        request = urllib.request.Request(
-            self.base_url,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
         try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                raw = response.read().decode("utf-8", errors="replace")
-        except urllib.error.HTTPError as exc:
-            try:
-                detail = exc.read().decode("utf-8", errors="replace")
-            except Exception:
-                detail = str(exc)
-            raise LLMProviderError(exc.code, detail or str(exc)) from exc
-        except (TimeoutError, socket.timeout, urllib.error.URLError, OSError) as exc:
+            response = self._http_client.post(
+                self.base_url,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                timeout=timeout,
+            )
+        except (httpx.TimeoutException, httpx.TransportError, TimeoutError, OSError) as exc:
             raise LLMCallError(str(exc)) from exc
+        raw = response.text
+        if response.status_code >= 400:
+            raise LLMProviderError(response.status_code, raw or response.reason_phrase)
         try:
             data = json.loads(raw)
         except json.JSONDecodeError as exc:
@@ -319,23 +344,23 @@ class QwenBailianClient:
             raise LLMCallError("Provider returned a non-object JSON payload.")
         return data
 
+    def close(self) -> None:
+        """Release the owned keep-alive connection pool."""
+        if self._owns_http_client:
+            self._http_client.close()
+
     def _available_models(self, kind: str) -> list[str]:
-        with self._state_lock:
-            models = self.text_models if kind == "text" else self.vl_models
-            unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
+        models = self.text_models if kind == "text" else self.vl_models
+        unavailable = self._unavailable_models(kind)
+        with self._model_lock:
             index = self._text_index if kind == "text" else self._vl_index
-            ordered = models[index:] + models[:index]
-            return [model for model in ordered if model not in unavailable]
+        ordered = models[index:] + models[:index]
+        return [model for model in ordered if model not in unavailable]
 
     def _set_active_model(self, kind: str, model: str) -> None:
-        with self._state_lock:
-            models = self.text_models if kind == "text" else self.vl_models
-            if model not in models:
-                return
-            unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
-            if model in unavailable:
-                return
-            index = models.index(model)
+        models = self.text_models if kind == "text" else self.vl_models
+        index = models.index(model)
+        with self._model_lock:
             if kind == "text":
                 self._text_index = index
                 self.model = model
@@ -344,27 +369,18 @@ class QwenBailianClient:
                 self.vl_model = model
 
     def _disable_and_switch(self, kind: str, failed_model: str, exc: Exception) -> None:
-        with self._state_lock:
-            models = self.text_models if kind == "text" else self.vl_models
-            unavailable = self._unavailable_text_models if kind == "text" else self._unavailable_vl_models
-            unavailable.add(failed_model)
-            current_index = models.index(failed_model)
-            next_model = next(
-                (
-                    model
-                    for model in models[current_index + 1 :] + models[:current_index]
-                    if model not in unavailable
-                ),
-                None,
-            )
-            if next_model is not None:
-                index = models.index(next_model)
-                if kind == "text":
-                    self._text_index = index
-                    self.model = next_model
-                else:
-                    self._vl_index = index
-                    self.vl_model = next_model
+        models = self.text_models if kind == "text" else self.vl_models
+        unavailable = self._unavailable_models(kind)
+        unavailable.add(failed_model)
+        current_index = models.index(failed_model)
+        next_model = next(
+            (
+                model
+                for model in models[current_index + 1 :] + models[:current_index]
+                if model not in unavailable
+            ),
+            None,
+        )
         if next_model is None:
             self._emit_event(
                 {
@@ -375,6 +391,7 @@ class QwenBailianClient:
                 }
             )
             return
+        self._set_active_model(kind, next_model)
         self._emit_event(
             {
                 "event": "model_switched",
@@ -386,7 +403,7 @@ class QwenBailianClient:
         )
 
     def _record_failure(self, node: str, model: str, prompt_chars: int, started: float, exc: Exception) -> None:
-        self._record_trace(
+        self.traces.append(
             LLMCallTrace(
                 node=node,
                 model=model,
@@ -398,40 +415,43 @@ class QwenBailianClient:
             )
         )
 
-    def _record_trace(self, trace: LLMCallTrace) -> None:
-        with self._state_lock:
-            self.traces.append(trace)
-
     def _emit_event(self, event: dict[str, Any]) -> None:
-        with self._state_lock:
-            self.model_events.append(event)
-            callback = self.event_callback
-        if callback is not None:
-            callback(event)
+        self.model_events.append(event)
+        if self.event_callback is not None:
+            self.event_callback(event)
 
     @staticmethod
     def _should_failover(exc: Exception) -> bool:
         if not isinstance(exc, LLMProviderError):
             return False
         detail = exc.detail.lower()
-        quota_terms = (
+        transient_or_quota_terms = (
             "quota",
             "rate limit",
             "ratelimit",
-            "limit",
             "exhaust",
-            "insufficient",
+            "insufficient balance",
             "balance",
-            "model not found",
+            "too many requests",
         )
-        return exc.status in {401, 403, 404, 408, 409, 429, 500, 502, 503, 504} or any(
-            term in detail for term in quota_terms
-        )
+        model_terms = ("model not found", "model_not_found", "invalid model", "model does not exist")
+        if exc.status in {408, 409, 425, 429, 500, 502, 503, 504}:
+            return True
+        if any(term in detail for term in transient_or_quota_terms):
+            return exc.status not in {400, 413, 422}
+        return exc.status in {400, 404} and any(term in detail for term in model_terms)
 
 
 def _env_model_list(name: str) -> list[str]:
     raw = os.getenv(name, "")
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        return max(1, int(os.getenv(name, str(default))))
+    except (TypeError, ValueError):
+        return default
 
 
 def _trace_usage(data: dict[str, Any]) -> dict[str, Any]:

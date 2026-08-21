@@ -8,3 +8,4 @@ fastapi==0.129.0
 uvicorn==0.24.0.post1
 python-multipart==0.0.22
 pymupdf==1.27.1
+httpx>=0.28,<1

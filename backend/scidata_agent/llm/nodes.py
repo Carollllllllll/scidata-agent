@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -105,10 +107,13 @@ def _extraction_worker_count(
     configured = max_workers
     if configured is None:
         try:
-            configured = int(os.getenv(env_name, str(default)))
-        except ValueError:
+            configured = int(
+                os.getenv(env_name)
+                or os.getenv("SCIDATA_LLM_BLOCK_WORKERS", str(default))
+            )
+        except (TypeError, ValueError):
             configured = default
-    return max(1, min(int(configured), max(1, item_count)))
+    return max(1, min(int(configured), max(1, item_count), 4))
 
 
 def _run_ordered_parallel(items, worker, max_workers: int, on_completed=None):
@@ -160,6 +165,55 @@ class QwenAgentNodes:
         self.node_warnings: list[str] = []
         self.extraction_warnings: list[str] = []
         self.normalization_events: list[dict[str, Any]] = []
+        self._warning_lock = Lock()
+
+    def _append_node_warning(self, warning: str) -> None:
+        with self._warning_lock:
+            self.node_warnings.append(warning)
+
+    def _append_extraction_warning(self, warning: str) -> None:
+        with self._warning_lock:
+            self.extraction_warnings.append(warning)
+
+    def _clear_extraction_warnings(self) -> None:
+        with self._warning_lock:
+            self.extraction_warnings.clear()
+
+    def _run_extraction_jobs(self, items, worker, max_workers: int, on_completed=None):
+        """Run extraction concurrently without losing thread-local client telemetry."""
+        if not isinstance(self.client, QwenBailianClient):
+            return _run_ordered_parallel(items, worker, max_workers, on_completed=on_completed)
+
+        parent_callback = self.client.event_callback
+
+        def invoke(item):
+            self.client.set_event_callback(parent_callback)
+            trace_start = len(self.client.traces)
+            event_start = len(self.client.model_events)
+            try:
+                result = worker(item)
+                traces = list(self.client.traces[trace_start:])
+                events = list(self.client.model_events[event_start:])
+                return result, traces, events
+            finally:
+                self.client.set_event_callback(None)
+
+        def forward_completion(index, item, wrapped_result, completed):
+            if on_completed:
+                on_completed(index, item, wrapped_result[0], completed)
+
+        wrapped_results = _run_ordered_parallel(
+            items,
+            invoke,
+            max_workers,
+            on_completed=forward_completion,
+        )
+        results = []
+        for result, traces, events in wrapped_results:
+            self.client.traces.extend(traces)
+            self.client.model_events.extend(events)
+            results.append(result)
+        return results
 
     def _normalize_payload(
         self,
@@ -188,7 +242,7 @@ class QwenAgentNodes:
             try:
                 return self.client.generate_json(node, system_prompt, user_prompt, temperature=temperature)
             except Exception as exc:
-                self.node_warnings.append(
+                self._append_node_warning(
                     f"LLM call failed: node={node}, attempt=1/1, error={exc}"
                 )
                 raise LLMCallError(
@@ -201,7 +255,7 @@ class QwenAgentNodes:
             except Exception as exc:
                 last_exc = exc
                 warning = f"LLM call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
-                self.node_warnings.append(warning)
+                self._append_node_warning(warning)
                 if attempt < attempts:
                     self._emit_retry_event(node, "text", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
@@ -561,7 +615,7 @@ class QwenAgentNodes:
         max_workers: int | None = None,
     ) -> list[DynamicRecord]:
         ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
-        self.extraction_warnings.clear()
+        self._clear_extraction_warnings()
 
         def worker(block):
             user_prompt = DYNAMIC_EXTRACTOR_USER.format(
@@ -598,7 +652,7 @@ class QwenAgentNodes:
             if progress_callback:
                 progress_callback(completed, len(ranked_blocks), block, completed_records)
 
-        results = _run_ordered_parallel(
+        results = self._run_extraction_jobs(
             ranked_blocks,
             worker,
             _extraction_worker_count(
@@ -613,7 +667,7 @@ class QwenAgentNodes:
         for block_records, warning in results:
             records.extend(block_records)
             if warning:
-                self.extraction_warnings.append(warning)
+                self._append_extraction_warning(warning)
         return records
 
     def extract_dynamic_from_tables(
@@ -652,7 +706,7 @@ class QwenAgentNodes:
                     f"Qwen dynamic extraction skipped one table: source_file={table.source_file}, "
                     f"table_id={table.table_id}, error={exc}"
                 )
-        results = _run_ordered_parallel(
+        results = self._run_extraction_jobs(
             tables,
             worker,
             _extraction_worker_count(
@@ -666,7 +720,7 @@ class QwenAgentNodes:
         for table_records, warning in results:
             records.extend(table_records)
             if warning:
-                self.extraction_warnings.append(warning)
+                self._append_extraction_warning(warning)
         return records
 
     def extract_from_text_blocks(self, task_plan: TaskPlan, text_blocks: list[TextBlock | SectionBlock]) -> list[ScientificRecord]:
@@ -680,7 +734,7 @@ class QwenAgentNodes:
         progress_callback=None,
         max_workers: int | None = None,
     ) -> list[ScientificRecord]:
-        self.extraction_warnings.clear()
+        self._clear_extraction_warnings()
         ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
 
         def worker(block):
@@ -720,7 +774,7 @@ class QwenAgentNodes:
             if progress_callback:
                 progress_callback(completed, len(ranked_blocks), block, completed_records)
 
-        results = _run_ordered_parallel(
+        results = self._run_extraction_jobs(
             ranked_blocks,
             worker,
             _extraction_worker_count(
@@ -735,7 +789,7 @@ class QwenAgentNodes:
         for block_records, warning in results:
             records.extend(block_records)
             if warning:
-                self.extraction_warnings.append(warning)
+                self._append_extraction_warning(warning)
         return records
 
     def extract_from_tables(
@@ -778,7 +832,7 @@ class QwenAgentNodes:
                 if self.allow_rule_fallback:
                     return extract_records_from_tables([table]), warning
                 return [], warning
-        results = _run_ordered_parallel(
+        results = self._run_extraction_jobs(
             tables,
             worker,
             _extraction_worker_count(
@@ -792,7 +846,7 @@ class QwenAgentNodes:
         for table_records, warning in results:
             records.extend(table_records)
             if warning:
-                self.extraction_warnings.append(warning)
+                self._append_extraction_warning(warning)
         return records
 
     def validate_records(self, records: list[ScientificRecord]) -> list[QualityIssue]:
@@ -837,7 +891,7 @@ class QwenAgentNodes:
             except Exception as exc:
                 last_exc = exc
                 warning = f"VL call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
-                self.node_warnings.append(warning)
+                self._append_node_warning(warning)
                 if attempt < attempts:
                     self._emit_retry_event(node, "vl", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
@@ -1755,6 +1809,9 @@ def _dynamic_records_from_payload(
             raw["field_aliases"] = field_aliases
         if extra_fields:
             raw["extra_fields"] = extra_fields
+        confidence, confidence_warning = _coerce_dynamic_confidence(item.get("confidence"))
+        if confidence_warning:
+            warnings.append(confidence_warning)
         try:
             records.append(
                 DynamicRecord(
@@ -1764,7 +1821,7 @@ def _dynamic_records_from_payload(
                     source_type=str(item.get("source_type") or source_type.value),
                     page=page if page is not None else item.get("page"),
                     evidence_text=item.get("evidence_text"),
-                    confidence=item.get("confidence") or 0.65,
+                    confidence=confidence,
                     warnings=warnings,
                     raw=raw,
                 )
@@ -1772,6 +1829,19 @@ def _dynamic_records_from_payload(
         except ValidationError:
             continue
     return records
+
+
+def _coerce_dynamic_confidence(value: Any, default: float = 0.65) -> tuple[float, str | None]:
+    """Keep valid zero confidence and recover from malformed LLM values."""
+    if value in (None, ""):
+        return default, None
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return default, f"invalid confidence replaced with default {default:g}"
+    if not math.isfinite(confidence):
+        return default, f"invalid confidence replaced with default {default:g}"
+    return max(0.0, min(1.0, confidence)), None
 
 
 def _align_dynamic_fields(

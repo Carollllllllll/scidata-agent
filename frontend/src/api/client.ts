@@ -64,7 +64,15 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(message, response.status, code);
   }
 
-  return (await response.json()) as T;
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiError(
+      "后端返回了无法解析的响应，请稍后重试或检查服务日志。",
+      response.status,
+      "INVALID_RESPONSE",
+    );
+  }
 }
 
 export function getHealth(): Promise<HealthResponse> {
@@ -164,7 +172,10 @@ export function submitReview(
   );
 }
 
-export function createAnalysisTask(options: AnalyzeOptions): Promise<TaskSubmissionResponse> {
+export function createAnalysisTask(
+  options: AnalyzeOptions,
+  onUploadProgress?: (percent: number) => void,
+): Promise<TaskSubmissionResponse> {
   const form = new FormData();
   form.set("research_question", options.researchQuestion.trim());
   form.set("max_pdf_pages", String(options.maxPdfPages));
@@ -179,9 +190,57 @@ export function createAnalysisTask(options: AnalyzeOptions): Promise<TaskSubmiss
   form.set("max_figures_per_pdf", String(options.maxFiguresPerPdf));
   form.set("reuse_dynamic_records_for_metrics", String(options.reuseDynamicRecordsForMetrics));
   options.files.forEach((file) => form.append("files", file));
-  return requestJson<TaskSubmissionResponse>("/api/analyze", {
-    method: "POST",
-    body: form,
+  return requestFormWithProgress<TaskSubmissionResponse>("/api/analyze", form, onUploadProgress);
+}
+
+function requestFormWithProgress<T>(
+  path: string,
+  form: FormData,
+  onUploadProgress?: (percent: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", apiUrl(path));
+    if (configuredApiToken) request.setRequestHeader("Authorization", `Bearer ${configuredApiToken}`);
+    request.upload.addEventListener("progress", (event) => {
+      if (!event.lengthComputable || event.total <= 0) return;
+      onUploadProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    });
+    request.addEventListener("error", () => {
+      reject(new ApiError("无法连接后端服务，请确认 API 已启动。", 0, "NETWORK_ERROR"));
+    });
+    request.addEventListener("abort", () => {
+      reject(new ApiError("上传已取消。", 0, "UPLOAD_ABORTED"));
+    });
+    request.addEventListener("load", () => {
+      let payload: unknown;
+      try {
+        payload = JSON.parse(request.responseText);
+      } catch {
+        reject(
+          new ApiError(
+            request.status >= 200 && request.status < 300
+              ? "后端返回了无法解析的响应，请稍后重试或检查服务日志。"
+              : `请求失败（HTTP ${request.status}）`,
+            request.status,
+            request.status >= 200 && request.status < 300 ? "INVALID_RESPONSE" : undefined,
+          ),
+        );
+        return;
+      }
+      if (request.status < 200 || request.status >= 300) {
+        const detail = (payload as { detail?: string | { message?: string; code?: string } })?.detail;
+        const message =
+          typeof detail === "string"
+            ? detail
+            : detail?.message ?? `请求失败（HTTP ${request.status}）`;
+        reject(new ApiError(message, request.status, typeof detail === "object" ? detail.code : undefined));
+        return;
+      }
+      onUploadProgress?.(100);
+      resolve(payload as T);
+    });
+    request.send(form);
   });
 }
 

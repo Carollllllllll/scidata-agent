@@ -24,8 +24,11 @@ def _search_worker_count(max_workers: int | None) -> int:
     configured = max_workers
     if configured is None:
         try:
-            configured = int(os.getenv("SCIDATA_SEARCH_MAX_WORKERS", str(DEFAULT_SEARCH_MAX_WORKERS)))
-        except ValueError:
+            configured = int(
+                os.getenv("SCIDATA_SEARCH_MAX_WORKERS")
+                or os.getenv("SCIDATA_CONNECTOR_WORKERS", str(DEFAULT_SEARCH_MAX_WORKERS))
+            )
+        except (TypeError, ValueError):
             configured = DEFAULT_SEARCH_MAX_WORKERS
     return max(1, int(configured))
 

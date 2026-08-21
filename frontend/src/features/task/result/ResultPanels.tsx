@@ -177,18 +177,22 @@ export function DynamicDataPanel({
   const [search, setSearch] = useState("");
   const [onlyWarnings, setOnlyWarnings] = useState(false);
   const [page, setPage] = useState(0);
+  const searchableRecords = useMemo(
+    () => records.map((record) => ({ record, searchText: JSON.stringify(record).toLowerCase() })),
+    [records],
+  );
 
   useEffect(() => {
     if (selectedTable !== "all" && !tableNames.includes(selectedTable)) setSelectedTable("all");
   }, [selectedTable, tableNames]);
 
-  const filtered = useMemo(() => records.filter((record) => {
+  const filtered = useMemo(() => searchableRecords.filter(({ record, searchText }) => {
     if (selectedTable !== "all" && record.table_name !== selectedTable) return false;
     if (onlyWarnings && record.warnings.length === 0) return false;
     if (!search.trim()) return true;
     const needle = search.toLowerCase();
-    return JSON.stringify(record).toLowerCase().includes(needle);
-  }), [records, selectedTable, onlyWarnings, search]);
+    return searchText.includes(needle);
+  }).map(({ record }) => record), [searchableRecords, selectedTable, onlyWarnings, search]);
 
   const activeSpec = specs.find((table) => table.table_name === selectedTable);
   const fields = useMemo<DynamicFieldSpec[]>(() => {
@@ -256,6 +260,7 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [selectedSource, setSelectedSource] = useState<SourceCatalogEntry | null>(null);
+  const [page, setPage] = useState(0);
   const statuses = Array.from(new Set(sources.map((source) => source.status).filter(Boolean))) as string[];
   const filtered = sources.filter((source) => {
     if (status !== "all" && source.status !== status) return false;
@@ -264,6 +269,14 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
   });
   const selectedCount = sources.filter((source) => source.selection_action === "select" || ["selected", "downloaded", "parsed"].includes(source.status ?? "")).length;
   const downloadedCount = sources.filter((source) => ["downloaded", "parsed"].includes(source.status ?? "") || source.artifacts?.some((artifact) => ["downloaded", "parsed"].includes(artifact.status ?? ""))).length;
+  const pageSize = 30;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visibleSources = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  useEffect(() => setPage(0), [search, status]);
+  useEffect(() => {
+    if (page >= pageCount) setPage(Math.max(0, pageCount - 1));
+  }, [page, pageCount]);
 
   if (!result) return <PanelEmptyState title="来源尚未生成" text="Agent 完成来源发现后，这里会展示选择理由、处理状态和关联资料。" />;
 
@@ -278,7 +291,7 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
         </div>
         {filtered.length === 0 ? <EmptyState icon="database" title="没有符合条件的来源" text={sources.length === 0 ? "本次任务没有发现来源，或在来源规划前失败。" : "请调整筛选条件。"} /> : (
           <div className="source-list">
-            {filtered.map((source) => (
+            {visibleSources.map((source) => (
               <button type="button" key={source.source_id} className={selectedSource?.source_id === source.source_id ? "active" : ""} onClick={() => setSelectedSource(source)}>
                 <span className={`source-type-icon source-${source.source_type || "unknown"}`}><Icon name={source.source_type === "open_database" || source.source_type === "dataset" ? "database" : source.source_type === "image" ? "chart" : "document"} size={19} /></span>
                 <span className="source-main"><span><QualityBadge tone={sourceTone(source.status)}>{sourceStatusLabel(source.status)}</QualityBadge><small>{source.provider || source.source_type || "未知来源"}</small></span><strong>{source.title}</strong><p>{source.reason || source.failure_reason || "未提供选择理由"}</p></span>
@@ -288,6 +301,7 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
             ))}
           </div>
         )}
+        {filtered.length > pageSize && <div className="pagination"><span>第 {page + 1} / {pageCount} 页</span><div><button disabled={page === 0} onClick={() => setPage((value) => value - 1)}>上一页</button><button disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</button></div></div>}
       </section>
 
       <aside className="panel-card source-detail">

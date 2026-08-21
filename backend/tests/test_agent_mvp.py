@@ -1374,7 +1374,7 @@ def test_question_only_source_discovery_mode_with_mock_client() -> None:
 def test_missing_qwen_key_fails_in_official_mode() -> None:
     pdf_path = create_pdf_fixture()
     output_dir = ROOT / "outputs" / "test-runs"
-    client = QwenBailianClient(api_key=None)
+    client = QwenBailianClient(api_key="")
     agent = SciDataAgent(output_dir=output_dir, llm_client=client, require_llm=True, monitor_console=False)
 
     result = agent.run("Please extract scientific data from the paper.", [pdf_path], max_pdf_pages=1)
@@ -1387,7 +1387,13 @@ def test_rule_fallback_is_explicitly_marked() -> None:
     csv_path = create_csv_fixture()
     pdf_path = create_pdf_fixture()
     output_dir = ROOT / "outputs" / "test-runs"
-    agent = SciDataAgent(output_dir=output_dir, require_llm=False, allow_rule_fallback=True, monitor_console=False)
+    agent = SciDataAgent(
+        output_dir=output_dir,
+        llm_client=QwenBailianClient(api_key=""),
+        require_llm=False,
+        allow_rule_fallback=True,
+        monitor_console=False,
+    )
 
     result = agent.run("Local tool-chain test: extract metrics from PDF and CSV.", [csv_path, pdf_path], max_pdf_pages=5)
 
@@ -1414,7 +1420,7 @@ def test_quality_report_flags_weak_evidence_and_dimensionless_units() -> None:
 
     report = build_quality_report(records, target_fields=["metric_name", "metric_value", "unit", "evidence_text"])
 
-    assert records[0].unit == "dimensionless"
+    assert records[0].unit is None
     assert report.record_count == 1
     assert report.warning_count >= 1
     assert report.value_evidence_coverage == 0
@@ -1961,7 +1967,7 @@ def test_multi_source_search_plan_executes_all_connectors_without_network() -> N
         searchers={"arxiv": fake_searcher, "openalex": fake_searcher, "github": fake_searcher},
     )
 
-    assert seen == ["arxiv", "openalex", "github"]
+    assert set(seen) == {"arxiv", "openalex", "github"}
     assert status["status"] == "completed"
     assert status["added"] == 3
     assert len(sources) == 3

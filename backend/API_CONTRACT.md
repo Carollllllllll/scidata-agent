@@ -92,7 +92,8 @@ default. Add `include_data=true` only for detailed diagnostics.
 
 Lifecycle and review mutations:
 
-- `POST /api/tasks/{task_id}/cancel`: cancel a task that is still queued.
+- `POST /api/tasks/{task_id}/cancel`: cancel a queued task immediately, or request
+  cooperative cancellation of a running task at the next safe pipeline checkpoint.
 - `POST /api/tasks/{task_id}/retry`: copy safe uploaded inputs and create a new task.
 - `POST /api/tasks/{task_id}/reviews/{record_id}`: persist `approved`,
   `needs_changes`, or `rejected` with an optional note.
