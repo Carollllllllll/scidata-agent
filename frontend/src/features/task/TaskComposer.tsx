@@ -27,13 +27,13 @@ export function TaskComposer() {
   const [formError, setFormError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [maxPdfPages, setMaxPdfPages] = useState(8);
-  const [maxAutoResources, setMaxAutoResources] = useState(5);
+  const [maxPdfPages, setMaxPdfPages] = useState(0);
+  const [maxAutoResources, setMaxAutoResources] = useState(0);
   const [enableLiveSearch, setEnableLiveSearch] = useState(true);
   const [autoDownloadSources, setAutoDownloadSources] = useState(true);
-  const [maxDynamicTextBlocks, setMaxDynamicTextBlocks] = useState(20);
-  const [maxRecordTextBlocks, setMaxRecordTextBlocks] = useState(20);
-  const [maxFiguresPerPdf, setMaxFiguresPerPdf] = useState(6);
+  const [maxDynamicTextBlocks, setMaxDynamicTextBlocks] = useState(0);
+  const [maxRecordTextBlocks, setMaxRecordTextBlocks] = useState(0);
+  const [maxFiguresPerPdf, setMaxFiguresPerPdf] = useState(0);
   const [reuseDynamicRecordsForMetrics, setReuseDynamicRecordsForMetrics] = useState(true);
 
   const mutation = useMutation({
@@ -200,11 +200,11 @@ export function TaskComposer() {
           </button>
           {showAdvanced && (
             <div className="advanced-grid">
-              <NumberField label="每篇 PDF 页数" value={maxPdfPages} min={1} max={200} onChange={setMaxPdfPages} />
-              <NumberField label="自动获取资源数" value={maxAutoResources} min={0} max={100} onChange={setMaxAutoResources} />
-              <NumberField label="动态文本块" value={maxDynamicTextBlocks} min={1} max={500} onChange={setMaxDynamicTextBlocks} />
-              <NumberField label="指标文本块" value={maxRecordTextBlocks} min={1} max={500} onChange={setMaxRecordTextBlocks} />
-              <NumberField label="每篇图表数" value={maxFiguresPerPdf} min={0} max={50} onChange={setMaxFiguresPerPdf} />
+              <NumberField label="每篇 PDF 页数（0=全部）" value={maxPdfPages} min={0} max={1000000} onChange={setMaxPdfPages} />
+              <NumberField label="自动获取资源数（0=全部）" value={maxAutoResources} min={0} max={1000000} onChange={setMaxAutoResources} />
+              <NumberField label="动态文本块（0=全部）" value={maxDynamicTextBlocks} min={0} max={1000000} onChange={setMaxDynamicTextBlocks} />
+              <NumberField label="指标文本块（0=全部）" value={maxRecordTextBlocks} min={0} max={1000000} onChange={setMaxRecordTextBlocks} />
+              <NumberField label="每篇图表数（0=全部）" value={maxFiguresPerPdf} min={0} max={1000000} onChange={setMaxFiguresPerPdf} />
               <label className="checkbox-field">
                 <input
                   type="checkbox"

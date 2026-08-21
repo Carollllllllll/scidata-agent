@@ -8,7 +8,7 @@ from scidata_agent.agent.schemas import DiscoveredSource, SourceSelectionDecisio
 
 SMALL_FILE_BYTES = 10 * 1024 * 1024
 MEDIUM_FILE_BYTES = 50 * 1024 * 1024
-DEFAULT_MAX_AUTO_RESOURCES = 30
+DEFAULT_MAX_AUTO_RESOURCES: int | None = None
 TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".json", ".xml"}
 DOCUMENT_EXTENSIONS = {".pdf", ".txt", ".md"}
 AUTO_RESOURCE_ACTIONS = {
@@ -22,22 +22,27 @@ AUTO_RESOURCE_ACTIONS = {
 def triage_sources(
     sources: list[DiscoveredSource],
     research_question: str,
-    max_pdf_downloads: int = DEFAULT_MAX_AUTO_RESOURCES,
+    max_pdf_downloads: int | None = DEFAULT_MAX_AUTO_RESOURCES,
 ) -> list[SourceTriageDecision]:
     """Decide lightweight handling actions before any expensive downloads."""
     scored = [(source, _relevance_score(source, research_question)) for source in sources]
+    eligible_pdf_sources = sorted(
+        [
+            (source, score)
+            for source, score in scored
+            if source.metadata.get("pdf_url")
+            and str(source.metadata.get("provider") or "").lower() in {"arxiv", "openalex", "semantic_scholar"}
+        ],
+        key=lambda item: item[1],
+        reverse=True,
+    )
     selected_pdf_ids = {
         source.source_id
-        for source, _score in sorted(
-            [
-                (source, score)
-                for source, score in scored
-                if source.metadata.get("pdf_url")
-                and str(source.metadata.get("provider") or "").lower() in {"arxiv", "openalex", "semantic_scholar"}
-            ],
-            key=lambda item: item[1],
-            reverse=True,
-        )[: max(0, max_pdf_downloads)]
+        for source, _score in (
+            eligible_pdf_sources
+            if max_pdf_downloads is None or max_pdf_downloads <= 0
+            else eligible_pdf_sources[:max_pdf_downloads]
+        )
     }
     decisions = []
     for source, score in scored:
@@ -54,7 +59,7 @@ def triage_sources_from_selection(
     sources: list[DiscoveredSource],
     selection_plan: SourceSelectionPlan,
     max_pdf_downloads: int | None = None,
-    max_auto_resources: int = DEFAULT_MAX_AUTO_RESOURCES,
+    max_auto_resources: int | None = DEFAULT_MAX_AUTO_RESOURCES,
 ) -> list[SourceTriageDecision]:
     """Convert LLM semantic source selections into safe executable triage actions."""
     selections = {decision.source_id: decision for decision in selection_plan.decisions}
@@ -106,7 +111,7 @@ def _selected_pdf_ids_from_llm(
         ):
             eligible.append((source, selection))
     eligible.sort(key=lambda item: _selection_sort_key(item[1], item[0]), reverse=True)
-    if max_pdf_downloads is None:
+    if max_pdf_downloads is None or max_pdf_downloads <= 0:
         return {source.source_id for source, _selection in eligible}
     return {source.source_id for source, _selection in eligible[: max(0, max_pdf_downloads)]}
 
@@ -114,11 +119,17 @@ def _selected_pdf_ids_from_llm(
 def _apply_auto_resource_cap(
     sources: list[DiscoveredSource],
     decisions: list[SourceTriageDecision],
-    max_auto_resources: int,
+    max_auto_resources: int | None,
 ) -> list[SourceTriageDecision]:
     """Keep only the best N decisions that trigger remote reads or downloads."""
-    if max_auto_resources <= 0:
-        allowed_ids: set[str] = set()
+    if max_auto_resources is None or max_auto_resources <= 0:
+        source_by_id = {source.source_id: source for source in sources}
+        resource_decisions = [
+            decision
+            for decision in decisions
+            if decision.recommended_action in AUTO_RESOURCE_ACTIONS and _counts_as_auto_resource(decision)
+        ]
+        allowed_ids = {decision.source_id for decision in resource_decisions}
     else:
         source_by_id = {source.source_id: source for source in sources}
         resource_decisions = [

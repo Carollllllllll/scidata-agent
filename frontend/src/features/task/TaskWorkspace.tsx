@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { ApiError, cancelTask, getTask, getTaskEvents, retryTask } from "../../api/client";
+  import { ApiError, cancelTask, getTask, getTaskEvents, resumeTask, retryTask } from "../../api/client";
 import { Icon, type IconName } from "../../components/Icon";
 import { StatusBadge } from "../../components/StatusBadge";
 import { formatDate, overallProgressPercent, stageLabel } from "../../lib/task";
@@ -83,6 +83,16 @@ export function TaskWorkspace() {
       navigate(`/tasks/${task.task_id}`);
     },
   });
+  const resumeMutation = useMutation({
+    mutationFn: () => resumeTask(taskId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["task", taskId] }),
+        queryClient.invalidateQueries({ queryKey: ["task-progress-events", taskId] }),
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+      ]);
+    },
+  });
 
   if (taskQuery.isLoading) return <TaskLoading />;
   if (taskQuery.isError || !taskQuery.data) {
@@ -123,9 +133,16 @@ export function TaskWorkspace() {
   }
 
   const actionError = copyError
+    ?? (cancelMutation.error instanceof ApiError ? cancelMutation.error.message : cancelMutation.isError ? "Cancel failed; please retry." : null)
+    ?? (retryMutation.error instanceof ApiError ? retryMutation.error.message : retryMutation.isError ? "New-task retry failed; please retry." : null)
+    ?? (resumeMutation.error instanceof ApiError ? resumeMutation.error.message : resumeMutation.isError ? "Checkpoint resume failed; inspect the run log." : null);
+  /*
+  const actionError = copyError
     ?? (cancelMutation.error instanceof ApiError ? cancelMutation.error.message : cancelMutation.isError ? "取消任务失败，请稍后重试。" : null)
     ?? (retryMutation.error instanceof ApiError ? retryMutation.error.message : retryMutation.isError ? "重新运行失败，请稍后重试。" : null);
+    ?? (resumeMutation.error instanceof ApiError ? resumeMutation.error.message : resumeMutation.isError ? "从检查点恢复失败，请查看运行记录。" : null);
 
+  */
   return (
     <div className="task-page">
       <div className="task-toolbar">
@@ -138,7 +155,10 @@ export function TaskWorkspace() {
             <Icon name={copied ? "check" : "link"} size={16} />{copied ? "已复制" : "复制任务 ID"}
           </button>
           {task.status === "queued" && <button className="text-button" type="button" disabled={cancelMutation.isPending} onClick={() => cancelMutation.mutate()}><Icon name="close" size={16} />取消任务</button>}
-          {(task.status === "failed" || task.status === "cancelled") && <button className="text-button" type="button" disabled={retryMutation.isPending} onClick={() => retryMutation.mutate()}><Icon name="refresh" size={16} />重新运行</button>}
+          {(task.status === "failed" || task.status === "cancelled") && <>
+            <button className="text-button" type="button" disabled={resumeMutation.isPending || retryMutation.isPending} onClick={() => resumeMutation.mutate()}><Icon name="play" size={16} />从检查点继续</button>
+            <button className="text-button" type="button" disabled={resumeMutation.isPending || retryMutation.isPending} onClick={() => retryMutation.mutate()}><Icon name="refresh" size={16} />新任务重跑</button>
+          </>}
         </div>
       </div>
 

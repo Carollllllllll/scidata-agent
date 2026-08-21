@@ -63,7 +63,7 @@ Return JSON:
     {{
       "query": "valid arXiv API search_query string",
       "purpose": "why this query is useful",
-      "max_results": 20
+      "max_results": 100
     }}
   ],
   "selection_criteria": ["how the Agent should prefer papers after search"],
@@ -108,7 +108,7 @@ Return JSON:
       "source_type": "paper | paper_search | paper_metadata | open_database | dataset | supplementary_material | table | image | webpage | repository | unknown",
       "query": "connector-suitable search query",
       "purpose": "why this search is needed for the user's goal",
-      "max_results": 20,
+      "max_results": 100,
       "must_have": ["required concepts or filters"],
       "nice_to_have": ["optional useful concepts"]
     }}
@@ -124,7 +124,7 @@ Planning requirements:
 4. Use github for code, repositories, benchmark scripts, project datasets, and reproducibility artifacts when useful.
 5. Prefer broad but meaningful coverage: when a connector is useful, generate 3 to 5 complementary requests for that connector.
 6. Generate no more than 5 requests per connector and no more than 28 requests total.
-7. Set max_results to 20 for normal broad survey requests unless the connector or query is clearly narrow.
+7. Set max_results to 100 for broad survey requests unless the user explicitly asks for a smaller result set. Never reduce coverage merely to make execution shorter.
 8. Keep queries short and directly searchable by the target connector.
 9. Do not include generic low-value queries such as "paper", "dataset", or "science".
 10. If the task already provides local files and does not need web discovery, set should_search=false and return an empty search_requests list.
@@ -153,11 +153,11 @@ Multi-source search plan:
 Connector status:
 {connector_status_json}
 
-Candidate source summaries, capped before comparison:
+Candidate source summaries for comparison:
 candidate_limit = {candidate_limit}
 {candidate_sources_json}
 
-Automatic resource processing cap:
+Automatic resource processing limit ("unlimited" means no scientific-data cap):
 max_auto_resources = {max_auto_resources}
 
 Return JSON:
@@ -192,7 +192,7 @@ Selection requirements:
 8. Use read_file_manifest for dataset/supplement sources when the file list should be inspected before download.
 9. Use download_small_table or download_small_supplement only when candidate metadata indicates a small safe structured/document file is likely useful.
 10. If no candidate is good enough for deep reading, return decisions explaining that instead of forcing a download.
-11. Include decisions for the important candidates. You may omit obviously irrelevant low-value candidates; omitted candidates will be treated as metadata-only/rejected by the executor.
+11. Compare every candidate supplied above. Return a decision for every candidate so no discovered source is silently lost; use metadata_only or reject for low-value candidates.
 """
 
 

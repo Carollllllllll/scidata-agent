@@ -218,7 +218,7 @@ class SourceDiscoveryPlan(BaseModel):
 class ArxivSearchQuery(BaseModel):
     query: str
     purpose: str | None = None
-    max_results: int = 20
+    max_results: int = 100
 
     @field_validator("query")
     @classmethod
@@ -231,7 +231,7 @@ class ArxivSearchQuery(BaseModel):
     @field_validator("max_results")
     @classmethod
     def clamp_max_results(cls, value: int) -> int:
-        return max(1, min(int(value), 20))
+        return max(1, int(value))
 
 
 class ArxivSearchPlan(BaseModel):
@@ -268,7 +268,7 @@ class SourceSearchRequest(BaseModel):
     ] = "unknown"
     query: str
     purpose: str | None = None
-    max_results: int = 20
+    max_results: int = 100
     must_have: list[str] = Field(default_factory=list)
     nice_to_have: list[str] = Field(default_factory=list)
 
@@ -283,7 +283,7 @@ class SourceSearchRequest(BaseModel):
     @field_validator("max_results")
     @classmethod
     def clamp_max_results(cls, value: int) -> int:
-        return max(1, min(int(value), 20))
+        return max(1, int(value))
 
 
 class MultiSourceSearchPlan(BaseModel):

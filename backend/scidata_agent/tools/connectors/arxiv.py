@@ -4,6 +4,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import os
+import random
 import re
 import shutil
 import time
@@ -14,7 +15,7 @@ from urllib.request import Request
 import xml.etree.ElementTree as ET
 
 from scidata_agent.agent.schemas import ArxivSearchPlan, DiscoveredSource, SourceDiscoveryPlan, SourceSearchRequest
-from scidata_agent.tools.connectors.base import BaseConnector
+from scidata_agent.tools.connectors.base import BaseConnector, ConnectorCircuitOpen, REQUEST_COORDINATOR
 from scidata_agent.tools.url_safety import safe_urlopen
 
 
@@ -41,7 +42,7 @@ class ArxivConnector(BaseConnector):
         return search_arxiv(request.query, request.max_results)
 
 
-def search_arxiv(query: str, max_results: int = 5, timeout: int = 20, retries: int = 2) -> list[DiscoveredSource]:
+def search_arxiv(query: str, max_results: int = 100, timeout: int = 20, retries: int = 2) -> list[DiscoveredSource]:
     """Search arXiv and return paper-like DiscoveredSource objects."""
     normalized_query = " ".join(query.split())
     if not normalized_query:
@@ -52,7 +53,7 @@ def search_arxiv(query: str, max_results: int = 5, timeout: int = 20, retries: i
         {
             "search_query": search_query,
             "start": 0,
-            "max_results": max(1, min(max_results, 20)),
+            "max_results": max(1, int(max_results)),
             "sortBy": "relevance",
             "sortOrder": "descending",
         }
@@ -66,20 +67,29 @@ def search_arxiv(query: str, max_results: int = 5, timeout: int = 20, retries: i
     attempts = max(1, retries + 1)
     for attempt in range(1, attempts + 1):
         try:
+            REQUEST_COORDINATOR.before_request("export.arxiv.org")
             with safe_urlopen(request, timeout=timeout, allowed_hosts={"export.arxiv.org"}) as response:
                 xml_text = response.read()
+            REQUEST_COORDINATOR.success("export.arxiv.org")
             break
         except HTTPError as exc:  # pragma: no cover - exercised by integration/smoke tests.
             last_exc = exc
-            if exc.code not in {408, 409, 425, 429, 500, 502, 503, 504} or attempt >= attempts:
+            retryable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504}
+            if retryable:
+                REQUEST_COORDINATOR.transient_failure("export.arxiv.org")
+            if not retryable or attempt >= attempts:
                 raise ArxivConnectorError(f"arXiv API request failed after {attempts} attempt(s): {exc}") from exc
         except (TimeoutError, URLError) as exc:  # pragma: no cover - exercised by integration/smoke tests.
             last_exc = exc
+            REQUEST_COORDINATOR.transient_failure("export.arxiv.org")
             if attempt >= attempts:
                 raise ArxivConnectorError(f"arXiv API request failed after {attempts} attempt(s): {exc}") from exc
+        except ConnectorCircuitOpen as exc:
+            raise ArxivConnectorError(str(exc)) from exc
         except Exception as exc:  # pragma: no cover - exercised by integration/smoke tests.
             raise ArxivConnectorError(f"arXiv API request failed: {exc}") from exc
-        time.sleep(min(2 ** (attempt - 1), 8))
+        delay = min(2 ** (attempt - 1), 8)
+        time.sleep(delay + random.uniform(0.0, delay * 0.25))
     else:  # pragma: no cover - defensive; loop raises on final failure.
         raise ArxivConnectorError(f"arXiv API request failed after {attempts} attempt(s): {last_exc}")
 
@@ -166,7 +176,7 @@ def _download_one_arxiv_source(
 def download_arxiv_pdfs(
     plan: SourceDiscoveryPlan,
     download_dir: Path,
-    max_papers: int = 30,
+    max_papers: int | None = None,
     timeout: int = DEFAULT_PDF_READ_TIMEOUT_SECONDS,
     retries: int = 2,
     allowed_source_ids: set[str] | None = None,
@@ -187,11 +197,11 @@ def download_arxiv_pdfs(
     batch_started = time.monotonic()
 
     downloaded: list[Path] = []
-    # Select at most the configured download cap before scheduling work. This
-    # preserves the hard resource limit while allowing those downloads to run concurrently.
+    # ``None`` (and legacy ``0``) means every LLM-selected source. The caller
+    # may still pass a positive value when an operator explicitly wants a cap.
     selected_sources = select_arxiv_papers(
         plan,
-        max_papers=max(0, max_papers),
+        max_papers=None if max_papers is None or max_papers <= 0 else max_papers,
         allowed_source_ids=allowed_source_ids,
     )
     if not selected_sources:
@@ -304,7 +314,7 @@ def download_pdf(
 
 def select_arxiv_papers(
     plan: SourceDiscoveryPlan,
-    max_papers: int | None = 30,
+    max_papers: int | None = None,
     allowed_source_ids: set[str] | None = None,
 ) -> list[DiscoveredSource]:
     """Select arXiv paper sources with downloadable PDFs."""
@@ -413,7 +423,7 @@ def build_pdf_filename(source: DiscoveredSource) -> str:
 def enrich_with_arxiv_results(
     plan: SourceDiscoveryPlan,
     arxiv_plan: ArxivSearchPlan,
-    max_results: int = 20,
+    max_results: int = 100,
     searcher: Callable[[str, int], list[DiscoveredSource]] | None = None,
 ) -> tuple[SourceDiscoveryPlan, str]:
     """Append real arXiv paper results using LLM-planned arXiv queries."""
@@ -434,7 +444,7 @@ def enrich_with_arxiv_results(
         if not query:
             continue
         searched += 1
-        requested = min(max_results, query_spec.max_results)
+        requested = query_spec.max_results if max_results <= 0 else min(max_results, query_spec.max_results)
         try:
             papers = searcher(query, requested)
         except Exception as exc:

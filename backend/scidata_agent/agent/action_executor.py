@@ -39,7 +39,7 @@ class ArtifactActionExecutor:
         plan: ArtifactActionPlan,
         state: AgentState,
         *,
-        max_pdf_pages: int | None = 8,
+        max_pdf_pages: int | None = None,
         max_figures_per_action: int = 6,
     ) -> list[ArtifactActionResult]:
         results: list[ArtifactActionResult] = []
@@ -65,7 +65,7 @@ class ArtifactActionExecutor:
         action: ArtifactAction,
         state: AgentState,
         *,
-        max_pdf_pages: int | None = 8,
+        max_pdf_pages: int | None = None,
         max_figures_per_action: int = 6,
     ) -> ArtifactActionResult:
         try:
@@ -133,7 +133,10 @@ class ArtifactActionExecutor:
                 state.source_discovery_plan,
             )
             state.multi_source_search_plan = plan
-            found, status = execute_multi_source_search(plan)
+            found, status = execute_multi_source_search(
+                plan,
+                cache_dir=state.output_dir / "_cache" / "source_search",
+            )
             merged, added = merge_sources(
                 state.source_discovery_plan.candidate_sources,
                 found,

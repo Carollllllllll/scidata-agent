@@ -176,7 +176,7 @@ def _parse_failure(
 
 def parse_sources(
     files: list[UploadedFile],
-    max_pdf_pages: int | None = 8,
+    max_pdf_pages: int | None = None,
     max_workers: int | None = None,
 ) -> ParsedSources:
     parsed = ParsedSources()

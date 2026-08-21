@@ -184,6 +184,29 @@ class TaskManager:
             file_metadata=uploads,
         )
 
+    def resume_task(self, task_id: str) -> dict[str, Any]:
+        """Resume a failed/interrupted task from its last valid Agent checkpoint."""
+        state = self._read_state(task_id)
+        if state is None:
+            raise KeyError(task_id)
+        if state.get("status") in {"queued", "running"}:
+            raise RuntimeError("Task is still active")
+        # Do not expose a stale result while the same task is being resumed.
+        try:
+            (self._task_state_dir(task_id) / "result_payload.json").unlink(missing_ok=True)
+        except OSError:
+            pass
+        run_options = dict(state.get("run_options") or {})
+        run_options["resume"] = True
+        return self.submit(
+            task_id=task_id,
+            research_question=str(state.get("research_question") or ""),
+            files=list(state.get("internal_files") or []),
+            run_options=run_options,
+            auto_fetch_arxiv=bool(state.get("auto_fetch_arxiv", True)),
+            file_metadata=list(state.get("uploads") or []),
+        )
+
     def get_task(self, task_id: str) -> dict[str, Any]:
         state = self._read_state(task_id)
         if state is None:

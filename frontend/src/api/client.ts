@@ -95,6 +95,10 @@ export function retryTask(taskId: string): Promise<TaskSubmissionResponse> {
   return requestJson<TaskSubmissionResponse>(`/api/tasks/${encodeURIComponent(taskId)}/retry`, { method: "POST" });
 }
 
+export function resumeTask(taskId: string): Promise<TaskSubmissionResponse> {
+  return requestJson<TaskSubmissionResponse>(`/api/tasks/${encodeURIComponent(taskId)}/resume`, { method: "POST" });
+}
+
 export function getTaskEvents(taskId: string, tail = 60): Promise<TaskEventsResponse> {
   return requestJson<TaskEventsResponse>(
     `/api/tasks/${encodeURIComponent(taskId)}/events?tail=${tail}`,

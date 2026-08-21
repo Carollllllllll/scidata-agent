@@ -282,7 +282,7 @@ def _column_looks_metric(normalized_column: str) -> bool:
 
 
 def _first_numeric_value(rows: list[dict[str, Any]], column: str) -> float | None:
-    for row in rows[:5]:
+    for row in rows:
         value, _ = _coerce_number_and_unit(row.get(column))
         if value is not None:
             return value

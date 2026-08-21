@@ -477,14 +477,14 @@ if FastAPI is not None:
     async def analyze(
         research_question: str = Form(..., min_length=3, max_length=4000),
         files: list[UploadFile] | None = File(default=None),
-        max_pdf_pages: int = Form(8, ge=1, le=200),
-        max_arxiv_papers: int | None = Form(None, ge=0, le=100),
-        max_auto_resources: int = Form(5, ge=0, le=100),
+        max_pdf_pages: int | None = Form(None, ge=0),
+        max_arxiv_papers: int | None = Form(None, ge=0),
+        max_auto_resources: int | None = Form(None, ge=0),
         enable_live_search: bool = Form(True),
         auto_download_sources: bool = Form(True),
-        max_dynamic_text_blocks: int = Form(20, ge=1, le=500),
-        max_record_text_blocks: int = Form(20, ge=1, le=500),
-        max_figures_per_pdf: int = Form(6, ge=0, le=50),
+        max_dynamic_text_blocks: int | None = Form(None, ge=0),
+        max_record_text_blocks: int | None = Form(None, ge=0),
+        max_figures_per_pdf: int | None = Form(None, ge=0),
         max_pdf_parse_workers: int | None = Form(None, ge=1, le=16),
         max_chart_workers: int | None = Form(None, ge=1, le=16),
         max_text_extraction_workers: int | None = Form(None, ge=1, le=16),
@@ -629,6 +629,28 @@ if FastAPI is not None:
             raise HTTPException(
                 status_code=409,
                 detail={"code": "TASK_STILL_ACTIVE", "message": "任务仍在运行，不能重试。"},
+            )
+        except TaskQueueFullError:
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "TASK_QUEUE_FULL", "message": "任务队列已满，请稍后再试。"},
+            )
+        return {
+            "task_id": task["task_id"],
+            "status": task["status"],
+            "status_url": f"/api/tasks/{task['task_id']}",
+            "events_url": f"/api/tasks/{task['task_id']}/events",
+        }
+
+    @app.post("/api/tasks/{task_id}/resume", status_code=202, response_model=TaskSubmissionResponse)
+    def resume_task(task_id: str) -> dict[str, Any]:
+        _task_or_404(task_id)
+        try:
+            task = TASK_MANAGER.resume_task(task_id)
+        except RuntimeError:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "TASK_STILL_ACTIVE", "message": "任务仍在运行，不能恢复。"},
             )
         except TaskQueueFullError:
             raise HTTPException(

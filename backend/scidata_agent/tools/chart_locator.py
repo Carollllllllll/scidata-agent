@@ -25,7 +25,7 @@ def locate_figures(
     uploaded: UploadedFile,
     figures_dir: str | Path,
     max_pages: int | None = None,
-    max_figures: int = 6,
+    max_figures: int | None = None,
     render_dpi: int = _DEFAULT_RENDER_DPI,
 ) -> list[FigureAsset]:
     """Locate figures in a PDF by caption + page graphics, render each to PNG.
@@ -37,7 +37,7 @@ def locate_figures(
     3. Union the graphics into a region, expand it to swallow axis tick labels,
        and render that clip to a PNG with PyMuPDF.
 
-    Only the first ``max_figures`` figures are processed (budget control).
+    If ``max_figures`` is provided, only that many figures are processed.
     """
     if uploaded.path.suffix.lower() != ".pdf":
         return []
@@ -54,11 +54,11 @@ def locate_figures(
         page_total = len(document)
         page_limit = page_total if max_pages is None else min(page_total, max_pages)
         for page_index in range(page_limit):
-            if len(assets) >= max_figures:
+            if max_figures is not None and max_figures > 0 and len(assets) >= max_figures:
                 break
             page = document[page_index]
             for caption in _find_captions(page):
-                if len(assets) >= max_figures:
+                if max_figures is not None and max_figures > 0 and len(assets) >= max_figures:
                     break
                 region, method = _figure_region(page, caption["top"])
                 if region is None or region.height < _MIN_REGION_HEIGHT * 0.5:

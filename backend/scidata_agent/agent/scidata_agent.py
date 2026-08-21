@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from scidata_agent.agent.field_schema import FIELD_SCHEMA
 from scidata_agent.agent.action_executor import ArtifactActionExecutor
+from scidata_agent.agent.checkpoint import AgentCheckpointStore, build_run_fingerprint
 from scidata_agent.agent.monitor import AgentMonitor
 from scidata_agent.agent.planner import plan_task as fallback_plan_task
 from scidata_agent.agent.schemas import (
@@ -147,21 +148,25 @@ class SciDataAgent:
         self.llm_nodes = QwenAgentNodes(self.llm_client, allow_rule_fallback=allow_rule_fallback)
         self.monitor_console = monitor_console
         self.monitor_enabled = monitor_enabled
+        self._checkpoint_store: AgentCheckpointStore | None = None
+        self._checkpoint_fingerprint: str | None = None
+        self._completed_checkpoint_steps: set[str] = set()
+        self._resume_enabled = False
 
     def run(
         self,
         research_question: str,
         files: list[str | Path] | None = None,
-        max_pdf_pages: int | None = 8,
+        max_pdf_pages: int | None = None,
         auto_fetch_arxiv: bool = True,
         enable_live_search: bool | None = None,
         auto_download_sources: bool = True,
         discovery_only: bool = False,
         max_arxiv_papers: int | None = None,
-        max_auto_resources: int = DEFAULT_MAX_AUTO_RESOURCES,
-        max_dynamic_text_blocks: int | None = 20,
-        max_record_text_blocks: int | None = 20,
-        max_figures_per_pdf: int = 6,
+        max_auto_resources: int | None = DEFAULT_MAX_AUTO_RESOURCES,
+        max_dynamic_text_blocks: int | None = None,
+        max_record_text_blocks: int | None = None,
+        max_figures_per_pdf: int | None = None,
         max_pdf_parse_workers: int | None = None,
         max_chart_workers: int | None = None,
         max_text_extraction_workers: int | None = None,
@@ -172,7 +177,15 @@ class SciDataAgent:
         arxiv_download_batch_timeout: int = DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
         task_id: str | None = None,
         cancel_check: Callable[[], bool] | None = None,
+        resume: bool = False,
     ) -> AgentResult:
+        self._completed_checkpoint_steps = set()
+        max_pdf_pages = _unlimited_or_positive(max_pdf_pages)
+        max_arxiv_papers = _unlimited_or_positive(max_arxiv_papers)
+        max_auto_resources = _unlimited_or_positive(max_auto_resources)
+        max_dynamic_text_blocks = _unlimited_or_positive(max_dynamic_text_blocks)
+        max_record_text_blocks = _unlimited_or_positive(max_record_text_blocks)
+        max_figures_per_pdf = _unlimited_or_positive(max_figures_per_pdf)
         resource_cap = max_arxiv_papers if max_arxiv_papers is not None else max_auto_resources
         # Preserve the library API's historical uploaded-file behavior unless
         # the caller makes an explicit choice.  The HTTP API always sends
@@ -183,14 +196,49 @@ class SciDataAgent:
             if enable_live_search is None
             else enable_live_search
         )
-        artifact_action_iterations = max(1, min(int(max_artifact_action_iterations), 5))
+        artifact_action_iterations = max(1, int(max_artifact_action_iterations))
         uploaded_files = [UploadedFile(filename=Path(path).name, path=Path(path)) for path in (files or [])]
+        run_options_for_fingerprint = {
+            "max_pdf_pages": max_pdf_pages,
+            "auto_fetch_arxiv": auto_fetch_arxiv,
+            "enable_live_search": enable_live_search,
+            "auto_download_sources": auto_download_sources,
+            "discovery_only": discovery_only,
+            "max_arxiv_papers": max_arxiv_papers,
+            "max_auto_resources": max_auto_resources,
+            "max_dynamic_text_blocks": max_dynamic_text_blocks,
+            "max_record_text_blocks": max_record_text_blocks,
+            "max_figures_per_pdf": max_figures_per_pdf,
+            "max_pdf_parse_workers": max_pdf_parse_workers,
+            "max_chart_workers": max_chart_workers,
+            "max_text_extraction_workers": max_text_extraction_workers,
+            "max_table_extraction_workers": max_table_extraction_workers,
+            "max_artifact_action_iterations": artifact_action_iterations,
+            "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
+            "arxiv_pdf_timeout": arxiv_pdf_timeout,
+            "arxiv_download_batch_timeout": arxiv_download_batch_timeout,
+        }
+        resolved_task_id = task_id or timestamp_task_id()
+        self._checkpoint_store = AgentCheckpointStore(self.output_dir / resolved_task_id)
+        self._checkpoint_fingerprint = build_run_fingerprint(research_question, [path for path in (files or [])], run_options_for_fingerprint)
+        self._resume_enabled = bool(resume)
         state = AgentState(
-            task_id=task_id or timestamp_task_id(),
+            task_id=resolved_task_id,
             research_question=research_question,
             files=uploaded_files,
             output_dir=self.output_dir,
         )
+        if self._resume_enabled:
+            checkpoint = self._checkpoint_store.load(fingerprint=self._checkpoint_fingerprint)
+            if checkpoint is not None and checkpoint[0].task_id == resolved_task_id:
+                state, self._completed_checkpoint_steps = checkpoint
+                state.output_dir = self.output_dir
+                state.processing_log.append(
+                    "Resuming from checkpoint: "
+                    f"completed_steps={len(self._completed_checkpoint_steps)}."
+                )
+            elif checkpoint is not None:
+                self._checkpoint_store.last_load_reason = "task_id_mismatch"
         monitor = AgentMonitor(
             task_id=state.task_id,
             output_dir=state.output_dir,
@@ -395,6 +443,11 @@ class SciDataAgent:
     def _run_step(self, monitor: AgentMonitor, step: str, state: AgentState, func, **kwargs) -> None:
         if monitor.cancel_requested():
             raise AgentCancellationRequested
+        if self._resume_enabled and step in self._completed_checkpoint_steps:
+            message = f"{step} skipped: restored from checkpoint."
+            state.processing_log.append(message)
+            monitor.emit("step", step, "resumed", message, _state_snapshot(state))
+            return
         monitor.start(step, f"{step} started.", _state_snapshot(state))
         warning_start = len(self.llm_nodes.node_warnings)
         normalization_start = len(self.llm_nodes.normalization_events)
@@ -411,6 +464,13 @@ class SciDataAgent:
             raise
         state.processing_log.extend(self.llm_nodes.node_warnings[warning_start:])
         self._append_normalization_log(state, step, normalization_start)
+        self._completed_checkpoint_steps.add(step)
+        if self._checkpoint_store is not None and self._checkpoint_fingerprint is not None:
+            self._checkpoint_store.save(
+                state,
+                fingerprint=self._checkpoint_fingerprint,
+                completed_steps=self._completed_checkpoint_steps,
+            )
         monitor.end(step, f"{step} completed.", _state_snapshot(state))
 
     def _append_normalization_log(
@@ -452,7 +512,7 @@ class SciDataAgent:
         state: AgentState,
         *,
         iteration: int,
-        max_auto_resources: int,
+        max_auto_resources: int | None,
         arxiv_pdf_timeout: int,
         arxiv_download_batch_timeout: int,
     ) -> None:
@@ -481,7 +541,7 @@ class SciDataAgent:
         monitor: AgentMonitor,
         state: AgentState,
         *,
-        max_auto_resources: int,
+        max_auto_resources: int | None,
         arxiv_pdf_timeout: int,
         arxiv_download_batch_timeout: int,
     ) -> None:
@@ -536,7 +596,7 @@ class SciDataAgent:
         max_pdf_pages: int | None,
         max_dynamic_text_blocks: int | None,
         max_record_text_blocks: int | None,
-        max_figures_per_pdf: int,
+        max_figures_per_pdf: int | None,
         max_pdf_parse_workers: int | None,
         max_chart_workers: int | None,
         max_text_extraction_workers: int | None,
@@ -761,7 +821,10 @@ class SciDataAgent:
             return
 
         before = len(state.source_discovery_plan.candidate_sources)
-        discovered_sources, status = execute_multi_source_search(state.multi_source_search_plan)
+        discovered_sources, status = execute_multi_source_search(
+            state.multi_source_search_plan,
+            cache_dir=state.output_dir / "_cache" / "source_search",
+        )
         merged, added = merge_sources(state.source_discovery_plan.candidate_sources, discovered_sources)
         state.source_discovery_plan.candidate_sources = merged
         state.connector_status = list(status.get("connector_status", []))
@@ -788,7 +851,7 @@ class SciDataAgent:
                 f"failed_connectors={failed_connectors}. See connector_status.csv/json for details."
             )
 
-    def _select_sources(self, state: AgentState, max_auto_resources: int) -> None:
+    def _select_sources(self, state: AgentState, max_auto_resources: int | None) -> None:
         if not state.source_discovery_plan:
             state.processing_log.append("Source selection skipped: source discovery plan is missing.")
             return
@@ -818,7 +881,7 @@ class SciDataAgent:
             f"time_range={state.source_selection_plan.time_range_interpreted}."
         )
 
-    def _triage_sources(self, state: AgentState, max_auto_resources: int) -> None:
+    def _triage_sources(self, state: AgentState, max_auto_resources: int | None) -> None:
         if not state.source_discovery_plan:
             state.processing_log.append("Source triage skipped: source discovery plan is missing.")
             return
@@ -878,7 +941,7 @@ class SciDataAgent:
     def _ingest_arxiv_pdfs(
         self,
         state: AgentState,
-        max_auto_resources: int,
+        max_auto_resources: int | None,
         step_monitor: AgentMonitor | None = None,
         pdf_timeout: int = DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
         batch_timeout: int = DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
@@ -927,7 +990,7 @@ class SciDataAgent:
             f"arxiv_sources_added={discovered_count - before_arxiv}, "
             f"arxiv_status={arxiv_status}."
         )
-        if max_auto_resources > 0 and not downloaded_paths:
+        if max_auto_resources != 0 and not downloaded_paths:
             state.processing_log.append(
                 "Deep paper ingestion warning: no arXiv PDFs were downloaded. "
                 "The task may be based only on metadata, abstracts, manifests, or uploaded files."
@@ -999,7 +1062,7 @@ class SciDataAgent:
         self,
         state: AgentState,
         step_monitor: AgentMonitor | None = None,
-        max_figures_per_pdf: int = 6,
+        max_figures_per_pdf: int | None = None,
         max_workers: int | None = None,
     ) -> None:
         """Figure branch: locate -> classify (VL) -> extract (VL) -> validate.
@@ -1751,6 +1814,13 @@ def _state_snapshot(state: AgentState) -> dict[str, Any]:
         if exports:
             snapshot["export_files"] = exports
     return snapshot
+
+
+def _unlimited_or_positive(value: int | None) -> int | None:
+    """Treat omitted and legacy zero values as unlimited processing."""
+    if value is None or value <= 0:
+        return None
+    return int(value)
 
 
 def _selected_block_count(total_blocks: int, max_blocks: int | None) -> int:

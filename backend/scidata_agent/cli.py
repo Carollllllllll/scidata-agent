@@ -28,29 +28,29 @@ def main() -> None:
         help="Optional input PDF/CSV/Excel files. If omitted, the agent runs source discovery only.",
     )
     parser.add_argument("--output-dir", default="../outputs", help="Directory for exported results.")
-    parser.add_argument("--max-pdf-pages", type=int, default=8, help="Maximum pages to parse per PDF.")
+    parser.add_argument("--max-pdf-pages", type=int, default=0, help="Maximum pages per PDF; 0 means all pages.")
     parser.add_argument(
         "--max-arxiv-papers",
         type=int,
         default=None,
-        help="Deprecated compatibility option. If omitted, the agent uses the default automatic resource cap.",
+        help="Deprecated compatibility option. Omit or use 0 to process every selected resource.",
     )
     parser.add_argument(
         "--max-pdf-downloads",
         type=int,
         default=None,
-        help="Maximum open-access PDFs to download and parse across arXiv, OpenAlex, and Semantic Scholar.",
+        help="Optional explicit PDF download cap across providers; omit or use 0 for all selected PDFs.",
     )
     parser.add_argument(
         "--max-dynamic-text-blocks",
         type=int,
-        default=20,
+        default=0,
         help="Maximum ranked text blocks for dynamic extraction. Use 0 for no limit.",
     )
     parser.add_argument(
         "--max-record-text-blocks",
         type=int,
-        default=20,
+        default=0,
         help="Maximum ranked text blocks for metric record extraction. Use 0 for no limit.",
     )
     parser.add_argument(
@@ -66,14 +66,14 @@ def main() -> None:
     parser.add_argument(
         "--max-figures-per-pdf",
         type=int,
-        default=6,
-        help="Maximum figures per PDF sent to the Qwen-VL chart extraction branch. Use 0 to disable.",
+        default=0,
+        help="Maximum figures per PDF sent to Qwen-VL; 0 means all detected figures.",
     )
     parser.add_argument(
         "--max-artifact-action-iterations",
         type=int,
         default=1,
-        help="Maximum LLM artifact-planning iterations. Default 1; hard-capped by the Agent at 5.",
+        help="Maximum LLM artifact-planning iterations. Default 1; explicitly set a larger value when needed.",
     )
     parser.add_argument(
         "--arxiv-pdf-timeout",

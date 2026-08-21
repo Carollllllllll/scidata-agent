@@ -71,8 +71,8 @@ from scidata_agent.tools.extractor import extract_records_from_tables, extract_r
 from scidata_agent.tools.source_discovery import fallback_discover_sources
 
 
-SOURCE_SELECTION_CANDIDATE_LIMIT = 100
-DEFAULT_MAX_AUTO_RESOURCES = 30
+SOURCE_SELECTION_CANDIDATE_LIMIT: int | None = None
+DEFAULT_MAX_AUTO_RESOURCES: int | None = None
 RESERVED_DYNAMIC_FIELDS = {
     "source_file",
     "source_type",
@@ -383,8 +383,8 @@ class QwenAgentNodes:
         dynamic_plan: DynamicExtractionPlan | None = None,
         multi_source_search_plan: MultiSourceSearchPlan | None = None,
         connector_status: list[dict[str, Any]] | None = None,
-        max_auto_resources: int = DEFAULT_MAX_AUTO_RESOURCES,
-        candidate_limit: int = SOURCE_SELECTION_CANDIDATE_LIMIT,
+        max_auto_resources: int | None = DEFAULT_MAX_AUTO_RESOURCES,
+        candidate_limit: int | None = SOURCE_SELECTION_CANDIDATE_LIMIT,
     ) -> SourceSelectionPlan:
         candidates = _source_candidate_summaries(source_discovery_plan, limit=candidate_limit)
         payload = self._generate_json_with_retries(
@@ -398,8 +398,8 @@ class QwenAgentNodes:
                 else "null",
                 connector_status_json=json.dumps(connector_status or [], ensure_ascii=False, indent=2),
                 candidate_sources_json=json.dumps(candidates, ensure_ascii=False, indent=2),
-                max_auto_resources=max_auto_resources,
-                candidate_limit=candidate_limit,
+                max_auto_resources=max_auto_resources or "unlimited",
+                candidate_limit=candidate_limit or "unlimited",
             ),
             temperature=0.05,
         )
@@ -425,7 +425,7 @@ class QwenAgentNodes:
             )
             plan.decisions = valid_decisions
         plan.notes.append(
-            f"Source Selector compared up to {candidate_limit} candidates; executor resource cap is {max_auto_resources}."
+            f"Source Selector compared {len(candidates)} candidates; executor resource cap is {max_auto_resources or 'unlimited'}."
         )
         return plan
 
@@ -586,7 +586,7 @@ class QwenAgentNodes:
                 "extraction_method": candidate.extraction_method,
                 "score": candidate.score,
             }
-            for candidate in heading_candidates[:80]
+            for candidate in heading_candidates
         ]
         payload = self._generate_json_with_retries(
             "qwen_section_interpreter",
@@ -614,7 +614,9 @@ class QwenAgentNodes:
         progress_callback=None,
         max_workers: int | None = None,
     ) -> list[DynamicRecord]:
-        ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
+        ranked_blocks = _expand_text_blocks_for_extraction(
+            _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
+        )
         self._clear_extraction_warnings()
 
         def worker(block):
@@ -627,7 +629,7 @@ class QwenAgentNodes:
                 section_title=json.dumps(getattr(block, "section_title", None), ensure_ascii=False),
                 section_type=json.dumps(getattr(block, "section_type", None), ensure_ascii=False),
                 page_range=_block_page_range(block),
-                content=_trim_content_for_extraction(block.text),
+                content=block.text,
             )
             try:
                 payload = self._generate_json_with_retries("qwen_dynamic_record_extractor_pdf", DYNAMIC_EXTRACTOR_SYSTEM, user_prompt)
@@ -676,9 +678,11 @@ class QwenAgentNodes:
         tables: list[TableBlock],
         max_workers: int | None = None,
     ) -> list[DynamicRecord]:
+        extraction_tables = _expand_table_rows_for_extraction(tables)
+
         def worker(table):
             content = json.dumps(
-                {"columns": table.columns, "rows": table.rows[:80], "table_id": table.table_id},
+                {"columns": table.columns, "rows": table.rows, "table_id": table.table_id, "row_range": table.raw.get("extraction_row_range")},
                 ensure_ascii=False,
                 indent=2,
             )
@@ -700,6 +704,7 @@ class QwenAgentNodes:
                 )
                 for record in table_records:
                     record.raw.setdefault("table_id", table.table_id)
+                    record.raw.setdefault("table_row_range", table.raw.get("extraction_row_range"))
                 return table_records, None
             except Exception as exc:
                 return [], (
@@ -707,13 +712,13 @@ class QwenAgentNodes:
                     f"table_id={table.table_id}, error={exc}"
                 )
         results = self._run_extraction_jobs(
-            tables,
+            extraction_tables,
             worker,
             _extraction_worker_count(
                 max_workers,
                 "SCIDATA_DYNAMIC_EXTRACTION_MAX_WORKERS",
                 DEFAULT_TABLE_EXTRACTION_MAX_WORKERS,
-                len(tables),
+                len(extraction_tables),
             ),
         )
         records: list[DynamicRecord] = []
@@ -735,7 +740,9 @@ class QwenAgentNodes:
         max_workers: int | None = None,
     ) -> list[ScientificRecord]:
         self._clear_extraction_warnings()
-        ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
+        ranked_blocks = _expand_text_blocks_for_extraction(
+            _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
+        )
 
         def worker(block):
             user_prompt = RECORD_EXTRACTOR_USER.format(
@@ -747,7 +754,7 @@ class QwenAgentNodes:
                 section_title=json.dumps(getattr(block, "section_title", None), ensure_ascii=False),
                 section_type=json.dumps(getattr(block, "section_type", None), ensure_ascii=False),
                 page_range=_block_page_range(block),
-                content=_trim_content_for_extraction(block.text),
+                content=block.text,
             )
             try:
                 payload = self._generate_json_with_retries("qwen_record_extractor_pdf", RECORD_EXTRACTOR_SYSTEM, user_prompt)
@@ -798,10 +805,11 @@ class QwenAgentNodes:
         tables: list[TableBlock],
         max_workers: int | None = None,
     ) -> list[ScientificRecord]:
+        extraction_tables = _expand_table_rows_for_extraction(tables)
+
         def worker(table):
-            preview_rows = table.rows[:80]
             content = json.dumps(
-                {"columns": table.columns, "rows": preview_rows, "table_id": table.table_id},
+                {"columns": table.columns, "rows": table.rows, "table_id": table.table_id, "row_range": table.raw.get("extraction_row_range")},
                 ensure_ascii=False,
                 indent=2,
             )
@@ -823,6 +831,7 @@ class QwenAgentNodes:
                 )
                 for record in table_records:
                     record.raw.setdefault("table_id", table.table_id)
+                    record.raw.setdefault("table_row_range", table.raw.get("extraction_row_range"))
                 return table_records, None
             except Exception as exc:
                 warning = (
@@ -833,13 +842,13 @@ class QwenAgentNodes:
                     return extract_records_from_tables([table]), warning
                 return [], warning
         results = self._run_extraction_jobs(
-            tables,
+            extraction_tables,
             worker,
             _extraction_worker_count(
                 max_workers,
                 "SCIDATA_TABLE_EXTRACTION_MAX_WORKERS",
                 DEFAULT_TABLE_EXTRACTION_MAX_WORKERS,
-                len(tables),
+                len(extraction_tables),
             ),
         )
         records: list[ScientificRecord] = []
@@ -1044,13 +1053,14 @@ def _ensure_default_fields(fields: Any) -> list[str]:
     return result
 
 
-def _source_candidate_summaries(source_discovery_plan: SourceDiscoveryPlan, limit: int = 60) -> list[dict[str, Any]]:
+def _source_candidate_summaries(source_discovery_plan: SourceDiscoveryPlan, limit: int | None = None) -> list[dict[str, Any]]:
     summaries: list[dict[str, Any]] = []
-    for source in source_discovery_plan.candidate_sources[:limit]:
+    sources = source_discovery_plan.candidate_sources if limit is None or limit <= 0 else source_discovery_plan.candidate_sources[:limit]
+    for source in sources:
         metadata = source.metadata or {}
         files = metadata.get("files") if isinstance(metadata.get("files"), list) else []
         file_summaries = []
-        for file_item in files[:8]:
+        for file_item in files:
             if not isinstance(file_item, dict):
                 continue
             file_summaries.append(
@@ -1225,7 +1235,7 @@ def _fallback_arxiv_search_plan(
         research_goal=research_question,
         should_search_arxiv=bool(query_text),
         search_intent="Fallback arXiv query built from LLM/source-discovery keywords for local testing only.",
-        queries=[{"query": query, "purpose": "fallback keyword search", "max_results": 20}] if query_text else [],
+        queries=[{"query": query, "purpose": "fallback keyword search", "max_results": 100}] if query_text else [],
         selection_criteria=["Use only papers that clearly match the user's research goal."],
         notes=["LLM arXiv search planning failed; deterministic fallback was used for local testing only."],
     )
@@ -1251,49 +1261,49 @@ def _fallback_multi_source_search_plan(
                 source_type="paper",
                 query=query_text if _looks_like_arxiv_query_text(query_text) else f"all:{query_text}",
                 purpose="Fallback paper search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
             SourceSearchRequest(
                 connector_name="openalex",
                 source_type="paper_metadata",
                 query=query_text,
                 purpose="Fallback paper metadata search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
             SourceSearchRequest(
                 connector_name="semantic_scholar",
                 source_type="paper_metadata",
                 query=query_text,
                 purpose="Fallback semantic paper search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
             SourceSearchRequest(
                 connector_name="crossref",
                 source_type="paper_metadata",
                 query=query_text,
                 purpose="Fallback DOI metadata search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
             SourceSearchRequest(
                 connector_name="zenodo",
                 source_type="dataset",
                 query=query_text,
                 purpose="Fallback open data search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
             SourceSearchRequest(
                 connector_name="figshare",
                 source_type="dataset",
                 query=query_text,
                 purpose="Fallback dataset and supplementary material search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
             SourceSearchRequest(
                 connector_name="github",
                 source_type="repository",
                 query=query_text,
                 purpose="Fallback repository search for local testing only.",
-                max_results=20,
+                max_results=100,
             ),
         ]
     return MultiSourceSearchPlan(
@@ -1654,13 +1664,78 @@ def _text_block_score(block: TextBlock | SectionBlock) -> int:
     return score
 
 
-def _trim_content_for_extraction(text: str, limit: int = 3200) -> str:
-    compact = "\n".join(line.strip() for line in text.splitlines() if line.strip())
-    if len(compact) <= limit:
-        return compact
-    head = compact[: limit // 2]
-    tail = compact[-limit // 2 :]
-    return f"{head}\n\n[...content truncated for extraction...]\n\n{tail}"
+EXTRACTION_TEXT_CHARS_PER_REQUEST = 3200
+EXTRACTION_TABLE_ROWS_PER_REQUEST = 80
+
+
+def _split_text_for_extraction(text: str, limit: int = EXTRACTION_TEXT_CHARS_PER_REQUEST) -> list[str]:
+    """Split long text at line boundaries so every character reaches an LLM call."""
+    if not text:
+        return [""]
+    if len(text) <= limit:
+        return [text]
+
+    chunks: list[str] = []
+    current: list[str] = []
+    current_length = 0
+    for line in text.splitlines(keepends=True):
+        if current and current_length + len(line) > limit:
+            chunks.append("".join(current))
+            current = []
+            current_length = 0
+        if len(line) <= limit:
+            current.append(line)
+            current_length += len(line)
+            continue
+        if current:
+            chunks.append("".join(current))
+            current = []
+            current_length = 0
+        for start in range(0, len(line), limit):
+            chunks.append(line[start : start + limit])
+    if current:
+        chunks.append("".join(current))
+    return chunks or [text]
+
+
+def _expand_text_blocks_for_extraction(
+    blocks: list[TextBlock | SectionBlock],
+) -> list[TextBlock | SectionBlock]:
+    expanded: list[TextBlock | SectionBlock] = []
+    for block in blocks:
+        chunks = _split_text_for_extraction(block.text)
+        for index, chunk in enumerate(chunks, start=1):
+            if len(chunks) == 1:
+                expanded.append(block)
+                continue
+            update: dict[str, Any] = {
+                "text": chunk,
+                "chunk_id": f"{block.chunk_id}:part-{index}-of-{len(chunks)}",
+            }
+            if isinstance(block, SectionBlock):
+                raw = dict(block.raw)
+                raw.update({"extraction_chunk_index": index, "extraction_chunk_count": len(chunks)})
+                update["raw"] = raw
+            expanded.append(block.model_copy(update=update))
+    return expanded
+
+
+def _expand_table_rows_for_extraction(tables: list[TableBlock]) -> list[TableBlock]:
+    """Batch large tables without dropping rows from the extraction workflow."""
+    expanded: list[TableBlock] = []
+    for table in tables:
+        if not table.rows:
+            expanded.append(table)
+            continue
+        rows = table.rows
+        for start in range(0, len(rows), EXTRACTION_TABLE_ROWS_PER_REQUEST):
+            end = min(start + EXTRACTION_TABLE_ROWS_PER_REQUEST, len(rows))
+            raw = dict(table.raw)
+            raw["extraction_row_range"] = {"start": start, "end": end, "total": len(table.rows)}
+            expanded.append(
+                table.model_copy(update={"rows": rows[start:end], "raw": raw})
+            )
+    return expanded
 
 
 def _records_from_payload(

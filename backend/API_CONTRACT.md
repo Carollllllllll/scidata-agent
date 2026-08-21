@@ -18,14 +18,20 @@ Health data never returns the API key.
 
 - `research_question`: required text, 3-4000 characters
 - `files`: optional repeated PDF/CSV/TSV/XLSX/XLS files
-- `max_pdf_pages`: integer 1-200, default `8`
-- `max_arxiv_papers`: optional integer 0-100
-- `max_auto_resources`: integer 0-100, default `5`
+- `max_pdf_pages`: optional non-negative integer, default `null`; omitted or `0` means all pages
+- `max_arxiv_papers`: optional non-negative integer; omitted or `0` means all selected PDFs
+- `max_auto_resources`: optional non-negative integer; omitted or `0` means all LLM-selected resources
 - `enable_live_search`: boolean, default `true`
 - `auto_download_sources`: boolean, default `true`
-- `max_dynamic_text_blocks`: integer 1-500, default `20`
-- `max_record_text_blocks`: integer 1-500, default `20`
-- `max_figures_per_pdf`: integer 0-50, default `6`
+- `max_dynamic_text_blocks`: optional non-negative integer; omitted or `0` means all ranked blocks
+- `max_record_text_blocks`: optional non-negative integer; omitted or `0` means all ranked blocks
+- `max_figures_per_pdf`: optional non-negative integer; omitted or `0` means all detected figures
+
+Scientific-data limits are opt-in. The API does not silently truncate discovered
+sources, selected downloads, PDF pages, text blocks, tables, or figures. Positive
+values are explicit operator limits and are recorded in the task state and
+monitor log. Upload count, upload bytes, queue size, and per-file download byte
+limits remain service-safety guardrails.
 - `max_pdf_parse_workers`: optional integer 1-16; overrides `SCIDATA_PDF_PARSE_MAX_WORKERS`
 - `max_chart_workers`: optional integer 1-16; overrides `SCIDATA_CHART_MAX_WORKERS`
 - `max_text_extraction_workers`: optional integer 1-16; overrides `SCIDATA_TEXT_EXTRACTION_MAX_WORKERS`
@@ -95,6 +101,8 @@ Lifecycle and review mutations:
 - `POST /api/tasks/{task_id}/cancel`: cancel a queued task immediately, or request
   cooperative cancellation of a running task at the next safe pipeline checkpoint.
 - `POST /api/tasks/{task_id}/retry`: copy safe uploaded inputs and create a new task.
+- `POST /api/tasks/{task_id}/resume`: reuse the same task directory and resume from
+  the latest valid Agent checkpoint; successful stages and downloads are reused.
 - `POST /api/tasks/{task_id}/reviews/{record_id}`: persist `approved`,
   `needs_changes`, or `rejected` with an optional note.
 
