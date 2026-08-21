@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable
 
@@ -72,6 +73,51 @@ class AgentCancellationRequested(RuntimeError):
     """Raised between pipeline steps after an API cancellation request."""
 
 
+def _worker_count(
+    explicit: int | None,
+    env_name: str,
+    default: int,
+    item_count: int,
+) -> int:
+    configured = explicit
+    if configured is None:
+        try:
+            configured = int(os.getenv(env_name, str(default)))
+        except ValueError:
+            configured = default
+    return max(1, min(int(configured), max(1, item_count)))
+
+
+def _run_ordered_parallel(items, worker, max_workers: int, on_completed=None):
+    """Run independent work concurrently and return results in input order."""
+    if max_workers <= 1 or len(items) <= 1:
+        results = []
+        for index, item in enumerate(items):
+            result = worker(item)
+            results.append(result)
+            if on_completed:
+                on_completed(index, item, result, index + 1)
+        return results
+    with ThreadPoolExecutor(
+        max_workers=max_workers,
+        thread_name_prefix="agent-worker",
+    ) as executor:
+        futures = {
+            executor.submit(worker, item): index
+            for index, item in enumerate(items)
+        }
+        results = [None] * len(items)
+        completed = 0
+        for future in as_completed(futures):
+            index = futures[future]
+            result = future.result()
+            results[index] = result
+            completed += 1
+            if on_completed:
+                on_completed(index, items[index], result, completed)
+        return results
+
+
 class SciDataAgent:
     """Qwen-powered Data Agent for multi-source scientific data integration.
 
@@ -116,6 +162,10 @@ class SciDataAgent:
         max_dynamic_text_blocks: int | None = 20,
         max_record_text_blocks: int | None = 20,
         max_figures_per_pdf: int = 6,
+        max_pdf_parse_workers: int | None = None,
+        max_chart_workers: int | None = None,
+        max_text_extraction_workers: int | None = None,
+        max_table_extraction_workers: int | None = None,
         max_artifact_action_iterations: int = 1,
         reuse_dynamic_records_for_metrics: bool = True,
         arxiv_pdf_timeout: int = DEFAULT_PDF_TOTAL_TIMEOUT_SECONDS,
@@ -195,6 +245,10 @@ class SciDataAgent:
                 "max_dynamic_text_blocks": max_dynamic_text_blocks,
                 "max_record_text_blocks": max_record_text_blocks,
                 "max_artifact_action_iterations": artifact_action_iterations,
+                "max_pdf_parse_workers": max_pdf_parse_workers,
+                "max_chart_workers": max_chart_workers,
+                "max_text_extraction_workers": max_text_extraction_workers,
+                "max_table_extraction_workers": max_table_extraction_workers,
                 "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
                 "arxiv_pdf_timeout": arxiv_pdf_timeout,
                 "arxiv_download_batch_timeout": arxiv_download_batch_timeout,
@@ -258,6 +312,10 @@ class SciDataAgent:
                     max_dynamic_text_blocks=max_dynamic_text_blocks,
                     max_record_text_blocks=max_record_text_blocks,
                     max_figures_per_pdf=max_figures_per_pdf,
+                    max_pdf_parse_workers=max_pdf_parse_workers,
+                    max_chart_workers=max_chart_workers,
+                    max_text_extraction_workers=max_text_extraction_workers,
+                    max_table_extraction_workers=max_table_extraction_workers,
                     reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
                 )
             if not discovery_only and artifact_action_iterations > 1:
@@ -291,6 +349,10 @@ class SciDataAgent:
                         max_dynamic_text_blocks=max_dynamic_text_blocks,
                         max_record_text_blocks=max_record_text_blocks,
                         max_figures_per_pdf=max_figures_per_pdf,
+                        max_pdf_parse_workers=max_pdf_parse_workers,
+                        max_chart_workers=max_chart_workers,
+                        max_text_extraction_workers=max_text_extraction_workers,
+                        max_table_extraction_workers=max_table_extraction_workers,
                         reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
                     )
                     if iteration + 1 < artifact_action_iterations:
@@ -335,6 +397,7 @@ class SciDataAgent:
             raise AgentCancellationRequested
         monitor.start(step, f"{step} started.", _state_snapshot(state))
         warning_start = len(self.llm_nodes.node_warnings)
+        normalization_start = len(self.llm_nodes.normalization_events)
         try:
             func(state, **kwargs)
             if monitor.cancel_requested():
@@ -343,10 +406,34 @@ class SciDataAgent:
                 self._refresh_catalog(state, step)
         except Exception as exc:
             state.processing_log.extend(self.llm_nodes.node_warnings[warning_start:])
+            self._append_normalization_log(state, step, normalization_start)
             monitor.error(step, f"{step} failed: {exc}", _state_snapshot(state))
             raise
         state.processing_log.extend(self.llm_nodes.node_warnings[warning_start:])
+        self._append_normalization_log(state, step, normalization_start)
         monitor.end(step, f"{step} completed.", _state_snapshot(state))
+
+    def _append_normalization_log(
+        self,
+        state: AgentState,
+        step: str,
+        start_index: int,
+    ) -> None:
+        """Keep schema repairs auditable without dumping full LLM payloads."""
+        events = self.llm_nodes.normalization_events[start_index:]
+        if not events:
+            return
+        paths = []
+        for event in events:
+            path = event.get("path")
+            if path and path not in paths:
+                paths.append(path)
+        preview = ", ".join(paths[:12])
+        if len(paths) > 12:
+            preview += f", ... (+{len(paths) - 12})"
+        state.processing_log.append(
+            f"LLM output normalization: step={step}, events={len(events)}, paths=[{preview}]."
+        )
 
     def _refresh_catalog(self, state: AgentState, step: str) -> None:
         catalog = refresh_source_catalog(state)
@@ -450,10 +537,21 @@ class SciDataAgent:
         max_dynamic_text_blocks: int | None,
         max_record_text_blocks: int | None,
         max_figures_per_pdf: int,
+        max_pdf_parse_workers: int | None,
+        max_chart_workers: int | None,
+        max_text_extraction_workers: int | None,
+        max_table_extraction_workers: int | None,
         reuse_dynamic_records_for_metrics: bool,
     ) -> None:
         if state.files or state.parsed_sources.text_blocks or state.parsed_sources.tables:
-            self._run_step(monitor, "source_parsing", state, self._parse, max_pdf_pages=max_pdf_pages)
+            self._run_step(
+                monitor,
+                "source_parsing",
+                state,
+                self._parse,
+                max_pdf_pages=max_pdf_pages,
+                max_workers=max_pdf_parse_workers,
+            )
             self._run_step(
                 monitor,
                 "figure_chart_extraction",
@@ -461,6 +559,7 @@ class SciDataAgent:
                 self._extract_charts,
                 step_monitor=monitor,
                 max_figures_per_pdf=max_figures_per_pdf,
+                max_workers=max_chart_workers,
             )
             self._run_step(monitor, "section_interpretation", state, self._interpret_sections)
             self._run_step(
@@ -470,6 +569,8 @@ class SciDataAgent:
                 self._extract_dynamic,
                 step_monitor=monitor,
                 max_text_blocks=max_dynamic_text_blocks,
+                max_text_workers=max_text_extraction_workers,
+                max_table_workers=max_table_extraction_workers,
             )
             self._run_step(
                 monitor,
@@ -479,6 +580,8 @@ class SciDataAgent:
                 step_monitor=monitor,
                 max_text_blocks=max_record_text_blocks,
                 reuse_dynamic_records=reuse_dynamic_records_for_metrics,
+                max_text_workers=max_text_extraction_workers,
+                max_table_workers=max_table_extraction_workers,
             )
             self._run_step(monitor, "normalization", state, self._normalize)
             self._run_step(monitor, "provenance_tracking", state, self._trace)
@@ -830,8 +933,17 @@ class SciDataAgent:
                 "The task may be based only on metadata, abstracts, manifests, or uploaded files."
             )
 
-    def _parse(self, state: AgentState, max_pdf_pages: int | None) -> None:
-        parsed = parse_sources(state.files, max_pdf_pages=max_pdf_pages)
+    def _parse(
+        self,
+        state: AgentState,
+        max_pdf_pages: int | None,
+        max_workers: int | None = None,
+    ) -> None:
+        parsed = parse_sources(
+            state.files,
+            max_pdf_pages=max_pdf_pages,
+            max_workers=max_workers,
+        )
         processed_text_paths = _completed_artifact_paths(
             state, {"parse_pdf_text", "parse_pdf_sections"}
         )
@@ -888,6 +1000,7 @@ class SciDataAgent:
         state: AgentState,
         step_monitor: AgentMonitor | None = None,
         max_figures_per_pdf: int = 6,
+        max_workers: int | None = None,
     ) -> None:
         """Figure branch: locate -> classify (VL) -> extract (VL) -> validate.
 
@@ -916,18 +1029,29 @@ class SciDataAgent:
             return
 
         figures_dir = state.output_dir / state.task_id / "figures"
-        assets = []
-        for uploaded in pdf_files:
+        def locate_one(uploaded):
             try:
-                located = locate_figures(
+                return locate_figures(
                     uploaded,
                     figures_dir,
                     max_pages=None,
                     max_figures=max_figures_per_pdf,
-                )
-                assets.extend(located)
+                ), None
             except Exception as exc:
-                state.processing_log.append(f"Figure location failed for {uploaded.filename}: {exc}")
+                return [], f"Figure location failed for {uploaded.filename}: {exc}"
+
+        location_workers = _worker_count(
+            max_workers,
+            "SCIDATA_CHART_MAX_WORKERS",
+            2,
+            len(pdf_files),
+        )
+        location_results = _run_ordered_parallel(pdf_files, locate_one, location_workers)
+        assets = []
+        for located, warning in location_results:
+            assets.extend(located)
+            if warning:
+                state.processing_log.append(warning)
         state.parsed_sources.figure_assets.extend(assets)
         if not assets:
             state.processing_log.append(
@@ -935,45 +1059,64 @@ class SciDataAgent:
             )
             return
 
-        extractions = []
-        validations = []
-        skipped_non_data = 0
-        for index, asset in enumerate(assets, start=1):
+        def process_one(asset):
+            try:
+                classification = self.llm_nodes.classify_chart(asset)
+            except Exception as exc:
+                return None, None, 0, (
+                    f"Chart classification failed for {asset.label or asset.figure_id} "
+                    f"({asset.source_file} p{asset.page}): {exc}"
+                )
+            if not classification.get("contains_data"):
+                return None, None, 1, None
+            try:
+                extraction = self.llm_nodes.extract_chart_data(asset, classification["chart_type"])
+            except Exception as exc:
+                return None, None, 0, (
+                    f"Chart extraction failed for {asset.label or asset.figure_id} "
+                    f"({asset.source_file} p{asset.page}): {exc}"
+                )
+            return extraction, validate_chart_extraction(extraction, asset), 0, None
+
+        chart_workers = _worker_count(
+            max_workers,
+            "SCIDATA_CHART_MAX_WORKERS",
+            2,
+            len(assets),
+        )
+        def on_chart_completed(index, asset, result, completed):
             if step_monitor:
                 step_monitor.emit(
                     "progress",
                     "figure_chart_extraction",
                     "running",
-                    f"figure {index}/{len(assets)}: {asset.label or asset.figure_id} ({asset.source_file} p{asset.page}).",
+                    f"figure {completed}/{len(assets)} completed: {asset.label or asset.figure_id} "
+                    f"({asset.source_file} p{asset.page}).",
                     {
-                        "progress_index": index,
+                        "progress_index": completed,
                         "progress_total": len(assets),
                         "source_file": asset.source_file,
                         "page": asset.page,
                     },
                 )
-            try:
-                classification = self.llm_nodes.classify_chart(asset)
-            except Exception as exc:
-                state.processing_log.append(
-                    f"Chart classification failed for {asset.label or asset.figure_id} "
-                    f"({asset.source_file} p{asset.page}): {exc}"
-                )
-                continue
-            if not classification.get("contains_data"):
-                skipped_non_data += 1
-                continue
-            try:
-                extraction = self.llm_nodes.extract_chart_data(asset, classification["chart_type"])
-            except Exception as exc:
-                state.processing_log.append(
-                    f"Chart extraction failed for {asset.label or asset.figure_id} "
-                    f"({asset.source_file} p{asset.page}): {exc}"
-                )
-                continue
-            validation = validate_chart_extraction(extraction, asset)
-            extractions.append(extraction)
-            validations.append(validation)
+
+        chart_results = _run_ordered_parallel(
+            assets,
+            process_one,
+            chart_workers,
+            on_completed=on_chart_completed,
+        )
+
+        extractions = []
+        validations = []
+        skipped_non_data = 0
+        for extraction, validation, skipped, warning in chart_results:
+            if warning:
+                state.processing_log.append(warning)
+            if extraction is not None and validation is not None:
+                extractions.append(extraction)
+                validations.append(validation)
+            skipped_non_data += skipped
 
         state.chart_extractions.extend(extractions)
         state.chart_validations.extend(validations)
@@ -1057,6 +1200,8 @@ class SciDataAgent:
         step_monitor: AgentMonitor | None = None,
         max_text_blocks: int | None = None,
         reuse_dynamic_records: bool = True,
+        max_text_workers: int | None = None,
+        max_table_workers: int | None = None,
     ) -> None:
         if reuse_dynamic_records:
             derived_records = scientific_records_from_dynamic(
@@ -1086,8 +1231,13 @@ class SciDataAgent:
             source_blocks,
             max_blocks=max_text_blocks,
             progress_callback=_progress_callback(step_monitor, "record_extraction"),
+            max_workers=max_text_workers,
         )
-        table_records = self.llm_nodes.extract_from_tables(state.task_plan, state.parsed_sources.tables)
+        table_records = self.llm_nodes.extract_from_tables(
+            state.task_plan,
+            state.parsed_sources.tables,
+            max_workers=max_table_workers,
+        )
         state.candidate_records = text_records + table_records
         self._backfill_paper_titles(state, state.candidate_records)
         state.processing_log.extend(self.llm_nodes.extraction_warnings)
@@ -1102,6 +1252,8 @@ class SciDataAgent:
         state: AgentState,
         step_monitor: AgentMonitor | None = None,
         max_text_blocks: int | None = None,
+        max_text_workers: int | None = None,
+        max_table_workers: int | None = None,
     ) -> None:
         if not state.dynamic_extraction_plan:
             raise RuntimeError("Dynamic extraction plan missing before dynamic extraction.")
@@ -1119,10 +1271,12 @@ class SciDataAgent:
             source_blocks,
             max_blocks=max_text_blocks,
             progress_callback=_progress_callback(step_monitor, "dynamic_extraction"),
+            max_workers=max_text_workers,
         )
         table_records = self.llm_nodes.extract_dynamic_from_tables(
             state.dynamic_extraction_plan,
             state.parsed_sources.tables,
+            max_workers=max_table_workers,
         )
         state.dynamic_records = text_records + table_records
         self._backfill_paper_titles(state, state.dynamic_records)

@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from threading import Lock
+from threading import RLock
 from typing import Any, Callable
 
 from pydantic import BaseModel
@@ -41,7 +41,7 @@ class AgentMonitor:
         self.task_dir.mkdir(parents=True, exist_ok=True)
         self.log_path = self.task_dir / "agent_monitor.jsonl"
         self._step_started_at: dict[str, float] = {}
-        self._emit_lock = Lock()
+        self._emit_lock = RLock()
 
     def cancel_requested(self) -> bool:
         return bool(self._cancel_check and self._cancel_check())

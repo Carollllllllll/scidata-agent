@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -38,6 +39,7 @@ from scidata_agent.agent.schemas import (
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".tsv", ".xlsx", ".xls"}
 _UNSET = object()
+DEFAULT_PDF_PARSE_MAX_WORKERS = 2
 
 
 def _use_table_transformer() -> bool:
@@ -46,78 +48,173 @@ def _use_table_transformer() -> bool:
     return os.getenv("USE_TABLE_TRANSFORMER", "false").lower() in {"1", "true", "yes"}
 
 
-def parse_sources(files: list[UploadedFile], max_pdf_pages: int | None = 8) -> ParsedSources:
-    parsed = ParsedSources()
-    for uploaded in files:
-        suffix = uploaded.path.suffix.lower()
-        if suffix == ".pdf":
-            reader = None
-            pdf_document = None
-            try:
-                if PdfReader is None:
-                    raise ImportError("PDF text parsing requires the 'pypdf' package.")
-                reader = PdfReader(str(uploaded.path))
-            except Exception as exc:
-                parsed.parser_warnings.append(f"PDF reader failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
-            try:
-                if pdfplumber is not None:
-                    pdf_document = pdfplumber.open(str(uploaded.path))
-            except Exception as exc:
-                parsed.parser_warnings.append(f"PDF layout reader failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
-            try:
-                pdf_blocks: list[TextBlock] = []
-                if reader is not None:
-                    try:
-                        pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages, reader=reader)
-                        parsed.text_blocks.extend(pdf_blocks)
-                    except Exception as exc:
-                        parsed.parser_warnings.append(f"PDF text parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+def _parse_worker_count(max_workers: int | None) -> int:
+    configured = max_workers
+    if configured is None:
+        try:
+            configured = int(os.getenv("SCIDATA_PDF_PARSE_MAX_WORKERS", str(DEFAULT_PDF_PARSE_MAX_WORKERS)))
+        except (TypeError, ValueError):
+            configured = DEFAULT_PDF_PARSE_MAX_WORKERS
+    return max(1, int(configured))
+
+
+def _parse_one_file(
+    uploaded: UploadedFile,
+    max_pdf_pages: int | None,
+) -> tuple[
+    list[TextBlock],
+    list[HeadingCandidate],
+    list[TableBlock],
+    str | None,
+    dict[str, Any] | None,
+    list[str],
+]:
+    suffix = uploaded.path.suffix.lower()
+    if suffix == ".pdf":
+        warnings: list[str] = []
+        reader = None
+        pdf_document = None
+        try:
+            if PdfReader is None:
+                raise ImportError("PDF text parsing requires the 'pypdf' package.")
+            reader = PdfReader(str(uploaded.path))
+        except Exception as exc:
+            warnings.append(f"PDF reader failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+        try:
+            if pdfplumber is not None:
+                pdf_document = pdfplumber.open(str(uploaded.path))
+        except Exception as exc:
+            warnings.append(f"PDF layout reader failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+
+        pdf_blocks: list[TextBlock] = []
+        heading_candidates: list[HeadingCandidate] = []
+        tables: list[TableBlock] = []
+        title: str | None = None
+        table_status: dict[str, Any] | None = None
+        try:
+            if reader is not None:
                 try:
-                    parsed.heading_candidates.extend(
-                        extract_heading_candidates(
-                            uploaded,
-                            pdf_blocks,
-                            max_pages=max_pdf_pages,
-                            pdf_document=pdf_document,
-                        )
+                    pdf_blocks = parse_pdf(uploaded, max_pages=max_pdf_pages, reader=reader)
+                except Exception as exc:
+                    warnings.append(
+                        f"PDF text parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
                     )
-                except Exception as exc:
-                    parsed.parser_warnings.append(f"PDF heading parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
-                try:
-                    tables, table_status = _parse_pdf_tables_with_status(
-                        uploaded,
-                        max_pages=max_pdf_pages,
-                        pdf_document=pdf_document,
+            try:
+                heading_candidates = extract_heading_candidates(
+                    uploaded,
+                    pdf_blocks,
+                    max_pages=max_pdf_pages,
+                    pdf_document=pdf_document,
+                )
+            except Exception as exc:
+                warnings.append(
+                    f"PDF heading parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+                )
+            try:
+                tables, table_status = _parse_pdf_tables_with_status(
+                    uploaded,
+                    max_pages=max_pdf_pages,
+                    pdf_document=pdf_document,
+                )
+                fallback_reason = table_status.get("fallback_reason")
+                if fallback_reason:
+                    warnings.append(
+                        f"Table Transformer unavailable for {uploaded.filename}; "
+                        f"used pdfplumber fallback: {fallback_reason}"
                     )
-                    parsed.tables.extend(tables)
-                    parsed.table_extraction_status.append(table_status)
-                    fallback_reason = table_status.get("fallback_reason")
-                    if fallback_reason:
-                        parsed.parser_warnings.append(
-                            f"Table Transformer unavailable for {uploaded.filename}; "
-                            f"used pdfplumber fallback: {fallback_reason}"
-                        )
-                except Exception as exc:
-                    parsed.parser_warnings.append(f"PDF table parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+            except Exception as exc:
+                warnings.append(
+                    f"PDF table parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+                )
+            try:
+                title = extract_pdf_title(uploaded.path, reader=reader)
+            except Exception as exc:
+                warnings.append(
+                    f"PDF title parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+                )
+        finally:
+            if pdf_document is not None:
                 try:
-                    title = extract_pdf_title(uploaded.path, reader=reader)
-                    if title:
-                        parsed.file_titles[uploaded.filename] = title
-                except Exception as exc:
-                    parsed.parser_warnings.append(f"PDF title parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
-            finally:
-                if pdf_document is not None:
                     pdf_document.close()
-        elif suffix in {".csv", ".tsv"}:
+                except OSError as exc:
+                    warnings.append(
+                        f"PDF layout close failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+                    )
+        return pdf_blocks, heading_candidates, tables, title, table_status, warnings
+    if suffix in {".csv", ".tsv"}:
+        try:
+            return [], [], [parse_csv(uploaded)], None, None, []
+        except Exception as exc:
+            return [], [], [], None, None, [
+                f"Table parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+            ]
+    if suffix in {".xlsx", ".xls"}:
+        try:
+            return [], [], parse_excel(uploaded), None, None, []
+        except Exception as exc:
+            return [], [], [], None, None, [
+                f"Workbook parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+            ]
+    return [], [], [], None, None, []
+
+
+def _parse_failure(
+    uploaded: UploadedFile,
+    exc: Exception,
+) -> tuple[
+    list[TextBlock],
+    list[HeadingCandidate],
+    list[TableBlock],
+    str | None,
+    dict[str, Any] | None,
+    list[str],
+]:
+    return [], [], [], None, None, [
+        f"Source parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+    ]
+
+
+def parse_sources(
+    files: list[UploadedFile],
+    max_pdf_pages: int | None = 8,
+    max_workers: int | None = None,
+) -> ParsedSources:
+    parsed = ParsedSources()
+    if not files:
+        return parsed
+
+    workers = min(_parse_worker_count(max_workers), len(files))
+    if workers == 1:
+        outcomes = []
+        for uploaded in files:
             try:
-                parsed.tables.append(parse_csv(uploaded))
+                outcomes.append(_parse_one_file(uploaded, max_pdf_pages))
             except Exception as exc:
-                parsed.parser_warnings.append(f"Table parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
-        elif suffix in {".xlsx", ".xls"}:
-            try:
-                parsed.tables.extend(parse_excel(uploaded))
-            except Exception as exc:
-                parsed.parser_warnings.append(f"Workbook parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}")
+                outcomes.append(_parse_failure(uploaded, exc))
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="pdf-parse") as executor:
+            futures = [
+                executor.submit(_parse_one_file, uploaded, max_pdf_pages)
+                for uploaded in files
+            ]
+            # Consume in file order to keep evidence and exports deterministic.
+            outcomes = []
+            for uploaded, future in zip(files, futures, strict=True):
+                try:
+                    outcomes.append(future.result())
+                except Exception as exc:
+                    outcomes.append(_parse_failure(uploaded, exc))
+
+    for uploaded, outcome in zip(files, outcomes, strict=True):
+        text_blocks, heading_candidates, tables, title, table_status, warnings = outcome
+        parsed.text_blocks.extend(text_blocks)
+        parsed.heading_candidates.extend(heading_candidates)
+        parsed.tables.extend(tables)
+        if table_status is not None:
+            parsed.table_extraction_status.append(table_status)
+        parsed.parser_warnings.extend(warnings)
+        if title:
+            parsed.file_titles[uploaded.filename] = title
     return parsed
 
 

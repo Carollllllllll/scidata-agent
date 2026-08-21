@@ -5,11 +5,11 @@ import math
 import os
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
-from typing import Any, Callable
+from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from scidata_agent.agent.field_schema import DEFAULT_TARGET_FIELDS
 from scidata_agent.agent.planner import plan_task as fallback_plan_task
@@ -38,6 +38,7 @@ from scidata_agent.agent.schemas import (
     TextBlock,
 )
 from scidata_agent.llm.client import LLMCallError, QwenBailianClient
+from scidata_agent.llm.structured_output import normalize_payload_for_model
 from scidata_agent.llm.prompts import (
     ARXIV_SEARCH_PLANNER_SYSTEM,
     ARXIV_SEARCH_PLANNER_USER,
@@ -93,6 +94,56 @@ EXPERIMENT_CONTEXT_FIELD_ORDER = (
     "task",
 )
 EXPERIMENT_CONTEXT_FIELDS = set(EXPERIMENT_CONTEXT_FIELD_ORDER)
+DEFAULT_TEXT_EXTRACTION_MAX_WORKERS = 2
+DEFAULT_TABLE_EXTRACTION_MAX_WORKERS = 2
+
+
+def _extraction_worker_count(
+    max_workers: int | None,
+    env_name: str,
+    default: int,
+    item_count: int,
+) -> int:
+    configured = max_workers
+    if configured is None:
+        try:
+            configured = int(
+                os.getenv(env_name)
+                or os.getenv("SCIDATA_LLM_BLOCK_WORKERS", str(default))
+            )
+        except (TypeError, ValueError):
+            configured = default
+    return max(1, min(int(configured), max(1, item_count), 4))
+
+
+def _run_ordered_parallel(items, worker, max_workers: int, on_completed=None):
+    """Run workers concurrently, report completions, and preserve result order."""
+    if max_workers <= 1 or len(items) <= 1:
+        results = []
+        for index, item in enumerate(items):
+            result = worker(item)
+            results.append(result)
+            if on_completed:
+                on_completed(index, item, result, index + 1)
+        return results
+    with ThreadPoolExecutor(
+        max_workers=max_workers,
+        thread_name_prefix="llm-extract",
+    ) as executor:
+        futures = {
+            executor.submit(worker, item): index
+            for index, item in enumerate(items)
+        }
+        results = [None] * len(items)
+        completed = 0
+        for future in as_completed(futures):
+            index = futures[future]
+            result = future.result()
+            results[index] = result
+            completed += 1
+            if on_completed:
+                on_completed(index, items[index], result, completed)
+        return results
 
 
 def _node_retry_attempts(explicit: int | None) -> int:
@@ -105,16 +156,6 @@ def _node_retry_attempts(explicit: int | None) -> int:
     return max(1, min(configured, 5))
 
 
-def _llm_block_workers(block_count: int) -> int:
-    try:
-        configured = int(os.getenv("SCIDATA_LLM_BLOCK_WORKERS", "2"))
-    except (TypeError, ValueError):
-        configured = 2
-    # Keep concurrency deliberately bounded: extraction calls are expensive
-    # and providers commonly impose per-workspace request limits.
-    return max(1, min(configured, max(1, block_count), 4))
-
-
 class QwenAgentNodes:
     """LLM-backed nodes used by the controlled SciData Agent workflow."""
 
@@ -123,6 +164,7 @@ class QwenAgentNodes:
         self.allow_rule_fallback = allow_rule_fallback
         self.node_warnings: list[str] = []
         self.extraction_warnings: list[str] = []
+        self.normalization_events: list[dict[str, Any]] = []
         self._warning_lock = Lock()
 
     def _append_node_warning(self, warning: str) -> None:
@@ -137,53 +179,52 @@ class QwenAgentNodes:
         with self._warning_lock:
             self.extraction_warnings.clear()
 
-    def _run_block_jobs(self, jobs: list[Callable[[], Any]]) -> list[Any | Exception]:
-        """Run independent LLM extraction calls concurrently and merge traces."""
-        if not jobs:
-            return []
-        workers = _llm_block_workers(len(jobs))
-        if workers == 1:
-            outcomes: list[Any | Exception] = []
-            for job in jobs:
-                try:
-                    outcomes.append(job())
-                except Exception as exc:
-                    outcomes.append(exc)
-            return outcomes
+    def _run_extraction_jobs(self, items, worker, max_workers: int, on_completed=None):
+        """Run extraction concurrently without losing thread-local client telemetry."""
+        if not isinstance(self.client, QwenBailianClient):
+            return _run_ordered_parallel(items, worker, max_workers, on_completed=on_completed)
 
-        client_supports_context = isinstance(self.client, QwenBailianClient)
-        parent_callback = self.client.event_callback if client_supports_context else None
+        parent_callback = self.client.event_callback
 
-        def invoke(job: Callable[[], Any]):
-            if client_supports_context:
-                self.client.set_event_callback(parent_callback)
-                trace_start = len(self.client.traces)
-                event_start = len(self.client.model_events)
-            else:
-                trace_start = event_start = 0
+        def invoke(item):
+            self.client.set_event_callback(parent_callback)
+            trace_start = len(self.client.traces)
+            event_start = len(self.client.model_events)
             try:
-                value: Any | None = job()
-                error: Exception | None = None
-            except Exception as exc:
-                value = None
-                error = exc
+                result = worker(item)
+                traces = list(self.client.traces[trace_start:])
+                events = list(self.client.model_events[event_start:])
+                return result, traces, events
             finally:
-                traces = list(self.client.traces[trace_start:]) if client_supports_context else []
-                events = list(self.client.model_events[event_start:]) if client_supports_context else []
-                if client_supports_context:
-                    self.client.set_event_callback(None)
-            return value, error, traces, events
+                self.client.set_event_callback(None)
 
-        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="scidata-llm-block") as pool:
-            futures = [pool.submit(invoke, job) for job in jobs]
-            outcomes = []
-            for future in futures:
-                value, error, traces, events = future.result()
-                if client_supports_context:
-                    self.client.traces.extend(traces)
-                    self.client.model_events.extend(events)
-                outcomes.append(error if error is not None else value)
-        return outcomes
+        def forward_completion(index, item, wrapped_result, completed):
+            if on_completed:
+                on_completed(index, item, wrapped_result[0], completed)
+
+        wrapped_results = _run_ordered_parallel(
+            items,
+            invoke,
+            max_workers,
+            on_completed=forward_completion,
+        )
+        results = []
+        for result, traces, events in wrapped_results:
+            self.client.traces.extend(traces)
+            self.client.model_events.extend(events)
+            results.append(result)
+        return results
+
+    def _normalize_payload(
+        self,
+        node: str,
+        payload: Any,
+        model_type: type[BaseModel],
+    ) -> Any:
+        normalized, events = normalize_payload_for_model(payload, model_type)
+        for event in events:
+            self.normalization_events.append({"node": node, **event})
+        return normalized
 
     def _generate_json_with_retries(
         self,
@@ -234,6 +275,8 @@ class QwenAgentNodes:
             payload.setdefault("output_format", ["csv", "json"])
             payload.setdefault("assumptions", [])
             payload.setdefault("schema_notes", [])
+            payload = self._normalize_payload("qwen_task_planner", payload, TaskPlan)
+            payload["target_fields"] = _ensure_default_fields(payload.get("target_fields", []))
             return TaskPlan.model_validate(payload)
         except Exception:
             if not self.allow_rule_fallback:
@@ -258,6 +301,7 @@ class QwenAgentNodes:
             payload.setdefault("dynamic_schema", {})
             payload.setdefault("candidate_sources", [])
             payload.setdefault("notes", [])
+            payload = self._normalize_payload("qwen_source_discovery", payload, SourceDiscoveryPlan)
             _normalize_candidate_source_types(payload)
             return SourceDiscoveryPlan.model_validate(payload)
         except Exception:
@@ -289,6 +333,7 @@ class QwenAgentNodes:
             payload.setdefault("queries", [])
             payload.setdefault("selection_criteria", [])
             payload.setdefault("notes", [])
+            payload = self._normalize_payload("qwen_arxiv_search_planner", payload, ArxivSearchPlan)
             plan = ArxivSearchPlan.model_validate(payload)
             if plan.should_search_arxiv and not plan.queries:
                 raise LLMCallError("arXiv Search Planner returned no queries.")
@@ -320,6 +365,7 @@ class QwenAgentNodes:
             payload.setdefault("search_requests", [])
             payload.setdefault("selection_criteria", [])
             payload.setdefault("notes", [])
+            payload = self._normalize_payload("qwen_multi_source_search_planner", payload, MultiSourceSearchPlan)
             _normalize_multi_source_search_requests(payload)
             plan = MultiSourceSearchPlan.model_validate(payload)
             if plan.should_search and not plan.search_requests:
@@ -364,6 +410,7 @@ class QwenAgentNodes:
         payload.setdefault("time_range_interpreted", None)
         payload.setdefault("decisions", [])
         payload.setdefault("notes", [])
+        payload = self._normalize_payload("qwen_source_selector", payload, SourceSelectionPlan)
         _normalize_source_selection_decisions(payload)
         plan = SourceSelectionPlan.model_validate(payload)
         if not plan.decisions:
@@ -439,6 +486,7 @@ class QwenAgentNodes:
         payload.setdefault("stop_reason", None)
         payload.setdefault("actions", [])
         payload.setdefault("notes", [])
+        payload = self._normalize_payload("qwen_artifact_action_planner", payload, ArtifactActionPlan)
         plan = ArtifactActionPlan.model_validate(payload)
 
         artifact_ids = {
@@ -504,6 +552,7 @@ class QwenAgentNodes:
             payload.setdefault("dynamic_tables", [])
             payload.setdefault("quality_rules", [])
             payload.setdefault("missing_data_policy", "Use null for missing information; do not fabricate values.")
+            payload = self._normalize_payload("qwen_dynamic_schema_planner", payload, DynamicExtractionPlan)
             _normalize_dynamic_plan_payload(payload)
             plan = DynamicExtractionPlan.model_validate(payload)
             if not plan.dynamic_tables:
@@ -552,6 +601,7 @@ class QwenAgentNodes:
         payload.setdefault("sections", [])
         payload.setdefault("ignored_candidates", [])
         payload.setdefault("warnings", [])
+        payload = self._normalize_payload("qwen_section_interpreter", payload, SectionPlan)
         _repair_section_sources(payload, heading_candidates)
         payload["used_llm"] = True
         return SectionPlan.model_validate(payload)
@@ -562,11 +612,12 @@ class QwenAgentNodes:
         text_blocks: list[TextBlock | SectionBlock],
         max_blocks: int | None = None,
         progress_callback=None,
+        max_workers: int | None = None,
     ) -> list[DynamicRecord]:
-        records: list[DynamicRecord] = []
         ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
-        jobs: list[Callable[[], list[DynamicRecord]]] = []
-        for block in ranked_blocks:
+        self._clear_extraction_warnings()
+
+        def worker(block):
             user_prompt = DYNAMIC_EXTRACTOR_USER.format(
                 dynamic_plan_json=dynamic_plan.model_dump_json(),
                 source_file=block.source_file,
@@ -578,44 +629,54 @@ class QwenAgentNodes:
                 page_range=_block_page_range(block),
                 content=_trim_content_for_extraction(block.text),
             )
-
-            def extract(current_block=block, prompt=user_prompt) -> list[DynamicRecord]:
-                payload = self._generate_json_with_retries(
-                    "qwen_dynamic_record_extractor_pdf",
-                    DYNAMIC_EXTRACTOR_SYSTEM,
-                    prompt,
-                )
+            try:
+                payload = self._generate_json_with_retries("qwen_dynamic_record_extractor_pdf", DYNAMIC_EXTRACTOR_SYSTEM, user_prompt)
                 return _dynamic_records_from_payload(
                     payload,
                     dynamic_plan,
-                    current_block.source_file,
-                    current_block.source_type,
-                    current_block.page,
-                    block=current_block,
-                )
-
-            jobs.append(extract)
-
-        outcomes = self._run_block_jobs(jobs)
-        for index, (block, outcome) in enumerate(zip(ranked_blocks, outcomes), start=1):
-            if progress_callback:
-                progress_callback(index, len(ranked_blocks), block, len(records))
-            if isinstance(outcome, Exception):
-                self._append_extraction_warning(
+                    block.source_file,
+                    block.source_type,
+                    block.page,
+                    block=block,
+                ), None
+            except Exception as exc:
+                return [], (
                     f"Qwen dynamic extraction skipped one block: source_file={block.source_file}, "
-                    f"page={block.page}, section={getattr(block, 'section_title', None)}, error={outcome}"
+                    f"page={block.page}, section={getattr(block, 'section_title', None)}, error={exc}"
                 )
-                continue
-            records.extend(outcome)
+        completed_records = 0
+
+        def on_completed(index, block, result, completed):
+            nonlocal completed_records
+            completed_records += len(result[0])
+            if progress_callback:
+                progress_callback(completed, len(ranked_blocks), block, completed_records)
+
+        results = self._run_extraction_jobs(
+            ranked_blocks,
+            worker,
+            _extraction_worker_count(
+                max_workers,
+                "SCIDATA_DYNAMIC_EXTRACTION_MAX_WORKERS",
+                DEFAULT_TEXT_EXTRACTION_MAX_WORKERS,
+                len(ranked_blocks),
+            ),
+            on_completed=on_completed,
+        )
+        records: list[DynamicRecord] = []
+        for block_records, warning in results:
+            records.extend(block_records)
+            if warning:
+                self._append_extraction_warning(warning)
         return records
 
     def extract_dynamic_from_tables(
         self,
         dynamic_plan: DynamicExtractionPlan,
         tables: list[TableBlock],
+        max_workers: int | None = None,
     ) -> list[DynamicRecord]:
-        records: list[DynamicRecord] = []
-        for table in tables:
+        def worker(table):
             content = json.dumps(
                 {"columns": table.columns, "rows": table.rows[:80], "table_id": table.table_id},
                 ensure_ascii=False,
@@ -639,17 +700,31 @@ class QwenAgentNodes:
                 )
                 for record in table_records:
                     record.raw.setdefault("table_id", table.table_id)
-                records.extend(table_records)
+                return table_records, None
             except Exception as exc:
-                self._append_extraction_warning(
+                return [], (
                     f"Qwen dynamic extraction skipped one table: source_file={table.source_file}, "
                     f"table_id={table.table_id}, error={exc}"
                 )
-                continue
+        results = self._run_extraction_jobs(
+            tables,
+            worker,
+            _extraction_worker_count(
+                max_workers,
+                "SCIDATA_DYNAMIC_EXTRACTION_MAX_WORKERS",
+                DEFAULT_TABLE_EXTRACTION_MAX_WORKERS,
+                len(tables),
+            ),
+        )
+        records: list[DynamicRecord] = []
+        for table_records, warning in results:
+            records.extend(table_records)
+            if warning:
+                self._append_extraction_warning(warning)
         return records
 
     def extract_from_text_blocks(self, task_plan: TaskPlan, text_blocks: list[TextBlock | SectionBlock]) -> list[ScientificRecord]:
-        return self.extract_from_text_blocks_limited(task_plan, text_blocks, max_blocks=None)
+        return self.extract_from_text_blocks_limited(task_plan, text_blocks)
 
     def extract_from_text_blocks_limited(
         self,
@@ -657,12 +732,12 @@ class QwenAgentNodes:
         text_blocks: list[TextBlock | SectionBlock],
         max_blocks: int | None = None,
         progress_callback=None,
+        max_workers: int | None = None,
     ) -> list[ScientificRecord]:
-        records: list[ScientificRecord] = []
         self._clear_extraction_warnings()
         ranked_blocks = _limit_blocks(_rank_text_blocks(text_blocks), max_blocks)
-        jobs: list[Callable[[], list[ScientificRecord]]] = []
-        for block in ranked_blocks:
+
+        def worker(block):
             user_prompt = RECORD_EXTRACTOR_USER.format(
                 task_plan_json=task_plan.model_dump_json(),
                 source_file=block.source_file,
@@ -674,42 +749,56 @@ class QwenAgentNodes:
                 page_range=_block_page_range(block),
                 content=_trim_content_for_extraction(block.text),
             )
-
-            def extract(current_block=block, prompt=user_prompt) -> list[ScientificRecord]:
-                payload = self._generate_json_with_retries(
-                    "qwen_record_extractor_pdf",
-                    RECORD_EXTRACTOR_SYSTEM,
-                    prompt,
-                )
+            try:
+                payload = self._generate_json_with_retries("qwen_record_extractor_pdf", RECORD_EXTRACTOR_SYSTEM, user_prompt)
                 return _records_from_payload(
                     payload,
-                    current_block.source_file,
-                    current_block.source_type,
-                    current_block.page,
-                    block=current_block,
-                )
-
-            jobs.append(extract)
-
-        outcomes = self._run_block_jobs(jobs)
-        for index, (block, outcome) in enumerate(zip(ranked_blocks, outcomes), start=1):
-            if progress_callback:
-                progress_callback(index, len(ranked_blocks), block, len(records))
-            if isinstance(outcome, Exception):
+                    block.source_file,
+                    block.source_type,
+                    block.page,
+                    block=block,
+                ), None
+            except Exception as exc:
                 warning = (
                     f"Qwen text extraction skipped one block: source_file={block.source_file}, "
-                    f"page={block.page}, error={outcome}"
+                    f"page={block.page}, error={exc}"
                 )
-                self._append_extraction_warning(warning)
                 if self.allow_rule_fallback:
-                    records.extend(extract_records_from_text_blocks([block]))
-                continue
-            records.extend(outcome)
+                    return extract_records_from_text_blocks([block]), warning
+                return [], warning
+        completed_records = 0
+
+        def on_completed(index, block, result, completed):
+            nonlocal completed_records
+            completed_records += len(result[0])
+            if progress_callback:
+                progress_callback(completed, len(ranked_blocks), block, completed_records)
+
+        results = self._run_extraction_jobs(
+            ranked_blocks,
+            worker,
+            _extraction_worker_count(
+                max_workers,
+                "SCIDATA_TEXT_EXTRACTION_MAX_WORKERS",
+                DEFAULT_TEXT_EXTRACTION_MAX_WORKERS,
+                len(ranked_blocks),
+            ),
+            on_completed=on_completed,
+        )
+        records: list[ScientificRecord] = []
+        for block_records, warning in results:
+            records.extend(block_records)
+            if warning:
+                self._append_extraction_warning(warning)
         return records
 
-    def extract_from_tables(self, task_plan: TaskPlan, tables: list[TableBlock]) -> list[ScientificRecord]:
-        records: list[ScientificRecord] = []
-        for table in tables:
+    def extract_from_tables(
+        self,
+        task_plan: TaskPlan,
+        tables: list[TableBlock],
+        max_workers: int | None = None,
+    ) -> list[ScientificRecord]:
+        def worker(table):
             preview_rows = table.rows[:80]
             content = json.dumps(
                 {"columns": table.columns, "rows": preview_rows, "table_id": table.table_id},
@@ -734,16 +823,30 @@ class QwenAgentNodes:
                 )
                 for record in table_records:
                     record.raw.setdefault("table_id", table.table_id)
-                records.extend(table_records)
+                return table_records, None
             except Exception as exc:
                 warning = (
                     f"Qwen table extraction skipped one table: source_file={table.source_file}, "
                     f"table_id={table.table_id}, error={exc}"
                 )
-                self._append_extraction_warning(warning)
                 if self.allow_rule_fallback:
-                    records.extend(extract_records_from_tables([table]))
-                continue
+                    return extract_records_from_tables([table]), warning
+                return [], warning
+        results = self._run_extraction_jobs(
+            tables,
+            worker,
+            _extraction_worker_count(
+                max_workers,
+                "SCIDATA_TABLE_EXTRACTION_MAX_WORKERS",
+                DEFAULT_TABLE_EXTRACTION_MAX_WORKERS,
+                len(tables),
+            ),
+        )
+        records: list[ScientificRecord] = []
+        for table_records, warning in results:
+            records.extend(table_records)
+            if warning:
+                self._append_extraction_warning(warning)
         return records
 
     def validate_records(self, records: list[ScientificRecord]) -> list[QualityIssue]:
