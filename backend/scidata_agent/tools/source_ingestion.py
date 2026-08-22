@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -10,6 +11,7 @@ from uuid import uuid4
 
 from scidata_agent.agent.schemas import (
     DiscoveredSource,
+    SourceArtifact,
     SourceInsight,
     SourceTriageDecision,
     SourceType,
@@ -25,10 +27,90 @@ TEXT_EXTENSIONS = {".txt", ".md", ".json", ".xml"}
 PARSEABLE_TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls"}
 TABLE_EXTENSIONS = PARSEABLE_TABLE_EXTENSIONS | {".json", ".xml"}
 PDF_EXTENSIONS = {".pdf"}
+DEFAULT_ARTIFACT_MAX_BYTES = 100 * 1024 * 1024
 
 
 Downloader = Callable[[str, Path, int], None]
 TextFetcher = Callable[[str, int, dict[str, str] | None], str]
+
+
+def download_source_artifact(
+    artifact: SourceArtifact,
+    output_dir: Path,
+    *,
+    max_bytes: int | None = None,
+    downloader: Downloader | None = None,
+) -> Path:
+    """Materialize one planner-selected artifact without hiding download errors.
+
+    Existing local files are reused. Remote files are downloaded through the
+    same URL-safety and content-validation path used by triage ingestion.
+    ``max_bytes`` is a transport safety limit, not a limit on the number of
+    research results or selected artifacts.
+    """
+    if artifact.local_path:
+        local_path = Path(artifact.local_path).expanduser().resolve()
+        if local_path.exists() and local_path.is_file():
+            artifact.local_path = str(local_path)
+            artifact.name = artifact.name or local_path.name
+            artifact.size_bytes = local_path.stat().st_size
+            artifact.status = "downloaded"
+            return local_path
+    if not artifact.url:
+        raise ValueError("Selected artifact has no URL and no existing local_path.")
+
+    limit = max_bytes if max_bytes is not None else _positive_env_int(
+        "SCIDATA_ARTIFACT_MAX_BYTES", DEFAULT_ARTIFACT_MAX_BYTES
+    )
+    if limit <= 0:
+        raise ValueError("Artifact download max_bytes must be greater than zero.")
+    target_dir = output_dir.expanduser().resolve()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / _artifact_filename(artifact)
+    downloader = downloader or _download_url
+    downloader(artifact.url, target_path, limit)
+    if not target_path.exists() or not target_path.is_file():
+        raise RuntimeError(f"Downloader returned without creating file: {target_path}")
+    artifact.local_path = str(target_path)
+    artifact.name = artifact.name or target_path.name
+    artifact.size_bytes = target_path.stat().st_size
+    artifact.content_type = artifact.content_type or _content_type(target_path)
+    artifact.status = "downloaded"
+    artifact.failure_reason = None
+    return target_path
+
+
+def _artifact_filename(artifact: SourceArtifact) -> str:
+    raw_name = Path(str(artifact.name or "")).name
+    raw_name = raw_name.split("?", 1)[0].split("#", 1)[0]
+    if not raw_name or raw_name in {".", ".."}:
+        raw_name = Path(str(artifact.url or "")).name.split("?", 1)[0]
+    if not raw_name:
+        raw_name = artifact.artifact_id
+    suffix = Path(raw_name).suffix.lower()
+    suffix_by_type = {
+        "pdf": ".pdf",
+        "supplementary_pdf": ".pdf",
+        "csv": ".csv",
+        "tsv": ".tsv",
+        "xlsx": ".xlsx",
+        "json": ".json",
+        "xml": ".xml",
+        "html": ".html",
+        "readme": ".md",
+        "image": ".bin",
+    }
+    if not suffix and artifact.artifact_type in suffix_by_type:
+        raw_name += suffix_by_type[artifact.artifact_type]
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", raw_name)[:180] or artifact.artifact_id
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
 
 
 def ingest_triaged_sources(
@@ -332,7 +414,8 @@ def _file_size(file_item: dict[str, Any]) -> int | None:
     for key in ["size", "filesize", "file_size"]:
         value = file_item.get(key)
         try:
-            return int(value) if value not in (None, "") else None
+            if value not in (None, ""):
+                return int(value)
         except (TypeError, ValueError):
             continue
     return None
@@ -340,7 +423,8 @@ def _file_size(file_item: dict[str, Any]) -> int | None:
 
 def _download_url(url: str, target_path: Path, max_bytes: int) -> None:
     request = Request(url, headers={"User-Agent": USER_AGENT})
-    with safe_urlopen(request, timeout=30) as response:
+    timeout = _positive_env_int("SCIDATA_ARTIFACT_DOWNLOAD_TIMEOUT_SECONDS", 60)
+    with safe_urlopen(request, timeout=timeout) as response:
         content = response.read(max_bytes + 1)
         content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].lower()
     if len(content) > max_bytes:

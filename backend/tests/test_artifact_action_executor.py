@@ -18,6 +18,7 @@ from scidata_agent.agent.schemas import (
     SourceCatalogEntry,
     ScientificRecord,
 )
+from scidata_agent.tools import source_ingestion
 
 
 def make_state(tmp_path: Path) -> AgentState:
@@ -98,6 +99,113 @@ def test_executor_records_metadata_without_downloading(tmp_path: Path) -> None:
     assert results[0].status == "completed"
     assert results[0].output_counts["metadata_fields"] > 0
     assert state.source_insights[-1].insight_type == "metadata"
+
+
+def test_executor_downloads_selected_remote_artifact(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    artifact = SourceArtifact(
+        artifact_id="artifact_remote_pdf",
+        source_id="source_remote",
+        artifact_type="pdf",
+        name="paper.pdf",
+        url="https://example.org/paper.pdf",
+        status="planned",
+    )
+    state = AgentState(
+        research_question="Read the paper.",
+        files=[],
+        output_dir=tmp_path / "outputs",
+        source_catalog=[
+            SourceCatalogEntry(
+                source_id="source_remote",
+                title="Remote paper",
+                source_type="paper",
+                artifacts=[artifact],
+            )
+        ],
+    )
+
+    def fake_download(url: str, target: Path, max_bytes: int) -> None:
+        assert url.endswith("paper.pdf")
+        assert max_bytes > 0
+        target.write_bytes(b"%PDF-1.7 test")
+
+    monkeypatch.setattr(source_ingestion, "_download_url", fake_download)
+    result = ArtifactActionExecutor().execute_action(
+        ArtifactAction(
+            action_id="action_download",
+            artifact_id=artifact.artifact_id,
+            action="download_artifact",
+            purpose="Read the paper content.",
+            reason="The paper is relevant.",
+        ),
+        state,
+    )
+
+    assert result.status == "completed"
+    assert artifact.status == "downloaded"
+    assert artifact.local_path and Path(artifact.local_path).exists()
+    assert artifact.size_bytes == len(b"%PDF-1.7 test")
+
+
+def test_executor_download_artifact_preserves_missing_url_failure(tmp_path: Path) -> None:
+    artifact = SourceArtifact(
+        artifact_id="artifact_missing_url",
+        source_id="source_missing",
+        artifact_type="csv",
+        name="results.csv",
+        status="planned",
+    )
+    state = AgentState(
+        research_question="Read the data.",
+        files=[],
+        output_dir=tmp_path / "outputs",
+        source_catalog=[SourceCatalogEntry(source_id="source_missing", title="Missing", artifacts=[artifact])],
+    )
+
+    result = ArtifactActionExecutor().execute_action(
+        ArtifactAction(
+            action_id="action_missing_download",
+            artifact_id=artifact.artifact_id,
+            action="download_artifact",
+            purpose="Read the data.",
+            reason="The selected data file is relevant.",
+        ),
+        state,
+    )
+
+    assert result.status == "failed"
+    assert "no URL" in result.message
+    assert artifact.status == "failed"
+    assert artifact.failure_reason
+
+
+def test_source_artifact_download_rejects_invalid_pdf(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    class FakeResponse:
+        headers = {"Content-Type": "text/html"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def read(self, _limit: int) -> bytes:
+            return b"<html>not a PDF</html>"
+
+    monkeypatch.setattr(source_ingestion, "safe_urlopen", lambda request, timeout: FakeResponse())
+    artifact = SourceArtifact(
+        artifact_id="artifact_invalid_pdf",
+        source_id="source_invalid",
+        artifact_type="pdf",
+        name="paper.pdf",
+        url="https://example.org/paper.pdf?download=1",
+    )
+
+    with pytest.raises(RuntimeError, match="not a PDF"):
+        source_ingestion.download_source_artifact(artifact, tmp_path / "downloads")
+
+    assert artifact.local_path is None
+    assert artifact.status == "discovered"
 
 
 def test_executor_does_not_use_wrong_parser_for_artifact_type(tmp_path: Path) -> None:

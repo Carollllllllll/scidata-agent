@@ -93,6 +93,8 @@ class ArtifactActionExecutor:
                 return path_result
 
         try:
+            if action.action == "download_artifact":
+                return self._download_artifact(action, state, artifact)
             if action.action == "read_metadata":
                 return self._read_metadata(action, state, artifact)
             if action.action == "parse_pdf_text":
@@ -222,6 +224,45 @@ class ArtifactActionExecutor:
             "completed",
             f"Parsed PDF text from {uploaded.filename}.",
             text_blocks=len(blocks),
+        )
+
+    def _download_artifact(
+        self,
+        action: ArtifactAction,
+        state: AgentState,
+        artifact: SourceArtifact,
+    ) -> ArtifactActionResult:
+        from scidata_agent.tools.source_ingestion import download_source_artifact
+
+        target_dir = state.output_dir / state.task_id / "downloads" / "artifacts"
+        raw_limit = action.parameters.get("max_bytes")
+        max_bytes = int(raw_limit) if raw_limit not in (None, "") else None
+        try:
+            path = download_source_artifact(
+                artifact,
+                target_dir,
+                max_bytes=max_bytes,
+            )
+        except Exception as exc:
+            artifact.status = "failed"
+            artifact.failure_reason = str(exc)
+            return self._failed(action, f"Artifact download failed: {exc}", error=repr(exc))
+
+        source = self._find_discovered_source(artifact.source_id, state)
+        if source is not None:
+            paths = source.metadata.setdefault("downloaded_paths", [])
+            if str(path) not in paths:
+                paths.append(str(path))
+            source.metadata["downloaded_path"] = source.metadata.get("downloaded_path") or str(path)
+            downloads = source.metadata.setdefault("downloaded_artifacts", {})
+            if artifact.url:
+                downloads[artifact.url] = str(path)
+
+        return self._result(
+            action,
+            "completed",
+            f"Downloaded artifact {artifact.name or artifact.artifact_id}.",
+            bytes=artifact.size_bytes or 0,
         )
 
     def _parse_pdf_sections(
@@ -409,6 +450,14 @@ class ArtifactActionExecutor:
 
     def _find_source_entry(self, source_id: str, state: AgentState):
         return next((entry for entry in state.source_catalog if entry.source_id == source_id), None)
+
+    def _find_discovered_source(self, source_id: str, state: AgentState):
+        if not state.source_discovery_plan:
+            return None
+        return next(
+            (source for source in state.source_discovery_plan.candidate_sources if source.source_id == source_id),
+            None,
+        )
 
     def _require_local_file(self, action: ArtifactAction, artifact: SourceArtifact) -> ArtifactActionResult | None:
         if not artifact.local_path:

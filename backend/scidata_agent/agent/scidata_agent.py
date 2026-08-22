@@ -660,6 +660,7 @@ class SciDataAgent:
     @staticmethod
     def _artifact_actions_need_content_refresh(results: list[Any]) -> bool:
         content_actions = {
+            "download_artifact",
             "parse_pdf_text",
             "parse_pdf_sections",
             "parse_table",
@@ -763,6 +764,12 @@ class SciDataAgent:
 
     def _discover_sources(self, state: AgentState) -> None:
         state.source_discovery_plan = self.llm_nodes.discover_sources(state.research_question)
+        raw_discovered_count = len(state.source_discovery_plan.candidate_sources)
+        clustered_sources, clustered_count = merge_sources(
+            [],
+            state.source_discovery_plan.candidate_sources,
+        )
+        state.source_discovery_plan.candidate_sources = clustered_sources
         discovered_count = len(state.source_discovery_plan.candidate_sources)
         if state.task_plan:
             if not state.task_plan.dynamic_schema and state.source_discovery_plan.dynamic_schema:
@@ -772,6 +779,8 @@ class SciDataAgent:
         state.processing_log.append(
             f"Source Discovery completed: domain={state.source_discovery_plan.domain}, "
             f"candidate_sources={discovered_count}, "
+            f"source_clusters={discovered_count}, "
+            f"duplicates_merged={raw_discovered_count - clustered_count}, "
             f"target_data_types={', '.join(state.source_discovery_plan.target_data_types)}."
         )
 
@@ -959,6 +968,14 @@ class SciDataAgent:
                 state.source_discovery_plan,
                 state.arxiv_search_plan,
             )
+            # The dedicated arXiv path predates the multi-source registry. Run
+            # the same source clustering pass here so arXiv records can merge
+            # with existing metadata or uploaded-source hints as well.
+            clustered_sources, _ = merge_sources(
+                [],
+                state.source_discovery_plan.candidate_sources,
+            )
+            state.source_discovery_plan.candidate_sources = clustered_sources
         discovered_count = len(state.source_discovery_plan.candidate_sources)
         allowed_source_ids = ingestible_arxiv_source_ids(state.source_triage_decisions) if state.source_triage_decisions else None
         if allowed_source_ids is not None and not allowed_source_ids:

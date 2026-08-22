@@ -15,6 +15,7 @@ from scidata_agent.tools.source_catalog import (
     source_catalog_rows,
     source_catalog_summary,
 )
+from scidata_agent.tools.connectors.registry import merge_sources
 
 
 def _state(tmp_path: Path, sources: list[DiscoveredSource], **kwargs) -> AgentState:
@@ -167,6 +168,44 @@ def test_catalog_rows_flatten_one_row_per_artifact(tmp_path: Path) -> None:
 
     assert len(rows) == len(catalog[0].artifacts)
     assert {row["artifact_type"] for row in rows} >= {"landing_page", "csv", "readme"}
+    csv_row = next(row for row in rows if row["artifact_type"] == "csv")
+    assert "artifact_provider" in csv_row
+    assert "artifact_name" in csv_row
+    assert "artifact_size_bytes" in csv_row
+
+
+def test_clustered_provider_manifests_become_one_provenance_rich_artifact(tmp_path: Path) -> None:
+    attachment_url = "https://data.example.org/results.csv"
+    first = DiscoveredSource(
+        title="Shared results",
+        source_type="paper_metadata",
+        url="https://doi.org/10.1234/shared-results",
+        metadata={
+            "provider": "crossref",
+            "doi": "10.1234/shared-results",
+            "files": [{"name": "results.csv", "download_url": attachment_url, "size": 128}],
+        },
+    )
+    second = DiscoveredSource(
+        title="Shared results",
+        source_type="paper_metadata",
+        url="https://openalex.org/W1",
+        metadata={
+            "provider": "openalex",
+            "doi": "10.1234/shared-results",
+            "files": [{"filename": "table.csv", "url": attachment_url, "size_bytes": 128}],
+        },
+    )
+    merged, _ = merge_sources([first], [second])
+    catalog = build_source_catalog(_state(tmp_path, merged))
+    artifacts = [artifact for artifact in catalog[0].artifacts if artifact.url == attachment_url]
+
+    assert len(merged) == 1
+    assert len(artifacts) == 1
+    assert artifacts[0].source_cluster_id == merged[0].source_cluster_id
+    assert artifacts[0].provider == "crossref"
+    assert artifacts[0].name == "results.csv"
+    assert artifacts[0].size_bytes == 128
 
 
 def test_refresh_catalog_updates_agent_state_and_reports_statuses(tmp_path: Path) -> None:

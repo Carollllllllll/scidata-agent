@@ -380,6 +380,7 @@ def _discovered_source_rows(state: AgentState) -> list[dict]:
         rows.append(
             {
                 "source_id": source.source_id,
+                "source_cluster_id": source.source_cluster_id,
                 "title": source.title,
                 "source_type": source.source_type,
                 "provider": metadata.get("provider"),
@@ -396,6 +397,10 @@ def _discovered_source_rows(state: AgentState) -> list[dict]:
                 "year": metadata.get("year") or metadata.get("publication_year"),
                 "authors": _plain(metadata.get("authors") or metadata.get("creators")),
                 "venue": metadata.get("venue"),
+                "providers": _plain(metadata.get("providers")),
+                "source_ids": _plain(metadata.get("source_ids")),
+                "alternate_urls": _plain(metadata.get("alternate_urls")),
+                "source_conflicts": json.dumps(metadata.get("source_conflicts", []), ensure_ascii=False),
                 "metadata": json.dumps(metadata, ensure_ascii=False),
             }
         )

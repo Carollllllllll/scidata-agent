@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import random
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -193,10 +195,110 @@ def pick_date(value: Any) -> str | None:
 
 
 def source_key(source: DiscoveredSource) -> str:
-    doi = str(source.metadata.get("doi") or source.metadata.get("DOI") or "").strip().lower()
+    """Return the strongest canonical identity key for a source."""
+    return source_identity_keys(source)[0]
+
+
+def source_identity_keys(source: DiscoveredSource) -> list[str]:
+    """Return stable identity keys used to cluster provider records.
+
+    Strong identifiers are kept alongside a conservative title/author/year
+    key. This lets a Crossref record with a DOI match an OpenAlex record whose
+    DOI is represented as a URL, while still retaining a deterministic fallback
+    for sources that expose no persistent identifier.
+    """
+    keys: list[str] = []
+    doi = normalize_doi(source.metadata.get("doi") or source.metadata.get("DOI"))
     if doi:
+        keys.append(f"doi:{doi}")
+
+    arxiv_id = extract_arxiv_id(
+        source.url
+        or source.metadata.get("arxiv_id")
+        or source.metadata.get("arxiv_url")
+        or ""
+    )
+    if arxiv_id:
+        keys.append(f"arxiv:{arxiv_id}")
+
+    record_id = source.metadata.get("record_id") or source.metadata.get("zenodo_id")
+    if record_id:
+        provider = str(source.metadata.get("provider") or source.source_type).strip().lower()
+        keys.append(f"record:{provider}:{str(record_id).strip().lower()}")
+
+    for candidate in (
+        source.url,
+        source.metadata.get("pdf_url"),
+        source.metadata.get("open_access_url"),
+    ):
+        normalized_url = normalize_source_url(candidate)
+        if normalized_url:
+            keys.append(f"url:{normalized_url}")
+
+    title_key = _title_author_year_key(source)
+    if title_key:
+        keys.append(f"title:{title_key}")
+    return list(dict.fromkeys(keys)) or [f"source:{source.source_id.lower()}"]
+
+
+def normalize_doi(value: Any) -> str | None:
+    if value in (None, ""):
+        return None
+    text = str(value).strip().lower()
+    text = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", text)
+    text = re.sub(r"^doi:\s*", "", text)
+    text = text.rstrip(".,;:)]}")
+    return text or None
+
+
+def extract_arxiv_id(value: Any) -> str | None:
+    text = str(value or "").strip().lower()
+    if not text:
+        return None
+    match = re.search(r"(?:arxiv[/:]|abs/|pdf/)?(\d{4}\.\d{4,5}(?:v\d+)?)", text)
+    return match.group(1) if match else None
+
+
+def normalize_source_url(value: Any) -> str | None:
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    doi = normalize_doi(text)
+    if text.lower().startswith(("doi:", "http://doi.org/", "https://doi.org/", "https://dx.doi.org/")) and doi:
         return f"doi:{doi}"
-    url = str(source.url or source.metadata.get("pdf_url") or source.metadata.get("open_access_url") or "").strip().lower()
-    if url:
-        return f"url:{url.rstrip('/')}"
-    return f"title:{source.title.strip().lower()}"
+    try:
+        parsed = urlsplit(text)
+    except ValueError:
+        return text.lower().rstrip("/") or None
+    if not parsed.netloc:
+        return text.lower().rstrip("/") or None
+    host = parsed.netloc.lower().removeprefix("www.")
+    path = re.sub(r"/{2,}", "/", parsed.path).rstrip("/")
+    arxiv_id = extract_arxiv_id(text) if "arxiv.org" in host else None
+    if arxiv_id:
+        return f"arxiv:{arxiv_id}"
+    return f"{host}{path}" or None
+
+
+def source_cluster_id(source: DiscoveredSource) -> str:
+    """Create a deterministic cluster id from the strongest source key."""
+    if source.source_cluster_id:
+        return source.source_cluster_id
+    digest = hashlib.sha1(source_key(source).encode("utf-8")).hexdigest()[:12]
+    return f"cluster_{digest}"
+
+
+def _title_author_year_key(source: DiscoveredSource) -> str:
+    title = re.sub(r"[^a-z0-9]+", " ", str(source.title or "").lower()).strip()
+    if not title or title.startswith("untitled "):
+        return ""
+    authors = source.metadata.get("authors") or source.metadata.get("creators") or []
+    first_author = ""
+    if isinstance(authors, list) and authors:
+        first_author = re.sub(r"[^a-z0-9]+", " ", str(authors[0]).lower()).strip()
+    elif authors:
+        first_author = re.sub(r"[^a-z0-9]+", " ", str(authors).lower()).strip()
+    year = source.metadata.get("publication_year") or source.metadata.get("year")
+    if not first_author and not year:
+        return title
+    return "|".join(part for part in (title, first_author, str(year or "")) if part)

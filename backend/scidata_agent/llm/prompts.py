@@ -232,7 +232,7 @@ Return JSON with this structure:
     {{
       "action_id": "action_001",
       "artifact_id": "artifact_id copied exactly from the catalog, or null for a global action",
-      "action": "read_metadata | parse_pdf_text | parse_pdf_sections | parse_table | parse_figure | parse_html | parse_csv | read_readme | read_file_manifest | search_more | validate_evidence | stop",
+      "action": "read_metadata | download_artifact | parse_pdf_text | parse_pdf_sections | parse_table | parse_figure | parse_html | parse_csv | read_readme | read_file_manifest | search_more | validate_evidence | stop",
       "purpose": "what evidence this action is intended to obtain",
       "expected_fields": ["field names from the dynamic extraction plan"],
       "priority": "high | medium | low",
@@ -249,11 +249,12 @@ Planning rules:
 3. Use parse_pdf_sections when section-aware reading is needed; use parse_pdf_text when plain text evidence is sufficient.
 4. Use parse_table for CSV/TSV/XLSX or a detected table artifact, parse_figure for image/chart evidence, parse_html for HTML, and read_readme/read_file_manifest for repositories and file listings.
 5. Use read_metadata before expensive parsing when the artifact has not been inspected and metadata can determine its value.
-6. Use search_more when important information needs or source types are missing; explain what is missing in purpose and reason.
-7. Use stop with no artifact_id when the available evidence is sufficient. A stop action should normally be accompanied by should_continue=false and stop_reason.
-8. Do not select an action merely because the artifact exists. Prefer actions that answer the user's question and preserve source evidence.
-9. Do not fabricate missing values. The executor will record failures and nulls explicitly.
-10. Return a small actionable set for this iteration; do not repeat an already completed action unless the reason explains why a retry is needed.
+6. Use download_artifact before parsing a remote artifact with no local_path. Do not download an artifact merely because it exists; select it for the research goal first.
+7. Use search_more when important information needs or source types are missing; explain what is missing in purpose and reason.
+8. Use stop with no artifact_id when the available evidence is sufficient. A stop action should normally be accompanied by should_continue=false and stop_reason.
+9. Do not select an action merely because the artifact exists. Prefer actions that answer the user's question and preserve source evidence.
+10. Do not fabricate missing values. The executor will record failures and nulls explicitly.
+11. Return a small actionable set for this iteration; do not repeat an already completed action unless the reason explains why a retry is needed.
 """
 
 

@@ -50,6 +50,9 @@ class TaskPlan(BaseModel):
 
 class DiscoveredSource(BaseModel):
     source_id: str = Field(default_factory=lambda: f"src_{uuid4().hex[:8]}")
+    # Stable identity for the real-world paper/dataset represented by one or
+    # more provider records. ``source_id`` remains the canonical provider row.
+    source_cluster_id: str | None = None
     title: str
     source_type: Literal[
         "paper",
@@ -82,6 +85,10 @@ class SourceArtifact(BaseModel):
 
     artifact_id: str = Field(default_factory=lambda: f"artifact_{uuid4().hex[:10]}")
     source_id: str
+    source_cluster_id: str | None = None
+    provider: str | None = None
+    name: str | None = None
+    size_bytes: int | None = None
     artifact_type: Literal[
         "landing_page",
         "pdf",
@@ -120,6 +127,7 @@ class SourceCatalogEntry(BaseModel):
     """Normalized source plus its artifacts and current execution state."""
 
     source_id: str
+    source_cluster_id: str | None = None
     title: str
     source_type: str = "unknown"
     provider: str | None = None
@@ -154,6 +162,7 @@ class ArtifactAction(BaseModel):
     artifact_id: str | None = None
     action: Literal[
         "read_metadata",
+        "download_artifact",
         "parse_pdf_text",
         "parse_pdf_sections",
         "parse_table",

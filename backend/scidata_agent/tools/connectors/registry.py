@@ -11,7 +11,11 @@ from typing import Any
 
 from scidata_agent.agent.schemas import DiscoveredSource, MultiSourceSearchPlan, SourceSearchRequest
 from scidata_agent.tools.connectors.arxiv import ArxivConnector
-from scidata_agent.tools.connectors.base import BaseConnector, source_key
+from scidata_agent.tools.connectors.base import (
+    BaseConnector,
+    source_cluster_id,
+    source_identity_keys,
+)
 from scidata_agent.tools.connectors.crossref import CrossrefConnector
 from scidata_agent.tools.connectors.figshare import FigshareConnector
 from scidata_agent.tools.connectors.github import GitHubConnector
@@ -157,7 +161,6 @@ def execute_multi_source_search(
 
     connectors = available_connectors()
     found: list[DiscoveredSource] = []
-    existing_keys: set[str] = set()
     connector_status: list[dict[str, Any]] = []
     failed = 0
     requests = list(plan.search_requests)
@@ -204,20 +207,14 @@ def execute_multi_source_search(
             connector_status.append(status_entry)
             continue
 
-        added = 0
         for source in sources:
-            key = source_key(source)
-            if key in existing_keys:
-                continue
             source.query = source.query or request.query
             source.reason = source.reason or request.purpose
             source.metadata.setdefault("provider", request.connector_name)
             source.metadata.setdefault("search_purpose", request.purpose)
             source.metadata.setdefault("must_have", request.must_have)
             source.metadata.setdefault("nice_to_have", request.nice_to_have)
-            found.append(source)
-            existing_keys.add(key)
-            added += 1
+        found, added = merge_sources(found, sources)
         connector_status.append({**status_entry, "added": added})
 
     searched = len(requests)
@@ -248,14 +245,110 @@ def merge_sources(
     existing: list[DiscoveredSource],
     new_sources: list[DiscoveredSource],
 ) -> tuple[list[DiscoveredSource], int]:
-    keys = {source_key(source) for source in existing}
     merged = list(existing)
+    key_index: dict[str, DiscoveredSource] = {}
+    for source in merged:
+        source.source_cluster_id = source_cluster_id(source)
+        for key in source_identity_keys(source):
+            key_index.setdefault(key, source)
+
     added = 0
     for source in new_sources:
-        key = source_key(source)
-        if key in keys:
+        match = next((key_index[key] for key in source_identity_keys(source) if key in key_index), None)
+        if match is not None:
+            _merge_source_records(match, source)
+            for key in source_identity_keys(source):
+                key_index.setdefault(key, match)
             continue
+        source.source_cluster_id = source_cluster_id(source)
         merged.append(source)
-        keys.add(key)
+        for key in source_identity_keys(source):
+            key_index.setdefault(key, source)
         added += 1
     return merged, added
+
+
+def _merge_source_records(target: DiscoveredSource, incoming: DiscoveredSource) -> None:
+    """Merge a provider record into the canonical source without losing provenance."""
+    target.source_cluster_id = target.source_cluster_id or source_cluster_id(target)
+    metadata = target.metadata
+    incoming_metadata = incoming.metadata or {}
+
+    source_records = metadata.get("source_records")
+    if not isinstance(source_records, list):
+        source_records = []
+        metadata["source_records"] = source_records
+    if not source_records:
+        source_records.append(_source_record_snapshot(target, target.source_cluster_id))
+    if not any(item.get("source_id") == incoming.source_id for item in source_records if isinstance(item, dict)):
+        source_records.append(_source_record_snapshot(incoming, target.source_cluster_id))
+
+    source_ids = metadata.get("source_ids")
+    if not isinstance(source_ids, list):
+        source_ids = [target.source_id]
+        metadata["source_ids"] = source_ids
+    if incoming.source_id not in source_ids:
+        source_ids.append(incoming.source_id)
+    providers = metadata.get("providers")
+    if not isinstance(providers, list):
+        providers = []
+        metadata["providers"] = providers
+    for provider in (metadata.get("provider"), incoming_metadata.get("provider")):
+        if provider and provider not in providers:
+            providers.append(provider)
+    alternate_urls = metadata.get("alternate_urls")
+    if not isinstance(alternate_urls, list):
+        alternate_urls = []
+        metadata["alternate_urls"] = alternate_urls
+    for url in (incoming.url, incoming_metadata.get("pdf_url"), incoming_metadata.get("open_access_url")):
+        if url and url != target.url and url not in alternate_urls:
+            alternate_urls.append(url)
+
+    conflicts = metadata.get("source_conflicts")
+    if not isinstance(conflicts, list):
+        conflicts = []
+        metadata["source_conflicts"] = conflicts
+    for field_name, incoming_value in incoming_metadata.items():
+        if field_name in {"provider", "source_records", "source_ids", "providers", "alternate_urls", "source_conflicts"}:
+            continue
+        current_value = metadata.get(field_name)
+        if current_value in (None, "", []):
+            metadata[field_name] = incoming_value
+        elif incoming_value not in (None, "", []) and _comparable_value(current_value) != _comparable_value(incoming_value):
+            conflict = {
+                "field": field_name,
+                "values": [current_value, incoming_value],
+                "source_ids": [target.source_id, incoming.source_id],
+            }
+            if conflict not in conflicts:
+                conflicts.append(conflict)
+
+    if incoming.description and not target.description:
+        target.description = incoming.description
+    if incoming.reason and incoming.reason not in (target.reason or ""):
+        target.reason = " ".join(part for part in (target.reason, incoming.reason) if part)
+    target.confidence = max(target.confidence, incoming.confidence)
+
+
+def _comparable_value(value: Any) -> str:
+    if isinstance(value, list):
+        return "|".join(sorted(_comparable_value(item) for item in value))
+    if isinstance(value, dict):
+        return json.dumps(value, sort_keys=True, ensure_ascii=True)
+    return " ".join(str(value).split()).strip().lower()
+
+
+def _source_record_snapshot(source: DiscoveredSource, cluster_id: str) -> dict[str, Any]:
+    return {
+        "source_id": source.source_id,
+        "source_cluster_id": cluster_id,
+        "provider": source.metadata.get("provider"),
+        "source_type": source.source_type,
+        "title": source.title,
+        "url": source.url,
+        "metadata": {
+            key: value
+            for key, value in (source.metadata or {}).items()
+            if key not in {"source_records", "source_ids", "providers", "alternate_urls", "source_conflicts"}
+        },
+    }

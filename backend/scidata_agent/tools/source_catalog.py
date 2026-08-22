@@ -49,6 +49,7 @@ def build_source_catalog(state: AgentState) -> list[SourceCatalogEntry]:
 
     catalog: list[SourceCatalogEntry] = []
     for source in sources:
+        artifact_metadata = _combined_source_metadata(source.metadata)
         selection = selections.get(source.source_id)
         triage_decision = triage.get(source.source_id)
         source_insights = insights_by_source.get(source.source_id, [])
@@ -58,12 +59,15 @@ def build_source_catalog(state: AgentState) -> list[SourceCatalogEntry]:
             triage_action=triage_decision.recommended_action if triage_decision else None,
             insights=source_insights,
             parsed_paths=parsed_paths,
+            metadata=artifact_metadata,
         )
         artifacts = _build_artifacts(
             source_id=source.source_id,
+            source_cluster_id=source.source_cluster_id,
+            provider=(triage_decision.provider if triage_decision else None) or source.metadata.get("provider"),
             source_type=source.source_type,
             source_url=source.url,
-            metadata=source.metadata,
+            metadata=artifact_metadata,
             source_status=status,
             source_insights=source_insights,
             parsed_paths=parsed_paths,
@@ -77,6 +81,7 @@ def build_source_catalog(state: AgentState) -> list[SourceCatalogEntry]:
         catalog.append(
             SourceCatalogEntry(
                 source_id=source.source_id,
+                source_cluster_id=source.source_cluster_id,
                 title=source.title,
                 source_type=source.source_type,
                 provider=(
@@ -135,6 +140,7 @@ def build_source_catalog(state: AgentState) -> list[SourceCatalogEntry]:
         catalog.append(
             SourceCatalogEntry(
                 source_id=uploaded_file.file_id,
+                source_cluster_id=None,
                 title=uploaded_file.filename,
                 source_type="uploaded_file",
                 provider="local_upload",
@@ -184,6 +190,7 @@ def source_catalog_rows(catalog: list[SourceCatalogEntry]) -> list[dict[str, Any
             rows.append(
                 {
                     "source_id": entry.source_id,
+                    "source_cluster_id": entry.source_cluster_id,
                     "title": entry.title,
                     "source_type": entry.source_type,
                     "provider": entry.provider,
@@ -196,6 +203,10 @@ def source_catalog_rows(catalog: list[SourceCatalogEntry]) -> list[dict[str, Any
                     "source_failure_reason": entry.failure_reason,
                     "artifact_id": artifact.artifact_id if artifact else None,
                     "artifact_type": artifact.artifact_type if artifact else None,
+                    "artifact_source_cluster_id": artifact.source_cluster_id if artifact else None,
+                    "artifact_provider": artifact.provider if artifact else None,
+                    "artifact_name": artifact.name if artifact else None,
+                    "artifact_size_bytes": artifact.size_bytes if artifact else None,
                     "artifact_url": artifact.url if artifact else None,
                     "local_path": artifact.local_path if artifact else None,
                     "content_type": artifact.content_type if artifact else None,
@@ -214,6 +225,7 @@ def _source_status(
     triage_action: str | None,
     insights: list[SourceInsight],
     parsed_paths: set[str],
+    metadata: dict[str, Any],
 ) -> tuple[str, str | None]:
     if selection_action in {"reject"} or triage_action == "skip":
         return "skipped", None
@@ -223,7 +235,7 @@ def _source_status(
         for insight in insights
     ):
         return "failed", failures[-1]
-    local_paths = _metadata_paths(source.metadata)
+    local_paths = _metadata_paths(metadata)
     if any(_normalise_path(path) in parsed_paths for path in local_paths):
         return "parsed", None
     if local_paths:
@@ -238,6 +250,8 @@ def _source_status(
 def _build_artifacts(
     *,
     source_id: str,
+    source_cluster_id: str | None,
+    provider: str | None,
     source_type: str,
     source_url: str | None,
     metadata: dict[str, Any],
@@ -250,6 +264,14 @@ def _build_artifacts(
     seen: set[tuple[str, str | None, str | None]] = set()
 
     def add(artifact: SourceArtifact) -> None:
+        artifact.source_cluster_id = source_cluster_id
+        artifact.provider = artifact.provider or provider
+        artifact.name = artifact.name or _artifact_name_from_value(artifact.local_path or artifact.url)
+        if artifact.size_bytes is None and artifact.local_path:
+            try:
+                artifact.size_bytes = Path(artifact.local_path).stat().st_size
+            except (OSError, ValueError):
+                pass
         artifact.artifact_id = _stable_artifact_id(
             artifact.source_id,
             artifact.artifact_type,
@@ -275,12 +297,25 @@ def _build_artifacts(
 
     pdf_url = _first_text(metadata.get("pdf_url"))
     open_access_url = _first_text(metadata.get("open_access_url"))
-    if pdf_url or open_access_url:
-        url = pdf_url or open_access_url
+    for url in _unique_texts(
+        [
+            pdf_url,
+            open_access_url,
+            *(_as_text_list(metadata.get("pdf_urls"))),
+            *(_as_text_list(metadata.get("open_access_urls"))),
+        ]
+    ):
         local_path = _match_local_path(url, metadata, known_files)
+        artifact_provider = (
+            metadata.get("artifact_providers", {}).get(url)
+            if isinstance(metadata.get("artifact_providers"), dict)
+            else None
+        ) or provider
         add(
             _artifact_for_path(
                 source_id=source_id,
+                source_cluster_id=source_cluster_id,
+                provider=artifact_provider,
                 url=url,
                 local_path=local_path,
                 source_type=source_type,
@@ -301,6 +336,8 @@ def _build_artifacts(
         add(
             _artifact_for_path(
                 source_id=source_id,
+                source_cluster_id=source_cluster_id,
+                provider=provider,
                 url=None,
                 local_path=path,
                 source_type=source_type,
@@ -319,6 +356,10 @@ def _build_artifacts(
                 add(
                     SourceArtifact(
                         source_id=source_id,
+                        source_cluster_id=source_cluster_id,
+                        provider=_first_text(item.get("provider")) or provider,
+                        name=name,
+                        size_bytes=_item_size_bytes(item),
                         artifact_type=_artifact_type(name or url, source_type),
                         url=url,
                         status="skipped" if source_status == "skipped" else "planned",
@@ -329,6 +370,9 @@ def _build_artifacts(
                 add(
                     SourceArtifact(
                         source_id=source_id,
+                        source_cluster_id=source_cluster_id,
+                        provider=provider,
+                        name=str(item),
                         artifact_type=_artifact_type(str(item), source_type),
                         url=str(item) if str(item).startswith(("http://", "https://")) else None,
                         status="skipped" if source_status == "skipped" else "planned",
@@ -383,6 +427,8 @@ def _build_artifacts(
 def _artifact_for_path(
     *,
     source_id: str,
+    source_cluster_id: str | None,
+    provider: str | None,
     url: str | None,
     local_path: str | None,
     source_type: str,
@@ -401,6 +447,9 @@ def _artifact_for_path(
         status = "discovered"
     return SourceArtifact(
         source_id=source_id,
+        source_cluster_id=source_cluster_id,
+        provider=provider,
+        name=_artifact_name_from_value(local_path or url),
         artifact_type=_artifact_type(local_path or url, source_type),
         url=url,
         local_path=local_path,
@@ -420,7 +469,100 @@ def _metadata_paths(metadata: dict[str, Any]) -> list[str]:
     return paths
 
 
+def _combined_source_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    """Flatten canonical and provider-record metadata for artifact discovery."""
+    views: list[dict[str, Any]] = [metadata]
+    for record in metadata.get("source_records", []) if isinstance(metadata.get("source_records"), list) else []:
+        if not isinstance(record, dict):
+            continue
+        record_metadata = record.get("metadata")
+        if isinstance(record_metadata, dict):
+            views.append({**record_metadata, "provider": record.get("provider") or record_metadata.get("provider")})
+
+    combined: dict[str, Any] = {}
+    files: list[Any] = []
+    downloaded_paths: list[str] = []
+    pdf_urls: list[str] = []
+    open_access_urls: list[str] = []
+    artifact_providers: dict[str, str] = {}
+    for view in views:
+        for key, value in view.items():
+            if key in {"files", "downloaded_paths"}:
+                continue
+            if value not in (None, "", []):
+                combined.setdefault(key, value)
+        view_provider = view.get("provider")
+        for value in view.get("files", []):
+            if value in (None, ""):
+                continue
+            if isinstance(value, dict) and view_provider and not value.get("provider"):
+                files.append({**value, "provider": view_provider})
+            else:
+                files.append(value)
+        paths = view.get("downloaded_paths", [])
+        if isinstance(paths, list):
+            downloaded_paths.extend(str(path) for path in paths if path)
+        elif paths:
+            downloaded_paths.append(str(paths))
+        if view.get("downloaded_path"):
+            downloaded_paths.append(str(view["downloaded_path"]))
+        view_provider = _first_text(view.get("provider"))
+        for key, destination in (("pdf_url", pdf_urls), ("open_access_url", open_access_urls)):
+            for url in _as_text_list(view.get(key)):
+                destination.append(url)
+                if view_provider:
+                    artifact_providers.setdefault(url, view_provider)
+        for key, destination in (("pdf_urls", pdf_urls), ("open_access_urls", open_access_urls)):
+            for url in _as_text_list(view.get(key)):
+                destination.append(url)
+                if view_provider:
+                    artifact_providers.setdefault(url, view_provider)
+
+    combined["files"] = _unique_file_items(files)
+    combined["downloaded_paths"] = list(dict.fromkeys(downloaded_paths))
+    combined["pdf_urls"] = list(dict.fromkeys(pdf_urls))
+    combined["open_access_urls"] = list(dict.fromkeys(open_access_urls))
+    combined["artifact_providers"] = artifact_providers
+    if combined["downloaded_paths"]:
+        combined["downloaded_path"] = combined["downloaded_paths"][0]
+    return combined
+
+
+def _unique_file_items(items: list[Any]) -> list[Any]:
+    unique: list[Any] = []
+    seen: set[str] = set()
+    for item in items:
+        if isinstance(item, dict):
+            url = str(item.get("download_url") or item.get("url") or "").strip().lower()
+            identity = url or "|".join(
+                str(item.get(key) or "").strip().lower()
+                for key in ("name", "filename", "key")
+            )
+        else:
+            identity = str(item).strip().lower()
+        if not identity or identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(item)
+    return unique
+
+
+def _as_text_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value if item not in (None, "")]
+    return [str(value)] if value not in (None, "") else []
+
+
+def _unique_texts(values: list[str | None]) -> list[str]:
+    return list(dict.fromkeys(value for value in values if value))
+
+
 def _match_local_path(url: str | None, metadata: dict[str, Any], known_files: list[Path]) -> str | None:
+    downloaded_artifacts = metadata.get("downloaded_artifacts")
+    if url and isinstance(downloaded_artifacts, dict):
+        mapped = downloaded_artifacts.get(url)
+        if mapped:
+            return str(mapped)
     paths = _metadata_paths(metadata)
     if paths:
         return paths[0]
@@ -436,11 +578,14 @@ def _match_local_path(url: str | None, metadata: dict[str, Any], known_files: li
 def _artifact_type(value: str | None, source_type: str) -> str:
     suffix = Path(urlparse(value).path if value and "://" in value else value or "").suffix.lower()
     if suffix == ".pdf":
-        return "supplementary_pdf" if source_type == "supplementary_material" else "pdf"
+        lowered = str(value or "").lower()
+        return "supplementary_pdf" if source_type == "supplementary_material" or any(token in lowered for token in ("supplement", "supp_", "appendix")) else "pdf"
     if suffix in {".csv", ".tsv", ".xlsx", ".xls", ".json", ".xml"}:
         return suffix.lstrip(".")
     if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
         return "image"
+    if suffix in {".zip", ".tar", ".gz", ".tgz"}:
+        return "code_archive" if source_type == "repository" else "unknown"
     if value and "readme" in value.lower():
         return "readme"
     if source_type == "repository":
@@ -452,6 +597,15 @@ def _artifact_type(value: str | None, source_type: str) -> str:
 
 def _normalise_path(value: str | Path) -> str:
     return str(Path(value).expanduser().resolve()).casefold()
+
+
+def _artifact_name_from_value(value: str | Path | None) -> str | None:
+    if not value:
+        return None
+    raw_value = str(value)
+    if "://" in raw_value:
+        raw_value = urlparse(raw_value).path
+    return Path(raw_value).name or None
 
 
 def _first_text(value: Any) -> str | None:
@@ -490,3 +644,14 @@ def _stable_artifact_id(
     )
     digest = hashlib.sha1(identity.encode("utf-8")).hexdigest()[:12]
     return f"artifact_{digest}"
+
+
+def _item_size_bytes(item: dict[str, Any]) -> int | None:
+    for key in ("size_bytes", "size", "filesize", "file_size"):
+        value = item.get(key)
+        try:
+            if value not in (None, ""):
+                return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
