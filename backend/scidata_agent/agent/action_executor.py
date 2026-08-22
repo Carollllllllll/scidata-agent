@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import inspect
 import json
 import re
 from pathlib import Path
@@ -133,10 +134,20 @@ class ArtifactActionExecutor:
                 state.source_discovery_plan,
             )
             state.multi_source_search_plan = plan
-            found, status = execute_multi_source_search(
-                plan,
-                cache_dir=state.output_dir / "_cache" / "source_search",
-            )
+            search_kwargs: dict[str, Any] = {}
+            try:
+                parameters = inspect.signature(execute_multi_source_search).parameters
+                accepts_kwargs = any(
+                    parameter.kind is inspect.Parameter.VAR_KEYWORD
+                    for parameter in parameters.values()
+                )
+                if "cache_dir" in parameters or accepts_kwargs:
+                    search_kwargs["cache_dir"] = state.output_dir / "_cache" / "source_search"
+            except (TypeError, ValueError):
+                # Some test doubles or extension callables do not expose a signature.
+                # Keep the legacy one-argument call in that case.
+                pass
+            found, status = execute_multi_source_search(plan, **search_kwargs)
             merged, added = merge_sources(
                 state.source_discovery_plan.candidate_sources,
                 found,
