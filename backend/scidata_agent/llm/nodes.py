@@ -1163,6 +1163,11 @@ def _normalize_source_selection_decisions(payload: dict[str, Any]) -> None:
         "repo": "code_repository",
         "code": "code_repository",
         "metadata": "metadata_reference",
+        "image": "image",
+        "figure": "image",
+        "figures": "image",
+        "chart": "image",
+        "charts": "image",
         "irrelevant": "noise",
     }
     repaired = 0

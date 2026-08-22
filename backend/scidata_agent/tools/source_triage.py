@@ -374,6 +374,7 @@ def _selection_sort_key(selection: SourceSelectionDecision, source: DiscoveredSo
         "primary_paper": 0.3,
         "dataset": 0.2,
         "supplementary_material": 0.15,
+        "image": 0.15,
         "supporting_paper": 0.1,
         "metadata_reference": 0.0,
         "code_repository": 0.0,

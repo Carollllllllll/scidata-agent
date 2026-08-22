@@ -170,7 +170,7 @@ Return JSON:
       "source_id": "source_id copied exactly from candidate source summaries",
       "decision": "deep_read | metadata_only | read_readme | read_file_manifest | download_small_table | download_small_supplement | reject | ask_user",
       "priority": "high | medium | low",
-      "source_role": "primary_paper | supporting_paper | dataset | supplementary_material | code_repository | metadata_reference | noise | unknown",
+      "source_role": "primary_paper | supporting_paper | dataset | supplementary_material | code_repository | metadata_reference | image | noise | unknown",
       "priority_score": 0.0,
       "reason": "why this source should be handled this way",
       "matched_requirements": ["user requirement or extraction need matched by this source"],

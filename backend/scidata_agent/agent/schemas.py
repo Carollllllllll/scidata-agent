@@ -354,6 +354,7 @@ class SourceSelectionDecision(BaseModel):
         "supplementary_material",
         "code_repository",
         "metadata_reference",
+        "image",
         "noise",
         "unknown",
     ] = "unknown"
