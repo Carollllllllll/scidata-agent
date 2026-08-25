@@ -139,6 +139,9 @@ def ingest_triaged_sources(
         if source is None or decision.recommended_action == "skip":
             continue
 
+        source.metadata["ingestion_attempts"] = int(source.metadata.get("ingestion_attempts") or 0) + 1
+        source.metadata["last_ingestion_status"] = "started"
+
         metadata_insight = _metadata_insight(source, decision)
         insights.append(metadata_insight)
         text_blocks.extend(_insight_to_text_blocks(metadata_insight))
@@ -148,12 +151,14 @@ def ingest_triaged_sources(
             insights.append(readme_insight)
             text_blocks.extend(_insight_to_text_blocks(readme_insight))
             logs.append(readme_log)
+            source.metadata["last_ingestion_status"] = "completed"
             continue
 
         if decision.recommended_action == "read_file_manifest":
             manifest_insight = _file_manifest_insight(source, decision)
             insights.append(manifest_insight)
             text_blocks.extend(_insight_to_text_blocks(manifest_insight))
+            source.metadata["last_ingestion_status"] = "completed"
             continue
 
         if decision.recommended_action in {"download_pdf", "download_small_table", "download_small_supplement"}:
@@ -162,6 +167,8 @@ def ingest_triaged_sources(
                 continue
             file_url = _download_url_for_decision(source, decision)
             if not file_url:
+                source.metadata["last_ingestion_status"] = "failed"
+                source.metadata["last_ingestion_error"] = "No downloadable URL was available."
                 error = _error_insight(source, decision, "No downloadable URL was available for this triage action.")
                 insights.append(error)
                 text_blocks.extend(_insight_to_text_blocks(error))
@@ -172,11 +179,15 @@ def ingest_triaged_sources(
             try:
                 downloader(file_url, target_path, max_bytes)
             except Exception as exc:
+                source.metadata["last_ingestion_status"] = "failed"
+                source.metadata["last_ingestion_error"] = str(exc)
                 error = _error_insight(source, decision, f"Download failed: {exc}")
                 insights.append(error)
                 text_blocks.extend(_insight_to_text_blocks(error))
                 logs.append(f"Download failed: source='{source.title}', url='{file_url}', error={exc}")
                 continue
+
+            source.metadata["last_ingestion_status"] = "completed"
 
             source.metadata.setdefault("downloaded_paths", []).append(str(target_path))
             source.metadata["downloaded_path"] = str(target_path)

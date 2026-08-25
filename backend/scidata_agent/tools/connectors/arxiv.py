@@ -124,7 +124,10 @@ def _download_one_arxiv_source(
     reuse_dirs: list[Path],
 ) -> tuple[Path | None, dict[str, Any]]:
     pdf_url = source.metadata.get("pdf_url")
+    source.metadata["ingestion_attempts"] = int(source.metadata.get("ingestion_attempts") or 0)
     if not isinstance(pdf_url, str) or not pdf_url:
+        source.metadata["last_ingestion_status"] = "failed"
+        source.metadata["last_ingestion_error"] = "No pdf_url was available."
         return None, {
             "status": "skipped",
             "title": source.title,
@@ -146,6 +149,8 @@ def _download_one_arxiv_source(
             _remove_quietly(target_path)
 
     if _is_valid_pdf(target_path):
+        source.metadata["last_ingestion_status"] = "completed"
+        source.metadata["last_ingestion_error"] = None
         note = copy_note or f"arXiv PDF reused: title='{source.title}', file='{target_path.name}'."
         _notify(progress_callback, "reused", {"index": index, "total": total, "title": source.title, "path": str(target_path)})
         return target_path, {"status": "reused", "title": source.title, "note": note}
@@ -153,6 +158,8 @@ def _download_one_arxiv_source(
     if target_path.exists():
         _remove_quietly(target_path)
     _notify(progress_callback, "started", {"index": index, "total": total, "title": source.title, "path": str(target_path)})
+    source.metadata["ingestion_attempts"] += 1
+    source.metadata["last_ingestion_status"] = "started"
     try:
         _download_with_retry(
             pdf_url,
@@ -164,10 +171,15 @@ def _download_one_arxiv_source(
             progress_callback=progress_callback,
         )
     except Exception as exc:
+        source.metadata["last_ingestion_status"] = "failed"
+        source.metadata["last_ingestion_error"] = str(exc)
         note = f"arXiv PDF download failed for '{source.title}' after {retries + 1} attempt(s): {exc}"
         _notify(progress_callback, "failed", {"index": index, "total": total, "title": source.title, "error": str(exc)})
         return None, {"status": "failed", "title": source.title, "note": note}
 
+    source.metadata["last_ingestion_status"] = "completed"
+    source.metadata["last_ingestion_error"] = None
+    source.metadata["downloaded_path"] = str(target_path)
     note = f"arXiv PDF downloaded: title='{source.title}', file='{target_path.name}'."
     _notify(progress_callback, "completed", {"index": index, "total": total, "title": source.title, "path": str(target_path)})
     return target_path, {"status": "completed", "title": source.title, "note": note}

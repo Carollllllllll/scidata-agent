@@ -17,14 +17,75 @@ import type {
   AgentResult,
   ChartExtraction,
   ChartValidation,
+  CrossModalCheck,
+  CoverageReport,
   DynamicFieldSpec,
   DynamicRecord,
   EvidenceRecord,
+  EvidenceTrace,
   FigureAsset,
   SourceCatalogEntry,
   ReviewDecision,
+  ReviewQueueItem,
   TaskResponse,
 } from "../../../types/api";
+
+export function ReviewQueuePanel({
+  task,
+  onSelectRecord,
+}: {
+  task: TaskResponse;
+  onSelectRecord: (record: EvidenceRecord) => void;
+}) {
+  const queryClient = useQueryClient();
+  const items = task.result?.review_queue ?? [];
+  const records = [...(task.result?.dynamic_records ?? []), ...(task.result?.records ?? [])];
+  const mutation = useMutation({
+    mutationFn: ({ item, decision }: { item: ReviewQueueItem; decision: ReviewDecision["decision"] }) =>
+      submitReview(task.task_id, item.review_id, decision),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["task", task.task_id] });
+    },
+  });
+
+  return (
+    <section className="panel-card standalone-review-queue">
+      <div className="panel-heading">
+        <div><span className="eyebrow dark">HUMAN REVIEW</span><h2>主动复核队列</h2><p>每一项都指向已有审计证据；人工结论不会覆盖原始抽取值。</p></div>
+        <QualityBadge tone={items.length ? "warning" : "success"}>{items.length}</QualityBadge>
+      </div>
+      {items.length === 0 ? (
+        <EmptyState icon="check" title="当前没有待复核风险" text="自动审计未生成需要人工确认的队列项。" success />
+      ) : (
+        <div className="review-queue-grid">
+          {items.map((item) => {
+            const decision = task.review_decisions?.[item.review_id] ?? (item.record_id ? task.review_decisions?.[item.record_id] : undefined);
+            const record = item.record_id ? records.find((candidate) => candidate.record_id === item.record_id) : undefined;
+            return (
+              <article className="review-queue-item" key={item.review_id}>
+                <div className="review-queue-item-head">
+                  <QualityBadge tone={item.priority === "high" ? "danger" : item.priority === "medium" ? "warning" : "info"}>{item.priority}</QualityBadge>
+                  <span>{item.risk_type}</span>
+                  {decision && <strong>{reviewDecisionLabel(decision.decision)}</strong>}
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.reason}</p>
+                <small>{item.source_file ?? item.subject_type}{item.page ? ` · page ${item.page}` : ""}</small>
+                <div className="review-queue-actions">
+                  {record && <button type="button" onClick={() => onSelectRecord(record)}>查看证据</button>}
+                  <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ item, decision: "approved" })}>通过</button>
+                  <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ item, decision: "needs_changes" })}>需修改</button>
+                  <button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate({ item, decision: "rejected" })}>拒绝</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+      {mutation.isError && <p className="form-error">复核提交失败，请检查任务状态后重试。</p>}
+    </section>
+  );
+}
 
 export function OverviewPanel({
   task,
@@ -318,7 +379,7 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
   );
 }
 
-function SourceDetail({ source, records, onSelectRecord }: { source: SourceCatalogEntry; records: DynamicRecord[]; onSelectRecord: (record: EvidenceRecord) => void }) {
+export function SourceDetail({ source, records, onSelectRecord }: { source: SourceCatalogEntry; records: DynamicRecord[]; onSelectRecord: (record: EvidenceRecord) => void }) {
   return (
     <>
       <div className="source-detail-head"><span className="section-icon"><Icon name="document" size={19} /></span><QualityBadge tone={sourceTone(source.status)}>{sourceStatusLabel(source.status)}</QualityBadge></div>
@@ -327,7 +388,7 @@ function SourceDetail({ source, records, onSelectRecord }: { source: SourceCatal
       {source.url && <a href={source.url} target="_blank" rel="noreferrer" className="source-link"><Icon name="external" size={15} />打开原始来源</a>}
       <div className="detail-block"><small>选择理由</small><p>{source.reason || "未提供选择理由。"}</p></div>
       {source.failure_reason && <div className="detail-warning"><Icon name="warning" size={16} /><span><strong>处理失败</strong><p>{source.failure_reason}</p></span></div>}
-      <div className="detail-block"><small>关联资料</small>{(source.artifacts?.length ?? 0) === 0 ? <p>没有可读取的 Artifact。</p> : <div className="artifact-list">{source.artifacts?.map((artifact) => <article key={artifact.artifact_id}><span><Icon name="file" size={15} /></span><div><strong>{artifact.artifact_type || "artifact"}</strong><small>{sourceStatusLabel(artifact.status)}</small></div>{artifact.asset_url ? <ApiAssetLink path={artifact.asset_url} ariaLabel="打开关联资料"><Icon name="external" size={14} /></ApiAssetLink> : artifact.url ? <a href={artifact.url} target="_blank" rel="noreferrer"><Icon name="external" size={14} /></a> : null}</article>)}</div>}</div>
+      <div className="detail-block"><small>关联资料</small>{(source.artifacts?.length ?? 0) === 0 ? <p>没有可读取的 Artifact。</p> : <div className="artifact-list">{source.artifacts?.map((artifact) => <article key={artifact.artifact_id}><span><Icon name="file" size={15} /></span><div><strong>{artifact.name || artifact.artifact_type || "artifact"}</strong><small>{sourceStatusLabel(artifact.status)}{artifact.relevance_score != null ? ` · 相关性 ${artifact.relevance_score.toFixed(1)}/4` : ""}</small>{artifact.evidence_types?.length ? <small>{artifact.evidence_types.join(" · ")}</small> : null}{artifact.relevance_reason ? <p className="artifact-reason">{artifact.relevance_reason}</p> : null}</div>{artifact.asset_url ? <ApiAssetLink path={artifact.asset_url} ariaLabel="打开关联资料"><Icon name="external" size={14} /></ApiAssetLink> : artifact.url ? <a href={artifact.url} target="_blank" rel="noreferrer"><Icon name="external" size={14} /></a> : null}</article>)}</div>}</div>
       <div className="detail-block"><small>关联记录</small>{records.length === 0 ? <p>当前没有可反向关联的结构化记录。</p> : <div className="source-record-links">{records.slice(0, 8).map((record) => <button type="button" key={record.record_id} onClick={() => onSelectRecord(record)}><span>{recordFieldSummary(record)}</span><small>{record.page ? `第 ${record.page} 页` : record.source_file}</small><Icon name="chevron" size={14} /></button>)}</div>}</div>
     </>
   );
@@ -337,22 +398,86 @@ export function ChartsPanel({ result }: { result?: AgentResult | null }) {
   const figures = result?.figures ?? [];
   const extractionByFigure = useMemo(() => new Map((result?.chart_extractions ?? []).map((item) => [item.figure_id, item])), [result?.chart_extractions]);
   const validationByFigure = useMemo(() => new Map((result?.chart_validations ?? []).map((item) => [item.figure_id, item])), [result?.chart_validations]);
+  const crossModalBySubject = useMemo(() => new Map((result?.cross_modal_checks ?? []).map((item) => [item.subject_id, item])), [result?.cross_modal_checks]);
 
   if (!result) return <PanelEmptyState title="图表结果尚未生成" text="任务解析 PDF 图像后，图表和校验信息会出现在这里。" />;
   return (
     <section className="panel-card charts-panel">
-      <div className="panel-heading wide"><div><span className="eyebrow dark">FIGURE INTELLIGENCE</span><h2>图表与图像解析</h2><p>近似读数会明确标记，无法确认的数字不会作为确定值展示。</p></div><div className="source-summary"><span><strong>{figures.length}</strong><small>检测图像</small></span><span><strong>{result.chart_extractions?.length ?? 0}</strong><small>结构化图表</small></span><span><strong>{result.chart_validations?.filter((item) => item.needs_review).length ?? 0}</strong><small>需要复核</small></span></div></div>
-      {figures.length === 0 ? <EmptyState icon="chart" title="没有检测到可展示图表" text="这可能表示资料没有图表、图表分支未运行，或检测结果为空。" /> : <div className="figure-grid">{figures.map((figure) => <FigureCard key={figure.figure_id} figure={figure} extraction={extractionByFigure.get(figure.figure_id)} validation={validationByFigure.get(figure.figure_id)} />)}</div>}
+      <div className="panel-heading wide"><div><span className="eyebrow dark">FIGURE INTELLIGENCE</span><h2>图表与图像解析</h2><p>近似读数会明确标记，无法确认的数字不会作为确定值展示。</p></div><div className="source-summary"><span><strong>{figures.length}</strong><small>检测图像</small></span><span><strong>{result.chart_extractions?.length ?? 0}</strong><small>结构化图表</small></span><span><strong>{result.chart_validations?.filter((item) => item.needs_review).length ?? 0}</strong><small>需要复核</small></span><span><strong>{result.cross_modal_checks?.filter((item) => item.status === "supported").length ?? 0}</strong><small>证据互证</small></span></div></div>
+      {figures.length === 0 ? <EmptyState icon="chart" title="没有检测到可展示图表" text="这可能表示资料没有图表、图表分支未运行，或检测结果为空。" /> : <div className="figure-grid">{figures.map((figure) => <FigureCard key={figure.figure_id} figure={figure} extraction={extractionByFigure.get(figure.figure_id)} validation={validationByFigure.get(figure.figure_id)} crossModalCheck={crossModalBySubject.get(figure.figure_id)} />)}</div>}
     </section>
   );
 }
 
-function FigureCard({ figure, extraction, validation }: { figure: FigureAsset; extraction?: ChartExtraction; validation?: ChartValidation }) {
+export function EvidencePanel({
+  result,
+  onSelectRecord,
+}: {
+  result?: AgentResult | null;
+  onSelectRecord: (record: EvidenceRecord) => void;
+}) {
+  const traces = result?.evidence_traces ?? [];
+  const records = useMemo(() => new Map([
+    ...(result?.records ?? []),
+    ...(result?.dynamic_records ?? []),
+  ].map((record) => [record.record_id, record] as const)), [result]);
+  const [status, setStatus] = useState("all");
+  const filtered = status === "all" ? traces : traces.filter((trace) => trace.locator_status === status);
+
+  if (!result) return <PanelEmptyState title="Evidence is not ready" text="Evidence traces will appear after records are extracted." />;
+  return (
+    <section className="panel-card evidence-panel">
+      <div className="panel-heading wide">
+        <div><span className="eyebrow dark">EVIDENCE TRACE</span><h2>Record-to-source evidence</h2><p>Every extracted record is linked to the strongest location currently known.</p></div>
+        <div className="source-summary"><span><strong>{traces.length}</strong><small>traces</small></span><span><strong>{traces.filter((trace) => trace.locator_status === "resolved").length}</strong><small>resolved</small></span><span><strong>{traces.filter((trace) => trace.locator_status !== "resolved").length}</strong><small>review</small></span></div>
+      </div>
+      <div className="table-controls evidence-controls">
+        <select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">All locator states</option><option value="resolved">Resolved</option><option value="partial">Partial</option><option value="unresolved">Unresolved</option></select>
+        <span className="result-count">{filtered.length} traces</span>
+      </div>
+      {filtered.length === 0 ? <EmptyState icon="link" title="No evidence traces" text="The result has no extracted records with traceable evidence yet." /> : (
+        <div className="evidence-trace-list">
+          {filtered.map((trace) => <EvidenceTraceCard key={trace.evidence_id} trace={trace} record={records.get(trace.record_id)} onSelectRecord={onSelectRecord} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function EvidenceTraceCard({
+  trace,
+  record,
+  onSelectRecord,
+}: {
+  trace: EvidenceTrace;
+  record?: EvidenceRecord;
+  onSelectRecord: (record: EvidenceRecord) => void;
+}) {
+  return (
+    <article className="evidence-trace-card">
+      <div className="evidence-trace-top"><div><QualityBadge tone={traceTone(trace.locator_status)}>{trace.locator_status}</QualityBadge><span className="evidence-kind">{trace.evidence_type}</span></div><Confidence value={trace.confidence} /></div>
+      <div className="evidence-trace-body">
+        <div className="evidence-trace-record"><small>RECORD</small><strong>{record ? recordTitle(record) : trace.record_id}</strong></div>
+        <div className="evidence-trace-grid">
+          <span><small>Source</small><strong>{trace.source_title || trace.source_file}</strong></span>
+          <span><small>Location</small><strong>{trace.page ? `Page ${trace.page}` : "Page unknown"}{trace.section_title ? ` / ${trace.section_title}` : ""}</strong></span>
+          <span><small>Artifact</small><strong>{trace.table_id || trace.figure_id || trace.artifact_id || "Not resolved"}</strong></span>
+          <span><small>Method</small><strong>{trace.extraction_method || "Not recorded"}</strong></span>
+        </div>
+        {trace.evidence_text && <blockquote>{trace.evidence_text}</blockquote>}
+        {trace.notes.length > 0 && <div className="evidence-trace-notes">{trace.notes.slice(0, 2).map((note) => <span key={note}><Icon name="info" size={13} />{note}</span>)}</div>}
+      </div>
+      {record && <button type="button" className="evidence-open-record" onClick={() => onSelectRecord(record)}><Icon name="link" size={14} />Open record details<Icon name="chevron" size={14} /></button>}
+    </article>
+  );
+}
+
+function FigureCard({ figure, extraction, validation, crossModalCheck }: { figure: FigureAsset; extraction?: ChartExtraction; validation?: ChartValidation; crossModalCheck?: CrossModalCheck }) {
   const points = extraction?.series?.reduce((sum, series) => sum + (series.points?.length ?? 0), 0) ?? 0;
   return (
     <article className="figure-card">
       <div className="figure-image">{figure.image_url ? <ApiAssetImage path={figure.image_url} alt={figure.caption || figure.label || figure.figure_id} /> : <div><Icon name="chart" size={28} /><span>图像文件不可访问</span></div>}<span className="figure-page">第 {figure.page} 页</span></div>
-      <div className="figure-body"><div className="figure-title-row"><div><small>{figure.label || figure.figure_id}</small><h3>{extraction?.title || figure.caption || "未命名图表"}</h3></div>{validation?.needs_review ? <QualityBadge tone="warning">需复核</QualityBadge> : validation?.passed ? <QualityBadge tone="success">校验通过</QualityBadge> : <QualityBadge tone="neutral">未校验</QualityBadge>}</div><p className="figure-caption">{figure.caption || "没有提取到 Caption。"}</p><div className="figure-stats"><span><small>类型</small><strong>{extraction?.chart_type || "未分类"}</strong></span><span><small>数据点</small><strong>{points}</strong></span><span><small>VL 置信度</small><strong>{extraction?.confidence !== undefined ? `${Math.round(extraction.confidence * 100)}%` : "—"}</strong></span></div>{extraction && <div className="axis-row"><span>X · {axisLabel(extraction.x_axis)}</span><span>Y · {axisLabel(extraction.y_axis)}</span>{extraction.approximate && <QualityBadge tone="info">近似读数</QualityBadge>}</div>}{validation?.issues?.slice(0, 2).map((issue) => <div className="chart-issue" key={issue.code}><Icon name="warning" size={14} />{issue.message}</div>)}</div>
+      <div className="figure-body"><div className="figure-title-row"><div><small>{figure.label || figure.figure_id}</small><h3>{extraction?.title || figure.caption || "未命名图表"}</h3></div>{validation?.needs_review ? <QualityBadge tone="warning">需复核</QualityBadge> : validation?.passed ? <QualityBadge tone="success">校验通过</QualityBadge> : <QualityBadge tone="neutral">未校验</QualityBadge>}</div><p className="figure-caption">{figure.caption || "没有提取到 Caption。"}</p><div className="figure-stats"><span><small>类型</small><strong>{extraction?.chart_type || "未分类"}</strong></span><span><small>数据点</small><strong>{points}</strong></span><span><small>VL 置信度</small><strong>{extraction?.confidence !== undefined ? `${Math.round(extraction.confidence * 100)}%` : "—"}</strong></span></div>{extraction && <div className="axis-row"><span>X · {axisLabel(extraction.x_axis)}</span><span>Y · {axisLabel(extraction.y_axis)}</span>{extraction.approximate && <QualityBadge tone="info">近似读数</QualityBadge>}</div>}{validation?.issues?.slice(0, 2).map((issue) => <div className="chart-issue" key={issue.code}><Icon name="warning" size={14} />{issue.message}</div>)}{crossModalCheck && <div className={`cross-modal-status cross-modal-${crossModalCheck.status}`}><strong>Cross-modal: {crossModalCheck.status}</strong><span>{crossModalCheck.matched_value_count}/{crossModalCheck.candidate_value_count} numeric matches · {crossModalCheck.modalities.join(" + ")}</span></div>}</div>
     </article>
   );
 }
@@ -366,6 +491,7 @@ export function QualityPanel({
 }) {
   const quality = task.quality_report;
   const result = task.result;
+  const coverage = result?.coverage_report;
   const recordById = useMemo(() => new Map([
     ...(result?.records ?? []),
     ...(result?.dynamic_records ?? []),
@@ -381,6 +507,8 @@ export function QualityPanel({
         <div className="quality-hero-copy"><span className="eyebrow dark">QUALITY REPORT</span><h2>{quality.error_count ? "存在需要处理的质量错误" : quality.warning_count ? "结果可用，但仍需检查警告" : "当前校验未发现显著问题"}</h2><p>质量报告反映现有证据覆盖情况，不代表对科研结论本身的同行评审。</p><div><QualityBadge tone={quality.error_count ? "danger" : "success"}>{quality.error_count ?? 0} 错误</QualityBadge><QualityBadge tone={quality.warning_count ? "warning" : "neutral"}>{quality.warning_count ?? 0} 警告</QualityBadge><QualityBadge tone={quality.conflict_count ? "warning" : "neutral"}>{quality.conflict_count ?? 0} 冲突</QualityBadge></div></div>
         <div className="quality-stat-stack"><span><small>记录</small><strong>{quality.total_record_count ?? quality.record_count ?? 0}</strong></span><span><small>来源</small><strong>{quality.source_count ?? 0}</strong></span><span><small>待复核</small><strong>{Math.max(result?.needs_review_records?.length ?? 0, quality.review_count ?? 0)}</strong></span></div>
       </div>
+
+      {coverage && <CoverageAuditPanel report={coverage} />}
 
       <div className="quality-columns">
         <section className="panel-card coverage-panel">
@@ -403,13 +531,56 @@ export function QualityPanel({
 
       <section className="panel-card conflicts-panel">
         <div className="panel-heading"><div><span className="eyebrow dark">CROSS-SOURCE CHECK</span><h2>跨来源冲突</h2><p>保留不同来源的值，不静默覆盖。</p></div></div>
-        {(quality.conflicts?.length ?? 0) === 0 ? <EmptyState icon="check" title="没有检测到跨来源冲突" text="仅表示当前抽取记录中未命中冲突规则。" success /> : <div className="conflict-grid">{quality.conflicts?.map((conflict) => <article key={conflict.conflict_id}><div><QualityBadge tone="warning">{humanize(conflict.metric_name)}</QualityBadge><small>{conflict.sources.length} 个来源</small></div><h3>{conflict.entity || "未命名实体"}</h3><div className="conflict-values">{conflict.values.map((value, index) => <span key={`${value}:${index}`}>{value}<small>{conflict.sources[index] || "未知来源"}</small></span>)}</div><p>{conflict.message}</p></article>)}</div>}
+        {(quality.conflicts?.length ?? 0) === 0 ? <EmptyState icon="check" title="没有检测到跨来源冲突" text="仅表示当前抽取记录中未命中冲突规则。" success /> : <div className="conflict-grid">{quality.conflicts?.map((conflict) => <article key={conflict.conflict_id}><div><QualityBadge tone="warning">{humanize(conflict.metric_name)}</QualityBadge><small>{conflict.sources.length} 个来源</small></div><h3>{conflict.entity || "未命名实体"}</h3><div className="conflict-values">{conflict.values.map((value, index) => <span key={`${value}:${index}`}>{value}<small>{conflict.sources[index] || "未知来源"}</small></span>)}</div><p>{conflict.message}</p>{conflict.alignment_context && Object.keys(conflict.alignment_context).length > 0 && <small className="conflict-context">Aligned context: {Object.entries(conflict.alignment_context).map(([key, value]) => `${humanize(key)}=${value}`).join("; ")}</small>}{conflict.resolution && <small className="conflict-resolution">Resolution: {conflict.resolution}</small>}</article>)}</div>}
       </section>
     </div>
   );
 }
 
+export function CoverageAuditPanel({ report }: { report: CoverageReport }) {
+  const allowedToStop = report.decision === "allow_stop";
+  const missing = report.missing_requirements ?? [];
+  const gaps = report.gaps ?? [];
+  return (
+    <section className="panel-card coverage-audit-panel">
+      <div className="panel-heading wide">
+        <div>
+          <span className="eyebrow dark">COVERAGE AUDIT</span>
+          <h2>任务完成度审核</h2>
+          <p>这个审核结果决定 Agent 是否可以停止，不等同于模型自己的 stop 判断。</p>
+        </div>
+        <QualityBadge tone={allowedToStop ? "success" : "warning"}>
+          {allowedToStop ? "允许结束" : "仍需继续"}
+        </QualityBadge>
+      </div>
+      <div className="coverage-audit-summary">
+        <span><small>覆盖分数</small><strong>{Math.round((report.coverage_score ?? 0) * 100)}%</strong></span>
+        <span><small>字段缺口</small><strong>{missing.length}</strong></span>
+        <span><small>未处理高相关资料</small><strong>{report.unprocessed_relevant_artifacts?.length ?? 0}</strong></span>
+      </div>
+      {missing.length > 0 && <div className="coverage-audit-block"><small>待补齐字段</small><div className="coverage-chip-list">{missing.map((item) => <QualityBadge key={item} tone="warning">{humanize(item)}</QualityBadge>)}</div></div>}
+      {gaps.length > 0 && <div className="coverage-gap-block">
+        <div className="coverage-gap-heading"><small>EVIDENCE GAPS</small><QualityBadge tone="warning">{gaps.length} gaps</QualityBadge></div>
+        <div className="coverage-gap-list">{gaps.map((gap) => <article key={gap.gap_id} className={`coverage-gap coverage-gap-${gap.priority}`}>
+          <div className="coverage-gap-title"><strong>{humanize(gap.requirement_name)}</strong><span><QualityBadge tone={gap.priority === "high" ? "danger" : gap.priority === "medium" ? "warning" : "neutral"}>{gap.priority}</QualityBadge><QualityBadge tone={gap.status === "partial" ? "warning" : "danger"}>{gap.status}</QualityBadge></span></div>
+          <p>{gap.reason}</p>
+          <div className="coverage-gap-meta">
+            {gap.missing_fields?.length > 0 && <span>fields: {gap.missing_fields.map(humanize).join(", ")}</span>}
+            {gap.missing_evidence_types?.length > 0 && <span>evidence: {gap.missing_evidence_types.join(", ")}</span>}
+            <span>evidence count: {gap.evidence_count ?? 0}</span>
+          </div>
+          {gap.recommended_actions?.length > 0 && <small className="coverage-gap-actions">next: {gap.recommended_actions.join(" / ")}</small>}
+        </article>)}</div>
+      </div>}
+      {report.requirements?.length > 0 && <div className="coverage-requirement-list">{report.requirements.map((item) => <div key={item.name}><span>{humanize(item.name)}</span><QualityBadge tone={item.status === "covered" ? "success" : item.status === "partial" ? "warning" : "danger"}>{item.status} · {item.evidence_count} 条证据</QualityBadge></div>)}</div>}
+      {report.reasons?.length > 0 && <div className="coverage-audit-reasons"><small>继续原因</small>{report.reasons.slice(0, 3).map((reason) => <p key={reason}><Icon name="info" size={14} />{reason}</p>)}</div>}
+      {report.recommended_actions?.length > 0 && <div className="coverage-audit-actions"><small>建议动作</small><span>{report.recommended_actions.join(" · ")}</span></div>}
+    </section>
+  );
+}
+
 const exportDescriptions: Record<string, { name: string; description: string; kind: "data" | "quality" | "research" | "log" }> = {
+  coverage_report: { name: "任务覆盖审核", description: "动态字段、证据类型和未处理高相关资料", kind: "quality" },
   csv: { name: "科研指标 CSV", description: "清洗后的指标型结构化记录", kind: "data" },
   json: { name: "完整结果 JSON", description: "任务计划、来源、记录与质量报告", kind: "data" },
   dynamic_records: { name: "动态记录", description: "按本次动态 Schema 整理的记录", kind: "data" },
@@ -420,6 +591,7 @@ const exportDescriptions: Record<string, { name: string; description: string; ki
   needs_review_csv: { name: "复核队列 CSV", description: "便于人工审核与标注", kind: "quality" },
   quality_report: { name: "质量报告", description: "覆盖率、警告、错误与冲突", kind: "quality" },
   chart_validation: { name: "图表校验报告", description: "坐标轴、序列、单位与复核标记", kind: "quality" },
+  cross_modal_validation: { name: "跨模态校验报告", description: "文本、表格与图像证据的互证结果", kind: "quality" },
   chart_extractions: { name: "图表结构化结果", description: "视觉模型读取的坐标轴与数据点", kind: "research" },
   source_catalog: { name: "来源目录", description: "多源材料、Artifact 与处理状态", kind: "research" },
   source_discovery_plan: { name: "来源发现计划", description: "搜索方向、关键词和候选来源", kind: "research" },
@@ -620,7 +792,7 @@ function Confidence({ value }: { value: number }) {
   return <span className={`confidence confidence-${percent >= 80 ? "high" : percent >= 60 ? "medium" : "low"}`}><i><b style={{ width: `${percent}%` }} /></i><strong>{percent}%</strong></span>;
 }
 
-function EmptyState({ icon, title, text, success = false }: { icon: "table" | "database" | "chart" | "download" | "check"; title: string; text: string; success?: boolean }) {
+function EmptyState({ icon, title, text, success = false }: { icon: "table" | "database" | "chart" | "download" | "check" | "link"; title: string; text: string; success?: boolean }) {
   return <div className={`empty-state${success ? " success" : ""}`}><span><Icon name={icon} size={22} /></span><strong>{title}</strong><p>{text}</p></div>;
 }
 
@@ -706,6 +878,12 @@ function sourceTone(status?: string | null): "success" | "warning" | "danger" | 
   if (status === "downloaded" || status === "selected") return "info";
   if (status === "skipped") return "warning";
   return "neutral";
+}
+
+function traceTone(status: EvidenceTrace["locator_status"]): "success" | "warning" | "danger" | "neutral" | "info" {
+  if (status === "resolved") return "success";
+  if (status === "partial") return "warning";
+  return "danger";
 }
 
 function axisLabel(axis?: ChartExtraction["x_axis"]): string {

@@ -2,13 +2,15 @@
 
 The API adapter owns HTTP requests, uploads, task state, public asset URLs, and
 downloads. The scientific workflow remains inside `SciDataAgent`. API version
-`0.3.0` uses one stable task envelope for queued, running, completed, failed,
-and cancelled states.
+`0.3.0` uses one stable task envelope for queued, running, completed, partial,
+failed, and cancelled states.
 
 ## Health and task history
 
 - `GET /api/health`: service, model configuration flag, model pools, and Agent stages.
 - `GET /api/tasks?limit=20&status=completed`: recent persisted task summaries.
+  Use `status=partial` to find tasks that produced inspectable outputs but did
+  not satisfy the deterministic coverage audit.
 
 Health data never returns the API key.
 
@@ -80,16 +82,35 @@ task without local files.
 }
 ```
 
-On completion, `result` contains the Agent payload. Important frontend fields
+On completion or partial completion, `result` contains the Agent payload. A
+`partial` task is terminal for polling, but its coverage report and processing
+log must be inspected before treating the research result as complete.
+Important frontend fields
 include:
 
 - `dynamic_extraction_plan`
 - `dynamic_records` (cleaned canonical records)
 - `dynamic_records_raw`
 - `needs_review_records`
+- `review_queue` (risk-ranked review items with stable `review_id` values;
+  items may represent records, figures, cross-modal checks, source conflicts,
+  or evidence-coverage gaps)
 - `source_catalog` and `connector_status`
+- `evidence_traces` (record-to-source/page/section/table/figure provenance)
+- `coverage_report` (deterministic stop decision, coverage score, structured
+  evidence gaps, and recommended next actions)
 - `figures`, `chart_extractions`, and `chart_validations`
 - `quality_report`
+
+`cross_modal_checks` and the `cross_modal_validation` export report whether
+same-page text, table, and figure evidence numerically corroborate one another.
+Qualitative figures and missing comparison material are reported as
+`not_comparable`, not as extraction failures.
+
+Conflict entries in `quality_report.conflicts` include the aligned context,
+the fields used for comparison, and a resolution marker. The current policy is
+`preserve_all`: conflicting values from different sources are retained and
+shown for review; the backend never silently chooses one value.
 
 The top-level `summary` and `quality_report` mirror the corresponding result
 fields for fast rendering. `GET /api/tasks/{task_id}/events?tail=80` reads a
@@ -103,8 +124,10 @@ Lifecycle and review mutations:
 - `POST /api/tasks/{task_id}/retry`: copy safe uploaded inputs and create a new task.
 - `POST /api/tasks/{task_id}/resume`: reuse the same task directory and resume from
   the latest valid Agent checkpoint; successful stages and downloads are reused.
-- `POST /api/tasks/{task_id}/reviews/{record_id}`: persist `approved`,
-  `needs_changes`, or `rejected` with an optional note.
+- `POST /api/tasks/{task_id}/reviews/{review_id}`: persist `approved`,
+  `needs_changes`, or `rejected` with an optional note. The endpoint accepts
+  legacy record IDs too. Decisions are stored separately from extraction
+  output and include the reviewed subject type and ID.
 
 ## Assets and downloads
 
@@ -120,7 +143,9 @@ The asset endpoint rejects absolute paths and traversal outside the task roots.
 The frontend should only use returned `asset_url`, `source_url`, and `image_url`
 fields.
 
-`GET /api/tasks/{task_id}/export?format=csv` uses a server-side allowlist. Use
+`GET /api/tasks/{task_id}/export?format=review_queue` downloads the structured
+human-review queue. `GET /api/tasks/{task_id}/export?format=csv` uses a
+server-side allowlist. Use
 the returned `download_urls`; never reconstruct a server path in the browser.
 
 ## Error contract
@@ -149,8 +174,13 @@ is bounded by `SCIDATA_MAX_PENDING_TASKS`.
 
 1. Submit once and retain `task_id` in the URL.
 2. Poll the task every 1-3 seconds while status is `queued` or `running`.
-3. Stop polling on `completed`, `failed`, or `cancelled`.
+3. Stop polling on `completed`, `partial`, `failed`, or `cancelled`.
 4. Render dynamic columns from `dynamic_extraction_plan`; do not hard-code a domain schema.
 5. Keep source lifecycle status separate from record quality status.
+6. When `coverage_report.decision` is `continue`, show `coverage_report.gaps`
+   and their recommended actions instead of treating the result as complete.
 6. Use `download_urls` and public asset URLs only.
 7. Do not fabricate placeholder scientific results for empty responses.
+8. Render `evidence_traces` as the record-to-source audit trail. An
+   `unresolved` locator means the backend did not have enough evidence to claim
+   a precise page, section, table, or figure location.

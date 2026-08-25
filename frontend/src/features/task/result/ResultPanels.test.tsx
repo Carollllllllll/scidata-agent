@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
-import type { AgentResult, DynamicRecord } from "../../../types/api";
-import { DynamicDataPanel, SourcesPanel } from "./ResultPanels";
+import type { AgentResult, DynamicRecord, SourceCatalogEntry, TaskResponse } from "../../../types/api";
+import { DynamicDataPanel, QualityPanel, SourceDetail, SourcesPanel } from "./ResultPanels";
 
 function dynamicRecord(overrides: Partial<DynamicRecord> = {}): DynamicRecord {
   return {
@@ -44,7 +44,7 @@ describe("result panels", () => {
     expect(html).toContain("tabindex=\"0\"");
   });
 
-  it("shows separate source lifecycle counters", () => {
+  it("shows source lifecycle data", () => {
     const result = {
       dynamic_records: [],
       source_catalog: [
@@ -62,9 +62,79 @@ describe("result panels", () => {
       <SourcesPanel result={result} onSelectRecord={() => undefined} />,
     );
 
-    expect(html).toContain("已发现");
-    expect(html).toContain("已选择");
-    expect(html).toContain("已下载");
-    expect(html).toContain("已解析");
+    expect(html).toContain("Paper one");
+    expect(html).toContain("未知来源");
+    expect(html).toContain("parsed");
+  });
+
+  it("shows coverage gaps when the auditor requires another iteration", () => {
+    const task = {
+      status: "completed",
+      uploads: [],
+      download_urls: {},
+      review_decisions: {},
+      quality_report: {},
+      result: {
+        coverage_report: {
+          decision: "continue",
+          coverage_score: 0.4,
+          gaps: [{
+            gap_id: "requirement_model_architecture",
+            requirement_name: "model architecture",
+            priority: "high",
+            status: "missing",
+            missing_fields: ["model architecture"],
+            missing_evidence_types: [],
+            evidence_count: 0,
+            reason: "No sufficient field-level evidence has been extracted.",
+            recommended_actions: ["parse_pdf_sections"],
+          }],
+          requirements: [],
+          missing_requirements: ["model architecture"],
+          required_evidence_types: ["experimental_result"],
+          covered_evidence_types: [],
+          unprocessed_relevant_artifacts: ["artifact_1"],
+          reasons: ["The high-relevance artifact has not been parsed."],
+          recommended_actions: ["parse_pdf_sections"],
+        },
+      },
+    } as unknown as TaskResponse;
+
+    const html = renderToStaticMarkup(
+      <QualityPanel task={task} onSelectRecord={() => undefined} />,
+    );
+
+    expect(html).toContain("COVERAGE AUDIT");
+    expect(html).toContain("model architecture");
+    expect(html).toContain("未处理高相关资料");
+  });
+
+  it("renders artifact relevance and evidence details in source detail", () => {
+    const source: SourceCatalogEntry = {
+      source_id: "source_1",
+      title: "Paper one",
+      status: "parsed",
+      provider: "arXiv",
+      artifacts: [
+        {
+          artifact_id: "artifact_1",
+          name: "paper.pdf",
+          artifact_type: "pdf",
+          status: "parsed",
+          relevance_score: 3.6,
+          evidence_types: ["method", "experimental_result"],
+          relevance_reason: "Contains the requested architecture and benchmark results.",
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <SourceDetail source={source} records={[]} onSelectRecord={() => undefined} />,
+    );
+
+    expect(html).toContain("3.6/4");
+    expect(html).toContain("method");
+    expect(html).toContain("experimental_result");
+    expect(html).toContain("Contains the requested architecture and benchmark results.");
   });
 });

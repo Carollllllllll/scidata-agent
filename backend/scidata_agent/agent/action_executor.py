@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import inspect
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,20 @@ class ArtifactActionExecutor:
         if artifact is None:
             return self._failed(action, f"Artifact not found: {action.artifact_id!r}")
 
+        if action.action in {
+            "parse_pdf_text",
+            "parse_pdf_sections",
+            "parse_table",
+            "parse_csv",
+            "parse_figure",
+            "parse_html",
+            "read_readme",
+        } and artifact.status == "parsed":
+            return self._skipped(
+                action,
+                "Artifact content was already parsed; duplicate parsing was skipped.",
+            )
+
         effective_type = _effective_artifact_type(artifact)
         if not artifact_type_supported(action.action, effective_type):
             return self._skipped(
@@ -131,10 +146,40 @@ class ArtifactActionExecutor:
             return self._failed(action, "search_more requires an existing source discovery plan.")
 
         try:
-            plan = self.llm_nodes.plan_multi_source_search(
-                state.research_question,
-                state.source_discovery_plan,
-            )
+            candidates = list(state.source_discovery_plan.candidate_sources)
+            batch_size = _positive_env_int("SCIDATA_SEARCH_MORE_BATCH_SIZE", 40)
+            batches = [
+                candidates[start : start + batch_size]
+                for start in range(0, len(candidates), batch_size)
+            ] or [[]]
+            plans = []
+            planning_errors: list[str] = []
+            for index, batch in enumerate(batches, start=1):
+                batch_plan = state.source_discovery_plan.model_copy(update={"candidate_sources": batch})
+                try:
+                    plans.append(
+                        _plan_search_batch(
+                            self.llm_nodes,
+                            state.research_question,
+                            batch_plan,
+                            candidate_context_limit=batch_size,
+                            batch_label=f"batch {index}/{len(batches)}",
+                        )
+                    )
+                except Exception as exc:
+                    planning_errors.append(f"batch {index}/{len(batches)}: {exc}")
+            if not plans:
+                raise RuntimeError(
+                    "All search_more planning batches failed: " + "; ".join(planning_errors)
+                )
+            plan = _merge_search_plans(plans)
+            if planning_errors:
+                plan.notes.append(
+                    f"{len(planning_errors)} search-planning batch(es) failed; successful batches were executed."
+                )
+                state.processing_log.extend(
+                    f"search_more planning warning: {error}" for error in planning_errors
+                )
             state.multi_source_search_plan = plan
             search_kwargs: dict[str, Any] = {}
             try:
@@ -171,6 +216,8 @@ class ArtifactActionExecutor:
                 search_requests=len(plan.search_requests),
                 new_sources=added,
                 failed_requests=int(status.get("failed", 0)),
+                planning_batches=len(batches),
+                failed_planning_batches=len(planning_errors),
             )
         except Exception as exc:
             return self._failed(action, f"search_more failed: {exc}", error=repr(exc))
@@ -219,6 +266,8 @@ class ArtifactActionExecutor:
         uploaded = _uploaded_file(artifact)
         blocks = parse_pdf(uploaded, max_pages=max_pdf_pages)
         state.parsed_sources.text_blocks.extend(blocks)
+        artifact.status = "parsed"
+        artifact.parser = "pdf_text"
         return self._result(
             action,
             "completed",
@@ -285,6 +334,8 @@ class ArtifactActionExecutor:
         state.parsed_sources.heading_candidates.extend(headings)
         state.parsed_sources.section_plan = section_plan
         state.parsed_sources.section_blocks.extend(section_blocks)
+        artifact.status = "parsed"
+        artifact.parser = "pdf_sections"
         return self._result(
             action,
             "completed",
@@ -314,6 +365,8 @@ class ArtifactActionExecutor:
         else:
             return self._skipped(action, f"No structured parser is registered for {artifact_type!r}.")
         state.parsed_sources.tables.extend(tables)
+        artifact.status = "parsed"
+        artifact.parser = "table_parser"
         return self._result(action, "completed", f"Parsed {len(tables)} table(s) from {uploaded.filename}.", tables=len(tables))
 
     def _parse_csv(self, action: ArtifactAction, state: AgentState, artifact: SourceArtifact) -> ArtifactActionResult:
@@ -322,6 +375,8 @@ class ArtifactActionExecutor:
         uploaded = _uploaded_file(artifact)
         table = parse_csv(uploaded)
         state.parsed_sources.tables.append(table)
+        artifact.status = "parsed"
+        artifact.parser = "csv_parser"
         return self._result(action, "completed", f"Parsed CSV/TSV table from {uploaded.filename}.", tables=1, rows=len(table.rows))
 
     def _parse_figure(
@@ -358,6 +413,8 @@ class ArtifactActionExecutor:
                 )
             ]
         state.parsed_sources.figure_assets.extend(assets)
+        artifact.status = "parsed"
+        artifact.parser = "figure_parser"
         extracted = 0
         skipped = 0
         for figure in assets:
@@ -394,6 +451,8 @@ class ArtifactActionExecutor:
             chunk_id=f"{artifact.artifact_id}_text",
         )
         state.parsed_sources.text_blocks.append(block)
+        artifact.status = "parsed"
+        artifact.parser = "text_parser"
         return self._result(action, "completed", f"Read text artifact {uploaded.filename}.", text_blocks=1, characters=len(block.text))
 
     def _read_file_manifest(
@@ -513,3 +572,78 @@ def _html_to_text(value: str) -> str:
     value = re.sub(r"(?is)<(script|style).*?>.*?</\1>", " ", value)
     value = re.sub(r"(?s)<[^>]+>", " ", value)
     return re.sub(r"\s+", " ", html.unescape(value)).strip()
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _plan_search_batch(
+    llm_nodes: Any,
+    research_question: str,
+    source_discovery_plan: Any,
+    *,
+    candidate_context_limit: int,
+    batch_label: str,
+) -> Any:
+    """Call the bounded planner while preserving compatibility with old adapters.
+
+    ``search_more`` is an extension point: tests and downstream integrations may
+    still expose the original two-argument planner. Inspecting the bound method
+    signature avoids catching a real ``TypeError`` raised inside the LLM node.
+    """
+    planner = llm_nodes.plan_multi_source_search
+    try:
+        parameters = inspect.signature(planner).parameters
+    except (TypeError, ValueError):
+        parameters = {}
+    supports_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+    planner_kwargs = {}
+    if supports_kwargs or "candidate_context_limit" in parameters:
+        planner_kwargs["candidate_context_limit"] = candidate_context_limit
+    if supports_kwargs or "batch_label" in parameters:
+        planner_kwargs["batch_label"] = batch_label
+    if planner_kwargs:
+        return planner(research_question, source_discovery_plan, **planner_kwargs)
+    return planner(research_question, source_discovery_plan)
+
+
+def _merge_search_plans(plans: list[Any]) -> Any:
+    """Combine successful batch plans without repeating identical searches."""
+    if not plans:
+        raise ValueError("At least one search plan is required.")
+    requests = []
+    seen: set[tuple[str, str, str]] = set()
+    criteria: list[str] = []
+    notes: list[str] = []
+    for plan in plans:
+        for request in plan.search_requests:
+            key = (
+                str(request.connector_name).casefold(),
+                str(request.source_type).casefold(),
+                " ".join(str(request.query).split()).casefold(),
+            )
+            if key not in seen:
+                seen.add(key)
+                requests.append(request)
+        for value in [*plan.selection_criteria, *plan.notes]:
+            if value and value not in criteria and value not in notes:
+                if value in plan.selection_criteria:
+                    criteria.append(value)
+                else:
+                    notes.append(value)
+    return plans[0].model_copy(
+        update={
+            "should_search": any(plan.should_search for plan in plans),
+            "search_requests": requests,
+            "selection_criteria": criteria,
+            "notes": notes,
+        }
+    )

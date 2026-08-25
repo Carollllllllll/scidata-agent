@@ -89,6 +89,10 @@ class SourceArtifact(BaseModel):
     provider: str | None = None
     name: str | None = None
     size_bytes: int | None = None
+    relevance_score: float | None = None
+    field_scores: dict[str, float] = Field(default_factory=dict)
+    relevance_reason: str | None = None
+    evidence_types: list[str] = Field(default_factory=list)
     artifact_type: Literal[
         "landing_page",
         "pdf",
@@ -121,6 +125,44 @@ class SourceArtifact(BaseModel):
     parser: str | None = None
     failure_reason: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("relevance_score")
+    @classmethod
+    def clamp_artifact_relevance(cls, value: float | None) -> float | None:
+        if value is None:
+            return None
+        return max(0.0, min(4.0, float(value)))
+
+
+class ArtifactRelevanceAssessment(BaseModel):
+    """LLM assessment of an artifact against the dynamic research needs."""
+
+    artifact_id: str
+    topic_alignment: float = 0.0
+    task_fit: float = 0.0
+    evidence_directness: float = 0.0
+    evidence_depth: float = 0.0
+    source_authority: float = 0.0
+    complementarity: float = 0.0
+    overall_score: float = 0.0
+    field_scores: dict[str, float] = Field(default_factory=dict)
+    evidence_types: list[str] = Field(default_factory=list)
+    rank: int | None = None
+    recommendation: Literal["process", "inspect_metadata", "skip", "unknown"] = "unknown"
+    rationale: str = ""
+
+    @field_validator(
+        "topic_alignment",
+        "task_fit",
+        "evidence_directness",
+        "evidence_depth",
+        "source_authority",
+        "complementarity",
+        "overall_score",
+    )
+    @classmethod
+    def clamp_assessment_score(cls, value: float) -> float:
+        return max(0.0, min(4.0, float(value)))
 
 
 class SourceCatalogEntry(BaseModel):
@@ -179,6 +221,7 @@ class ArtifactAction(BaseModel):
     expected_fields: list[str] = Field(default_factory=list)
     priority: Literal["high", "medium", "low"] = "medium"
     reason: str
+    gap_ids: list[str] = Field(default_factory=list)
     parameters: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -190,6 +233,7 @@ class ArtifactActionPlan(BaseModel):
     should_continue: bool = True
     stop_reason: str | None = None
     actions: list[ArtifactAction] = Field(default_factory=list)
+    artifact_assessments: list[ArtifactRelevanceAssessment] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 
@@ -559,6 +603,51 @@ class ChartValidationResult(BaseModel):
     checked_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class CrossModalCheck(BaseModel):
+    """Auditable comparison between text, table, and figure evidence."""
+
+    check_id: str
+    source_file: str
+    page: int | None = None
+    subject_id: str
+    modalities: list[str] = Field(default_factory=list)
+    status: Literal["supported", "partial", "not_comparable"] = "not_comparable"
+    matched_value_count: int = 0
+    candidate_value_count: int = 0
+    evidence_refs: list[str] = Field(default_factory=list)
+    issues: list[str] = Field(default_factory=list)
+    confidence: float = 0.0
+
+    @field_validator("confidence")
+    @classmethod
+    def clamp_cross_modal_confidence(cls, value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+
+class ReviewQueueItem(BaseModel):
+    """A human-review task derived from auditable pipeline risks.
+
+    This is deliberately broader than a record. A reviewer may need to
+    inspect a chart validation, a cross-modal mismatch, a source conflict, or
+    an evidence-coverage gap. The original extracted values remain elsewhere
+    in the result and are never replaced by this item.
+    """
+
+    review_id: str
+    subject_type: Literal["record", "figure", "cross_modal", "conflict", "coverage_gap"]
+    subject_id: str
+    priority: Literal["high", "medium", "low"] = "medium"
+    risk_type: str
+    title: str
+    reason: str
+    source_file: str | None = None
+    page: int | None = None
+    record_id: str | None = None
+    figure_id: str | None = None
+    evidence_refs: list[str] = Field(default_factory=list)
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class ParsedSources(BaseModel):
     text_blocks: list[TextBlock] = Field(default_factory=list)
     heading_candidates: list[HeadingCandidate] = Field(default_factory=list)
@@ -651,6 +740,34 @@ class ScientificRecord(BaseModel):
         return max(0.0, min(1.0, float(value)))
 
 
+class EvidenceTrace(BaseModel):
+    """A user-facing link from one extracted record to its source evidence."""
+
+    evidence_id: str
+    record_id: str
+    source_id: str | None = None
+    artifact_id: str | None = None
+    source_title: str | None = None
+    source_file: str
+    source_type: str = "unknown"
+    page: int | None = None
+    section_id: str | None = None
+    section_title: str | None = None
+    table_id: str | None = None
+    figure_id: str | None = None
+    evidence_type: Literal["text", "table", "figure", "unknown"] = "unknown"
+    extraction_method: str | None = None
+    evidence_text: str | None = None
+    locator_status: Literal["resolved", "partial", "unresolved"] = "unresolved"
+    confidence: float = 0.0
+    notes: list[str] = Field(default_factory=list)
+
+    @field_validator("confidence")
+    @classmethod
+    def clamp_evidence_confidence(cls, value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+
 class SourceSummary(BaseModel):
     source_file: str
     source_path: str
@@ -676,6 +793,9 @@ class ConflictIssue(BaseModel):
     record_ids: list[str] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list)
     message: str
+    alignment_context: dict[str, str] = Field(default_factory=dict)
+    comparison_basis: list[str] = Field(default_factory=list)
+    resolution: Literal["preserve_all", "not_comparable"] = "preserve_all"
 
 
 class QualityReport(BaseModel):
@@ -699,11 +819,55 @@ class QualityReport(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class CoverageItem(BaseModel):
+    name: str
+    priority: Literal["high", "medium", "low"] = "medium"
+    status: Literal["covered", "partial", "missing", "unavailable"] = "missing"
+    evidence_count: int = 0
+    evidence_types: list[str] = Field(default_factory=list)
+    reason: str | None = None
+
+
+class CoverageGap(BaseModel):
+    """A structured, auditable reason why the workflow should continue."""
+
+    gap_id: str
+    requirement_name: str
+    priority: Literal["high", "medium", "low"] = "medium"
+    status: Literal["missing", "partial", "unavailable"] = "missing"
+    missing_fields: list[str] = Field(default_factory=list)
+    missing_evidence_types: list[str] = Field(default_factory=list)
+    evidence_count: int = 0
+    reason: str
+    recommended_actions: list[str] = Field(default_factory=list)
+
+
+class CoverageReport(BaseModel):
+    """Deterministic audit of whether the planner may stop."""
+
+    decision: Literal["continue", "allow_stop"] = "continue"
+    coverage_score: float = 0.0
+    requirements: list[CoverageItem] = Field(default_factory=list)
+    gaps: list[CoverageGap] = Field(default_factory=list)
+    missing_requirements: list[str] = Field(default_factory=list)
+    required_evidence_types: list[str] = Field(default_factory=list)
+    covered_evidence_types: list[str] = Field(default_factory=list)
+    unprocessed_relevant_artifacts: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    recommended_actions: list[str] = Field(default_factory=list)
+
+    @field_validator("coverage_score")
+    @classmethod
+    def clamp_coverage_score(cls, value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+
 class ExportFiles(BaseModel):
     csv: str | None = None
     json_file: str | None = Field(default=None, serialization_alias="json")
     processing_log: str | None = None
     quality_report: str | None = None
+    coverage_report: str | None = None
     source_discovery_plan: str | None = None
     arxiv_search_plan: str | None = None
     multi_source_search_plan: str | None = None
@@ -719,6 +883,8 @@ class ExportFiles(BaseModel):
     source_research_json: str | None = None
     source_catalog_json: str | None = None
     source_catalog_csv: str | None = None
+    evidence_traces_json: str | None = None
+    evidence_traces_csv: str | None = None
     artifact_action_plan_json: str | None = None
     artifact_action_results_json: str | None = None
     artifact_action_history_json: str | None = None
@@ -730,10 +896,12 @@ class ExportFiles(BaseModel):
     dynamic_records: str | None = None
     clean_dynamic_records: str | None = None
     needs_review: str | None = None
+    review_queue_json: str | None = None
     dynamic_tables_dir: str | None = None
     figures_dir: str | None = None
     chart_extractions_json: str | None = None
     chart_validation_json: str | None = None
+    cross_modal_validation_json: str | None = None
     chart_tables_dir: str | None = None
     final_report: str | None = None
     summary_json: str | None = None
@@ -757,7 +925,7 @@ class AgentSummary(BaseModel):
 
 class AgentResult(BaseModel):
     task_id: str
-    status: Literal["completed", "failed"] = "completed"
+    status: Literal["completed", "partial", "failed"] = "completed"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     research_question: str
     task_plan: TaskPlan
@@ -768,6 +936,7 @@ class AgentResult(BaseModel):
     source_triage_decisions: list[SourceTriageDecision] = Field(default_factory=list)
     source_insights: list[SourceInsight] = Field(default_factory=list)
     source_catalog: list[SourceCatalogEntry] = Field(default_factory=list)
+    evidence_traces: list[EvidenceTrace] = Field(default_factory=list)
     artifact_action_plan: ArtifactActionPlan | None = None
     artifact_action_results: list[ArtifactActionResult] = Field(default_factory=list)
     artifact_action_history: list[ArtifactActionIteration] = Field(default_factory=list)
@@ -778,13 +947,16 @@ class AgentResult(BaseModel):
     dynamic_records: list[DynamicRecord] = Field(default_factory=list)
     dynamic_records_raw: list[DynamicRecord] = Field(default_factory=list)
     needs_review_records: list[DynamicRecord] = Field(default_factory=list)
+    review_queue: list[ReviewQueueItem] = Field(default_factory=list)
     figures: list[FigureAsset] = Field(default_factory=list)
     chart_extractions: list[ChartExtraction] = Field(default_factory=list)
     chart_validations: list[ChartValidationResult] = Field(default_factory=list)
+    cross_modal_checks: list[CrossModalCheck] = Field(default_factory=list)
     field_schema: list[dict[str, str]]
     sources: list[SourceSummary]
     processing_log: list[str]
     quality_report: QualityReport
+    coverage_report: CoverageReport = Field(default_factory=CoverageReport)
     export_files: ExportFiles
 
 
@@ -802,6 +974,7 @@ class AgentState(BaseModel):
     source_triage_decisions: list[SourceTriageDecision] = Field(default_factory=list)
     source_insights: list[SourceInsight] = Field(default_factory=list)
     source_catalog: list[SourceCatalogEntry] = Field(default_factory=list)
+    evidence_traces: list[EvidenceTrace] = Field(default_factory=list)
     artifact_action_plan: ArtifactActionPlan | None = None
     artifact_action_results: list[ArtifactActionResult] = Field(default_factory=list)
     artifact_action_history: list[ArtifactActionIteration] = Field(default_factory=list)
@@ -809,13 +982,16 @@ class AgentState(BaseModel):
     parsed_sources: ParsedSources = Field(default_factory=ParsedSources)
     chart_extractions: list[ChartExtraction] = Field(default_factory=list)
     chart_validations: list[ChartValidationResult] = Field(default_factory=list)
+    cross_modal_checks: list[CrossModalCheck] = Field(default_factory=list)
     candidate_records: list[ScientificRecord] = Field(default_factory=list)
     final_records: list[ScientificRecord] = Field(default_factory=list)
     dynamic_records: list[DynamicRecord] = Field(default_factory=list)
     clean_dynamic_records: list[DynamicRecord] = Field(default_factory=list)
     needs_review_records: list[DynamicRecord] = Field(default_factory=list)
+    review_queue: list[ReviewQueueItem] = Field(default_factory=list)
     sources: list[SourceSummary] = Field(default_factory=list)
     quality_report: QualityReport = Field(default_factory=QualityReport)
+    coverage_report: CoverageReport = Field(default_factory=CoverageReport)
     processing_log: list[str] = Field(default_factory=list)
     export_files: ExportFiles = Field(default_factory=ExportFiles)
     monitor_log_path: Path | None = None

@@ -89,6 +89,37 @@ class _FakeFailedAgent:
         return _FakeFailedResult(task_id)
 
 
+class _FakePartialResult:
+    status = "partial"
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+
+    def model_dump(self, mode: str = "json", by_alias: bool = True) -> dict:
+        return {
+            "task_id": self.task_id,
+            "status": "partial",
+            "summary": {"records_extracted": 1},
+            "coverage_report": {
+                "decision": "continue",
+                "coverage_score": 0.4,
+                "missing_requirements": ["experimental setup"],
+            },
+            "processing_log": [
+                "Agent task produced partial results: coverage remains incomplete after all configured action iterations."
+            ],
+            "export_files": {},
+        }
+
+
+class _FakePartialAgent:
+    def __init__(self, output_dir: Path):
+        self.output_dir = Path(output_dir)
+
+    def run(self, research_question: str, files: list[str], *, task_id: str, **kwargs):
+        return _FakePartialResult(task_id)
+
+
 def _wait_for_status(manager: TaskManager, task_id: str, expected: str) -> dict:
     deadline = time.monotonic() + 3
     while time.monotonic() < deadline:
@@ -200,6 +231,26 @@ def test_task_manager_preserves_failed_step_and_message(tmp_path, monkeypatch) -
             "message": "Qwen/Bailian API key not configured.",
         }
         assert failed["message"] == "Qwen/Bailian API key not configured."
+    finally:
+        manager.shutdown()
+
+
+def test_task_manager_persists_partial_status_and_coverage_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(task_manager_module, "SciDataAgent", _FakePartialAgent)
+    manager = TaskManager(tmp_path / "outputs", tmp_path / "tasks", max_workers=1)
+    try:
+        task = manager.submit(
+            task_id="20260824_120000_000_partial",
+            research_question="test partial result",
+            files=[],
+            run_options={},
+        )
+        partial = _wait_for_status(manager, task["task_id"], "partial")
+        expected = "Agent task partially completed; coverage requirements remain unsatisfied."
+        assert partial["current_step"] == "partial"
+        assert partial["message"] == expected
+        assert partial["error"] == {"code": "AGENT_TASK_PARTIAL", "message": expected}
+        assert partial["result"]["coverage_report"]["missing_requirements"] == ["experimental setup"]
     finally:
         manager.shutdown()
 

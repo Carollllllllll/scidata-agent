@@ -95,6 +95,11 @@ MULTI_SOURCE_SEARCH_PLANNER_USER = """User research goal:
 Source discovery plan:
 {source_discovery_plan_json}
 
+Already discovered candidate context (one bounded batch; it may be incomplete):
+{candidate_context_json}
+
+Search-planning batch: {batch_label}
+
 Create a broad multi-source survey search plan.
 
 Return JSON:
@@ -211,6 +216,9 @@ Dynamic extraction plan:
 Current quality report:
 {quality_report_json}
 
+Deterministic coverage audit (the planner must not stop when decision=continue):
+{coverage_report_json}
+
 Current source/artifact catalog:
 {source_catalog_json}
 
@@ -228,6 +236,23 @@ Return JSON with this structure:
   "iteration": {iteration},
   "should_continue": true,
   "stop_reason": null,
+  "artifact_assessments": [
+    {{
+      "artifact_id": "artifact_id copied exactly from the catalog",
+      "topic_alignment": 0,
+      "task_fit": 0,
+      "evidence_directness": 0,
+      "evidence_depth": 0,
+      "source_authority": 0,
+      "complementarity": 0,
+      "overall_score": 0,
+      "field_scores": {{"field_name": 0}},
+      "evidence_types": ["paper_full_text | table | figure | supplementary_material | code_repository | dataset"],
+      "rank": 1,
+      "recommendation": "process | inspect_metadata | skip | unknown",
+      "rationale": "why this artifact does or does not support the research goal"
+    }}
+  ],
   "actions": [
     {{
       "action_id": "action_001",
@@ -237,6 +262,7 @@ Return JSON with this structure:
       "expected_fields": ["field names from the dynamic extraction plan"],
       "priority": "high | medium | low",
       "reason": "why this action is appropriate for this artifact and the research goal",
+      "gap_ids": ["coverage gap IDs that this action is intended to resolve"],
       "parameters": {{}}
     }}
   ],
@@ -251,10 +277,15 @@ Planning rules:
 5. Use read_metadata before expensive parsing when the artifact has not been inspected and metadata can determine its value.
 6. Use download_artifact before parsing a remote artifact with no local_path. Do not download an artifact merely because it exists; select it for the research goal first.
 7. Use search_more when important information needs or source types are missing; explain what is missing in purpose and reason.
-8. Use stop with no artifact_id when the available evidence is sufficient. A stop action should normally be accompanied by should_continue=false and stop_reason.
-9. Do not select an action merely because the artifact exists. Prefer actions that answer the user's question and preserve source evidence.
-10. Do not fabricate missing values. The executor will record failures and nulls explicitly.
-11. Return a small actionable set for this iteration; do not repeat an already completed action unless the reason explains why a retry is needed.
+8. Assess every catalog artifact against the dynamic extraction needs using the 0-4 rubric: 0 unrelated, 1 peripheral mention, 2 topical but indirect, 3 direct evidence, 4 core evidence.
+9. Score each artifact per expected field, not only by title similarity. An artifact may be high priority when it uniquely covers a missing field even if its overall topic score is moderate.
+10. Rank candidates comparatively. Do not assign the same middle score to every artifact without field-level reasons.
+11. Read coverage_report.gaps as the action backlog. Every high- or medium-priority gap must be assigned to at least one action, and every evidence-gathering action must list the gap_ids it is intended to resolve. One action may resolve multiple gaps.
+12. Use the gap's missing_fields and missing_evidence_types to choose the parser and artifact. Do not invent fixed domain fields or use an unscoped action when a concrete gap is available.
+13. Use stop with no artifact_id only when the coverage audit allows it. If the audit says decision=continue, select evidence-gathering actions or search_more and do not stop.
+14. Do not select an action merely because the artifact exists. Prefer actions that answer the user's question and preserve source evidence.
+15. Do not fabricate missing values. The executor will record failures and nulls explicitly.
+16. Return a small actionable set for this iteration; do not repeat an already completed action unless the reason explains why a retry is needed.
 """
 
 

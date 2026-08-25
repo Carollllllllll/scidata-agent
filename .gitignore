@@ -31,3 +31,4 @@ htmlcov/
 *.part
 *.tmp
 *.log
+.pytest_tmp/

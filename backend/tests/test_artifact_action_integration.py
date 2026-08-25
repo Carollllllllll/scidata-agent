@@ -157,8 +157,10 @@ def test_main_agent_runs_bounded_artifact_planner_and_exports_results(tmp_path: 
 
     assert result.status == "completed"
     assert result.artifact_action_plan is not None
-    assert result.artifact_action_plan.actions[0].action == "stop"
-    assert result.artifact_action_results[0].status == "no_op"
+    assert result.artifact_action_plan.should_continue is True
+    assert result.artifact_action_plan.actions == []
+    assert result.artifact_action_results == []
+    assert "Stop rejected by coverage auditor" in (result.artifact_action_plan.stop_reason or "")
     assert any("artifact_action_planning" in line for line in result.processing_log)
     assert any("artifact_action_execution" in line for line in result.processing_log)
 
@@ -171,11 +173,11 @@ def test_main_agent_runs_bounded_artifact_planner_and_exports_results(tmp_path: 
     assert action_results_json.exists()
     assert action_history_json.exists()
     payload = json.loads(result_json.read_text(encoding="utf-8"))
-    assert payload["artifact_action_plan"]["actions"][0]["action"] == "stop"
-    assert payload["artifact_action_results"][0]["status"] == "no_op"
-    assert len(payload["artifact_action_history"]) == 1
-    assert payload["artifact_action_history"][0]["results"][0]["status"] == "no_op"
-    assert len(json.loads(action_history_json.read_text(encoding="utf-8"))) == 1
+    assert payload["artifact_action_plan"]["actions"] == []
+    assert payload["artifact_action_results"] == []
+    assert payload["artifact_action_history"]
+    assert all(not item["results"] for item in payload["artifact_action_history"])
+    assert len(json.loads(action_history_json.read_text(encoding="utf-8"))) >= 1
 
 
 def test_main_agent_does_not_duplicate_csv_after_artifact_action(tmp_path: Path) -> None:
@@ -197,7 +199,9 @@ def test_main_agent_does_not_duplicate_csv_after_artifact_action(tmp_path: Path)
 
     assert result.status == "completed"
     assert result.artifact_action_results[0].action == "parse_csv"
-    assert result.artifact_action_results[0].status == "completed"
+    assert result.artifact_action_results[0].status == "skipped"
+    assert result.artifact_action_history[0].results[0].status == "completed"
+    assert result.artifact_action_history[1].results[0].status == "skipped"
     assert result.summary.tables_processed == 1
     assert len(result.source_catalog) == 1
 
@@ -226,7 +230,10 @@ def test_main_agent_preserves_bounded_artifact_action_iterations(tmp_path: Path)
     assert len(result.artifact_action_history) == 2
     assert [item.iteration for item in result.artifact_action_history] == [0, 1]
     assert result.artifact_action_history[0].plan.should_continue is True
-    assert result.artifact_action_history[1].plan.should_continue is False
+    assert result.artifact_action_history[1].plan.should_continue is True
+    assert "Stop rejected by coverage auditor" in (
+        result.artifact_action_history[1].plan.stop_reason or ""
+    )
     planning_steps = [
         index for index, line in enumerate(result.processing_log)
         if line.startswith("Qwen Artifact Action Planner completed")

@@ -90,6 +90,7 @@ const STAGE_PROGRESS_BOUNDS: Record<string, ProgressBounds> = {
 };
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
+  partial: "部分完成",
   queued: "排队中",
   running: "运行中",
   completed: "已完成",
@@ -108,7 +109,7 @@ export function progressPercent(
   progress?: TaskProgress | null,
   stageStatus?: string | null,
 ): number {
-  if (status === "completed") return 100;
+  if (status === "completed" || status === "partial") return 100;
   if (status === "cancelled") return 0;
   const bounds = stage ? STAGE_PROGRESS_BOUNDS[stage] : undefined;
   if (!bounds) {
@@ -136,7 +137,7 @@ export function overallProgressPercent(
   progress?: TaskProgress | null,
   stageStatus?: string | null,
 ): number {
-  if (status === "completed") return 100;
+  if (status === "completed" || status === "partial") return 100;
   if (status === "cancelled") return 0;
 
   let highest = status === "running" ? 2 : 1;

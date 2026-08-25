@@ -15,6 +15,7 @@ from scidata_agent.agent.field_schema import DEFAULT_TARGET_FIELDS
 from scidata_agent.agent.planner import plan_task as fallback_plan_task
 from scidata_agent.agent.schemas import (
     ArxivSearchPlan,
+    ArtifactRelevanceAssessment,
     ArtifactActionPlan,
     ChartExtraction,
     DynamicExtractionPlan,
@@ -32,6 +33,7 @@ from scidata_agent.agent.schemas import (
     SourceCatalogEntry,
     SourceSelectionPlan,
     SourceType,
+    CoverageReport,
     SectionBlock,
     TableBlock,
     TaskPlan,
@@ -347,14 +349,31 @@ class QwenAgentNodes:
         self,
         research_question: str,
         source_discovery_plan: SourceDiscoveryPlan,
+        *,
+        candidate_context_limit: int = 40,
+        batch_label: str = "single batch",
     ) -> MultiSourceSearchPlan:
         try:
+            candidate_context = _source_candidate_summaries(
+                source_discovery_plan,
+                limit=candidate_context_limit,
+            )
+            compact_discovery_plan = {
+                "research_goal": source_discovery_plan.research_goal,
+                "domain": source_discovery_plan.domain,
+                "recommended_keywords": source_discovery_plan.recommended_keywords,
+                "target_data_types": source_discovery_plan.target_data_types,
+                "dynamic_schema": source_discovery_plan.dynamic_schema,
+                "notes": source_discovery_plan.notes[-8:],
+            }
             payload = self._generate_json_with_retries(
                 "qwen_multi_source_search_planner",
                 MULTI_SOURCE_SEARCH_PLANNER_SYSTEM,
                 MULTI_SOURCE_SEARCH_PLANNER_USER.format(
                     research_question=research_question,
-                    source_discovery_plan_json=source_discovery_plan.model_dump_json(),
+                    source_discovery_plan_json=json.dumps(compact_discovery_plan, ensure_ascii=False, indent=2),
+                    candidate_context_json=json.dumps(candidate_context, ensure_ascii=False, indent=2),
+                    batch_label=batch_label,
                 ),
             )
             if not isinstance(payload, dict):
@@ -435,6 +454,7 @@ class QwenAgentNodes:
         source_catalog: list[SourceCatalogEntry],
         dynamic_plan: DynamicExtractionPlan | None = None,
         quality_report: QualityReport | None = None,
+        coverage_report: CoverageReport | None = None,
         processing_log: list[str] | None = None,
         connector_failures: list[dict[str, Any]] | None = None,
         iteration: int = 0,
@@ -460,6 +480,7 @@ class QwenAgentNodes:
                     research_question=research_question,
                     dynamic_plan_json=dynamic_plan.model_dump_json() if dynamic_plan else "null",
                     quality_report_json=quality_report.model_dump_json() if quality_report else "null",
+                    coverage_report_json=coverage_report.model_dump_json() if coverage_report else "null",
                     source_catalog_json=json.dumps(catalog_payload, ensure_ascii=False, indent=2),
                     processing_log_json=json.dumps((processing_log or [])[-40:], ensure_ascii=False, indent=2),
                     connector_failures_json=json.dumps(connector_failures or [], ensure_ascii=False, indent=2),
@@ -485,6 +506,7 @@ class QwenAgentNodes:
         payload.setdefault("should_continue", True)
         payload.setdefault("stop_reason", None)
         payload.setdefault("actions", [])
+        payload.setdefault("artifact_assessments", [])
         payload.setdefault("notes", [])
         payload = self._normalize_payload("qwen_artifact_action_planner", payload, ArtifactActionPlan)
         plan = ArtifactActionPlan.model_validate(payload)
@@ -519,19 +541,84 @@ class QwenAgentNodes:
                 f"Dropped {len(dropped_actions)} artifact action(s) with missing or unknown artifact_id: "
                 f"{', '.join(invalid_ids)}."
             )
+        valid_artifact_ids = {
+            artifact.artifact_id
+            for source in source_catalog
+            for artifact in source.artifacts
+        }
+        valid_assessments: list[ArtifactRelevanceAssessment] = []
+        for assessment in plan.artifact_assessments:
+            if assessment.artifact_id not in valid_artifact_ids:
+                plan.notes.append(
+                    f"Dropped artifact assessment for unknown artifact_id={assessment.artifact_id!r}."
+                )
+                continue
+            valid_assessments.append(assessment)
+            for source in source_catalog:
+                artifact = next(
+                    (item for item in source.artifacts if item.artifact_id == assessment.artifact_id),
+                    None,
+                )
+                if artifact is not None:
+                    artifact.relevance_score = assessment.overall_score
+                    artifact.field_scores = assessment.field_scores
+                    artifact.relevance_reason = assessment.rationale
+                    artifact.evidence_types = assessment.evidence_types
+                    break
+        plan.artifact_assessments = valid_assessments
+        if coverage_report is not None:
+            known_gap_ids = {gap.gap_id for gap in coverage_report.gaps}
+            for action in valid_actions:
+                unknown_gap_ids = [gap_id for gap_id in action.gap_ids if gap_id not in known_gap_ids]
+                if unknown_gap_ids:
+                    plan.notes.append(
+                        f"Dropped unknown coverage gap IDs from action {action.action_id}: "
+                        + ", ".join(unknown_gap_ids)
+                    )
+                action.gap_ids = [gap_id for gap_id in action.gap_ids if gap_id in known_gap_ids]
+                if (
+                    coverage_report.decision != "allow_stop"
+                    and action.action not in {"stop", "validate_evidence"}
+                    and not action.gap_ids
+                ):
+                    plan.notes.append(
+                        f"Action {action.action_id} has no coverage gap assignment while coverage is incomplete."
+                    )
         stop_actions = [action for action in valid_actions if action.action == "stop"]
         if stop_actions:
-            plan.actions = [stop_actions[0]]
-            plan.should_continue = False
-            plan.stop_reason = plan.stop_reason or "The planner selected the stop action."
+            if coverage_report is not None and coverage_report.decision != "allow_stop":
+                plan.actions = [action for action in valid_actions if action.action != "stop"]
+                plan.should_continue = True
+                plan.stop_reason = (
+                    "Stop rejected by coverage auditor: "
+                    + "; ".join(coverage_report.reasons[:3])
+                )
+                plan.notes.append(
+                    "The planner proposed stop before coverage requirements were satisfied; "
+                    "select more evidence-gathering actions."
+                )
+            else:
+                plan.actions = [stop_actions[0]]
+                plan.should_continue = False
+                plan.stop_reason = plan.stop_reason or "The planner selected the stop action."
         else:
             plan.actions = valid_actions
             if not valid_actions:
-                plan.should_continue = False
-                plan.stop_reason = (
-                    plan.stop_reason
-                    or "The planner returned no executable artifact actions; continue with the normal content pipeline."
-                )
+                if coverage_report is not None and coverage_report.decision != "allow_stop":
+                    plan.should_continue = True
+                    plan.stop_reason = (
+                        plan.stop_reason
+                        or "Coverage is incomplete; planner must return another evidence-gathering action."
+                    )
+                    plan.notes.append(
+                        "No executable action was returned while coverage is incomplete; a follow-up planning iteration is required."
+                    )
+                else:
+                    plan.should_continue = False
+                    plan.stop_reason = (
+                        plan.stop_reason
+                        or "The planner returned no executable artifact actions; continue with the normal content pipeline."
+                    )
         return plan
 
     def plan_dynamic_extraction(self, research_question: str, task_plan: TaskPlan | None = None) -> DynamicExtractionPlan:

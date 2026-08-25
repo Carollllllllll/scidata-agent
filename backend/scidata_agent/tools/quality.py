@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -90,6 +91,7 @@ def build_quality_report(
     issues.extend(provenance_issues)
 
     conflicts = detect_conflicts(checked_records)
+    conflicts.extend(detect_dynamic_conflicts(checked_dynamic_records, mutate_records=mutate_records))
     for conflict in conflicts:
         issues.append(
             QualityIssue(
@@ -321,9 +323,158 @@ def detect_conflicts(records: list[ScientificRecord]) -> list[ConflictIssue]:
                     f"Potential conflict for entity='{entity or 'unknown'}', metric='{metric}': "
                     f"{', '.join(representative_values)} under context='{context or 'unspecified'}'."
                 ),
+                alignment_context={"context": context},
+                comparison_basis=["entity", "metric_name", "metric_value", "unit", "condition"],
             )
         )
     return conflicts
+
+
+_DYNAMIC_CONTEXT_KEYS = {
+    "condition", "setting", "scenario", "dataset", "split", "task",
+    "environment", "protocol", "variant", "baseline", "regime", "configuration",
+}
+_DYNAMIC_ENTITY_KEYS = {
+    "entity", "material", "model", "method", "name", "id", "system", "group", "category",
+}
+_DYNAMIC_IGNORED_KEYS = {
+    "title", "author", "authors", "date", "year", "page", "source", "citation", "evidence", "confidence",
+}
+_DYNAMIC_VALUE_HINTS = {
+    "metric", "score", "value", "result", "accuracy", "precision", "recall", "loss", "error", "rate",
+    "latency", "time", "memory", "size", "count", "number",
+}
+
+
+def detect_dynamic_conflicts(
+    records: list[DynamicRecord],
+    *,
+    mutate_records: bool = False,
+) -> list[ConflictIssue]:
+    """Compare dynamic records only when their generated conditions align.
+
+    The field names remain task-specific and come from the LLM extraction plan.
+    The alias sets describe structural roles (condition/entity/value), not a
+    scientific domain schema. Missing alignment context is non-comparable.
+    """
+    groups: dict[tuple[str, tuple[tuple[str, str], ...], str], list[DynamicRecord]] = defaultdict(list)
+    for record in records:
+        context = _dynamic_alignment_context(record.fields)
+        if not context:
+            continue
+        identity = tuple(sorted(context.items()))
+        for field_name, value in record.fields.items():
+            if not _dynamic_value_field(field_name, value):
+                continue
+            groups[(record.table_name, identity, _dynamic_field_key(field_name))].append(record)
+
+    conflicts: list[ConflictIssue] = []
+    for (table_name, identity, field_name), group in groups.items():
+        sources = sorted({record.source_file for record in group if record.source_file})
+        if len(sources) < 2:
+            continue
+        value_groups: dict[str, list[DynamicRecord]] = defaultdict(list)
+        display_values: dict[str, str] = {}
+        for record in group:
+            value = next(
+                (value for key, value in record.fields.items() if _dynamic_field_key(key) == field_name),
+                None,
+            )
+            value_key = _dynamic_value_key(value)
+            if not value_key:
+                continue
+            value_groups[value_key].append(record)
+            display_values.setdefault(value_key, _display_dynamic_value(value))
+        if len(value_groups) <= 1:
+            continue
+
+        conflict_records = [record for records_for_value in value_groups.values() for record in records_for_value]
+        context = dict(identity)
+        conflict_id = "dynamic_conflict_" + hashlib.sha1(
+            repr((table_name, identity, field_name)).encode("utf-8")
+        ).hexdigest()[:10]
+        conflicts.append(
+            ConflictIssue(
+                conflict_id=conflict_id,
+                entity=_dynamic_entity_label(context),
+                metric_name=f"{table_name}.{field_name}",
+                values=[display_values[key] for key in value_groups],
+                record_ids=[record.record_id for record in conflict_records],
+                sources=sources,
+                message=(
+                    f"Dynamic field '{field_name}' differs across sources for the aligned "
+                    f"context {context}: {', '.join(display_values.values())}. "
+                    "All values are preserved for review."
+                ),
+                alignment_context=context,
+                comparison_basis=["table_name", *context.keys(), field_name],
+                resolution="preserve_all",
+            )
+        )
+        if mutate_records:
+            for record in conflict_records:
+                record.raw.setdefault("conflict_group_ids", []).append(conflict_id)
+    return conflicts
+
+
+def _dynamic_alignment_context(fields: dict[str, Any]) -> dict[str, str]:
+    context: dict[str, str] = {}
+    for key, value in fields.items():
+        tokens = _dynamic_field_tokens(key)
+        if not _has_value(value) or not tokens:
+            continue
+        if tokens & _DYNAMIC_CONTEXT_KEYS or tokens & _DYNAMIC_ENTITY_KEYS:
+            context[_dynamic_field_key(key)] = _display_dynamic_value(value)
+    if not any(set(key.split("_")) & _DYNAMIC_CONTEXT_KEYS for key in context):
+        return {}
+    return context
+
+
+def _dynamic_value_field(field_name: str, value: Any) -> bool:
+    if not _has_value(value) or isinstance(value, (dict, list, tuple, set)):
+        return False
+    tokens = _dynamic_field_tokens(field_name)
+    if tokens & _DYNAMIC_IGNORED_KEYS:
+        return False
+    return bool(tokens & _DYNAMIC_VALUE_HINTS) or isinstance(value, (int, float))
+
+
+def _dynamic_field_tokens(field_name: str) -> set[str]:
+    text = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(field_name))
+    return set(re.findall(r"[a-z0-9]+", text.casefold()))
+
+
+def _dynamic_field_key(field_name: str) -> str:
+    return "_".join(sorted(_dynamic_field_tokens(field_name))) or str(field_name).strip().casefold()
+
+
+def _dynamic_value_key(value: Any) -> str:
+    if not _has_value(value):
+        return ""
+    if isinstance(value, bool):
+        return str(value).casefold()
+    if isinstance(value, (int, float)):
+        return f"{float(value):.12g}"
+    return re.sub(r"\s+", " ", str(value).strip().casefold())
+
+
+def _display_dynamic_value(value: Any) -> str:
+    if isinstance(value, (dict, list, tuple, set)):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return str(value).strip()
+
+
+def _dynamic_entity_label(context: dict[str, str]) -> str | None:
+    entity_items = [
+        f"{key}={value}"
+        for key, value in context.items()
+        if set(key.split("_")) & _DYNAMIC_ENTITY_KEYS
+    ]
+    return "; ".join(entity_items) or None
+
+
+def _has_value(value: Any) -> bool:
+    return value not in (None, "", [], {}, ())
 
 
 def _check_record(record: ScientificRecord) -> list[QualityIssue]:

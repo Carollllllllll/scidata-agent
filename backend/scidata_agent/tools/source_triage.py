@@ -94,6 +94,63 @@ def ingestible_arxiv_source_ids(decisions: list[SourceTriageDecision]) -> set[st
     }
 
 
+def fallback_pdf_download_decisions(
+    sources: list[DiscoveredSource],
+    attempted_source_ids: set[str],
+    failed_source_ids: set[str],
+    *,
+    multiplier: int = 3,
+) -> list[SourceTriageDecision]:
+    """Select replacement PDF candidates after a transport failure.
+
+    This is a transport-recovery policy, not the primary source-selection
+    policy. It preserves explicit LLM rejections, avoids already attempted
+    sources, and gives each failed download a small ranked replacement pool.
+    """
+    candidates = [
+        source
+        for source in sources
+        if source.source_id not in attempted_source_ids
+        and source.metadata.get("pdf_url")
+        and str(source.metadata.get("provider") or "").strip().lower()
+        in {"arxiv", "openalex", "semantic_scholar", "crossref"}
+        and str(source.metadata.get("selection_decision") or "").strip().lower() != "reject"
+    ]
+    ranked = sorted(candidates, key=_fallback_pdf_sort_key, reverse=True)
+    target_count = max(1, len(failed_source_ids)) * max(1, int(multiplier))
+    decisions: list[SourceTriageDecision] = []
+    for source in ranked[:target_count]:
+        provider = str(source.metadata.get("provider") or "").strip().lower() or None
+        score = _fallback_pdf_score(source)
+        decision = SourceTriageDecision(
+            source_id=source.source_id,
+            title=source.title,
+            provider=provider,
+            source_type=source.source_type,
+            relevance_score=score,
+            recommended_action="download_pdf",
+            reason=(
+                "Replacement candidate selected after a previous download failure; "
+                "ranked by source confidence, citation signal, and available PDF evidence."
+            ),
+            estimated_download_size=_estimated_download_size(source),
+            estimated_cost="medium",
+            risk="low",
+            should_ingest=True,
+            metadata={
+                "url": source.url,
+                "query": source.query,
+                "pdf_url": source.metadata.get("pdf_url"),
+                "open_access_url": source.metadata.get("open_access_url"),
+                "selection_decision": "transport_fallback",
+                "fallback_for_failed_sources": sorted(failed_source_ids),
+            },
+        )
+        _attach_triage_metadata(source, decision)
+        decisions.append(decision)
+    return decisions
+
+
 def _selected_pdf_ids_from_llm(
     sources: list[DiscoveredSource],
     selections: dict[str, SourceSelectionDecision],
@@ -381,6 +438,24 @@ def _selection_sort_key(selection: SourceSelectionDecision, source: DiscoveredSo
         "noise": -0.5,
     }.get(selection.source_role, 0.0)
     return (selection.priority_score, priority_boost + role_boost, source.confidence)
+
+
+def _fallback_pdf_sort_key(source: DiscoveredSource) -> tuple[float, float, float, str]:
+    metadata = source.metadata or {}
+    return (
+        _fallback_pdf_score(source),
+        float(metadata.get("citation_count") or metadata.get("citationCount") or 0),
+        source.confidence,
+        source.title.casefold(),
+    )
+
+
+def _fallback_pdf_score(source: DiscoveredSource) -> float:
+    metadata = source.metadata or {}
+    source_type_boost = 0.1 if source.source_type in {"paper", "paper_metadata", "paper_search"} else 0.0
+    citation_count = float(metadata.get("citation_count") or metadata.get("citationCount") or 0)
+    citation_signal = min(0.2, citation_count / 1000.0)
+    return round(min(1.0, max(0.0, source.confidence + source_type_boost + citation_signal)), 4)
 
 
 def _risk_from_selection(selection: SourceSelectionDecision) -> str:

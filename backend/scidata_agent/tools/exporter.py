@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from scidata_agent.agent.schemas import AgentState, ExportFiles, DynamicRecord
+from scidata_agent.tools.evidence import build_evidence_traces, evidence_trace_rows
 from scidata_agent.tools.source_catalog import build_source_catalog, source_catalog_rows, source_catalog_summary
 
 
@@ -32,6 +33,7 @@ def export_results(state: AgentState) -> ExportFiles:
     task_dir.mkdir(parents=True, exist_ok=True)
 
     state.source_catalog = build_source_catalog(state)
+    state.evidence_traces = build_evidence_traces(state)
     catalog_rows = source_catalog_rows(state.source_catalog)
     catalog_summary = source_catalog_summary(state.source_catalog)
     failed_source_count = sum(1 for entry in state.source_catalog if entry.status == "failed")
@@ -47,6 +49,7 @@ def export_results(state: AgentState) -> ExportFiles:
     json_path = task_dir / "result.json"
     log_path = task_dir / "processing_log.json"
     quality_path = task_dir / "quality_report.json"
+    coverage_path = task_dir / "coverage_report.json"
     discovery_path = task_dir / "source_discovery_plan.json"
     arxiv_search_plan_path = task_dir / "arxiv_search_plan.json"
     multi_source_search_plan_path = task_dir / "multi_source_search_plan.json"
@@ -62,6 +65,8 @@ def export_results(state: AgentState) -> ExportFiles:
     source_research_json_path = task_dir / "source_research.json"
     source_catalog_json_path = task_dir / "source_catalog.json"
     source_catalog_csv_path = task_dir / "source_catalog.csv"
+    evidence_traces_json_path = task_dir / "evidence_traces.json"
+    evidence_traces_csv_path = task_dir / "evidence_traces.csv"
     artifact_action_plan_path = task_dir / "artifact_action_plan.json"
     artifact_action_results_path = task_dir / "artifact_action_results.json"
     artifact_action_history_path = task_dir / "artifact_action_history.json"
@@ -74,9 +79,11 @@ def export_results(state: AgentState) -> ExportFiles:
     raw_dynamic_records_path = task_dir / "dynamic_records_raw.json"
     needs_review_csv_path = task_dir / "needs_review.csv"
     needs_review_json_path = task_dir / "needs_review.json"
+    review_queue_json_path = task_dir / "review_queue.json"
     dynamic_tables_dir = task_dir / "tables"
     chart_extractions_path = task_dir / "chart_extractions.json"
     chart_validation_path = task_dir / "chart_validation_report.json"
+    cross_modal_validation_path = task_dir / "cross_modal_validation.json"
     chart_tables_dir = task_dir / "chart_data"
     figures_dir = task_dir / "figures"
     summary_json_path = task_dir / "summary.json"
@@ -110,6 +117,7 @@ def export_results(state: AgentState) -> ExportFiles:
         "source_triage_decisions": _source_triage_rows(state),
         "source_insights": _source_insight_rows(state),
         "source_catalog": [entry.model_dump(mode="json") for entry in state.source_catalog],
+        "evidence_traces": [trace.model_dump(mode="json") for trace in state.evidence_traces],
         "artifact_action_plan": state.artifact_action_plan.model_dump(mode="json")
         if state.artifact_action_plan
         else None,
@@ -126,14 +134,21 @@ def export_results(state: AgentState) -> ExportFiles:
         "dynamic_records": clean_dynamic_record_dicts,
         "dynamic_records_raw": raw_dynamic_record_dicts,
         "needs_review_records": needs_review_dicts,
+        "review_queue": [item.model_dump(mode="json") for item in state.review_queue],
         "sources": [source.model_dump(mode="json") for source in state.sources],
         "quality_report": state.quality_report.model_dump(mode="json"),
+        "coverage_report": state.coverage_report.model_dump(mode="json"),
+        "cross_modal_checks": [check.model_dump(mode="json") for check in state.cross_modal_checks],
         "processing_log": state.processing_log,
     }
     json_path.write_text(json.dumps(json_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     log_path.write_text(json.dumps(state.processing_log, ensure_ascii=False, indent=2), encoding="utf-8")
     quality_path.write_text(
         json.dumps(state.quality_report.model_dump(mode="json"), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    coverage_path.write_text(
+        json.dumps(state.coverage_report.model_dump(mode="json"), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     discovery_payload = (
@@ -192,6 +207,15 @@ def export_results(state: AgentState) -> ExportFiles:
         encoding="utf-8",
     )
     _write_csv(catalog_rows, source_catalog_csv_path)
+    evidence_traces_json_path.write_text(
+        json.dumps(
+            [trace.model_dump(mode="json") for trace in state.evidence_traces],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    _write_csv(evidence_trace_rows(state.evidence_traces), evidence_traces_csv_path)
     artifact_action_plan_path.write_text(
         json.dumps(
             state.artifact_action_plan.model_dump(mode="json") if state.artifact_action_plan else None,
@@ -230,6 +254,10 @@ def export_results(state: AgentState) -> ExportFiles:
     raw_dynamic_records_path.write_text(json.dumps(raw_dynamic_record_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
     needs_review_json_path.write_text(json.dumps(needs_review_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
     _write_csv(_dynamic_records_to_rows(state.needs_review_records), needs_review_csv_path)
+    review_queue_json_path.write_text(
+        json.dumps([item.model_dump(mode="json") for item in state.review_queue], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     export_dynamic_tables(state, dynamic_tables_dir, records=clean_dynamic_records)
     export_chart_data(state, chart_tables_dir)
     chart_extractions_path.write_text(
@@ -255,6 +283,14 @@ def export_results(state: AgentState) -> ExportFiles:
         ),
         encoding="utf-8",
     )
+    cross_modal_validation_path.write_text(
+        json.dumps(
+            [check.model_dump(mode="json") for check in state.cross_modal_checks],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     summary_json_path.write_text(
         json.dumps(build_human_summary(state, paper_survey_records), ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -266,6 +302,7 @@ def export_results(state: AgentState) -> ExportFiles:
         json_file=str(json_path),
         processing_log=str(log_path),
         quality_report=str(quality_path),
+        coverage_report=str(coverage_path),
         source_discovery_plan=str(discovery_path),
         arxiv_search_plan=str(arxiv_search_plan_path),
         multi_source_search_plan=str(multi_source_search_plan_path),
@@ -281,6 +318,8 @@ def export_results(state: AgentState) -> ExportFiles:
         source_research_json=str(source_research_json_path),
         source_catalog_json=str(source_catalog_json_path),
         source_catalog_csv=str(source_catalog_csv_path),
+        evidence_traces_json=str(evidence_traces_json_path),
+        evidence_traces_csv=str(evidence_traces_csv_path),
         artifact_action_plan_json=str(artifact_action_plan_path),
         artifact_action_results_json=str(artifact_action_results_path),
         artifact_action_history_json=str(artifact_action_history_path),
@@ -292,10 +331,12 @@ def export_results(state: AgentState) -> ExportFiles:
         dynamic_records=str(dynamic_records_path),
         clean_dynamic_records=str(clean_dynamic_records_path),
         needs_review=str(needs_review_csv_path),
+        review_queue_json=str(review_queue_json_path),
         dynamic_tables_dir=str(dynamic_tables_dir),
         figures_dir=str(figures_dir) if figures_dir.exists() else None,
         chart_extractions_json=str(chart_extractions_path),
         chart_validation_json=str(chart_validation_path),
+        cross_modal_validation_json=str(cross_modal_validation_path),
         chart_tables_dir=str(chart_tables_dir) if chart_tables_dir.exists() else None,
         final_report=str(final_report_path),
         summary_json=str(summary_json_path),

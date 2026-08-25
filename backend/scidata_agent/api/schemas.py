@@ -5,7 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-TaskStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+TaskStatus = Literal["queued", "running", "completed", "partial", "failed", "cancelled"]
 
 
 class TaskProgress(BaseModel):
@@ -72,6 +72,9 @@ class ReviewRequest(BaseModel):
 
 class ReviewDecision(BaseModel):
     record_id: str
+    review_id: str | None = None
+    subject_id: str | None = None
+    subject_type: str | None = None
     decision: Literal["approved", "needs_changes", "rejected"]
     note: str | None = None
     updated_at: str

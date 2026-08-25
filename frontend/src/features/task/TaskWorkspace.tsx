@@ -10,14 +10,16 @@ import type { EvidenceRecord, TaskEvent, TaskResponse } from "../../types/api";
 import {
   ChartsPanel,
   DynamicDataPanel,
+  EvidencePanel,
   EvidenceDrawer,
   ExportsPanel,
   OverviewPanel,
   QualityPanel,
+  ReviewQueuePanel,
   SourcesPanel,
 } from "./result/ResultPanels";
 
-type TabId = "overview" | "sources" | "data" | "charts" | "quality" | "exports" | "events";
+type TabId = "overview" | "sources" | "data" | "charts" | "evidence" | "review" | "quality" | "exports" | "events";
 
 interface TabDefinition {
   id: TabId;
@@ -105,12 +107,20 @@ export function TaskWorkspace() {
   const recordCount = result?.dynamic_records?.length ?? 0;
   const sourceCount = result?.source_catalog?.length ?? 0;
   const chartCount = result?.chart_extractions?.length ?? 0;
-  const issueCount = task.quality_report?.issue_count ?? task.quality_report?.warning_count ?? 0;
+  const evidenceCount = result?.evidence_traces?.length ?? 0;
+  const reviewCount = result?.review_queue?.length ?? result?.needs_review_records?.length ?? 0;
+  const coverageGaps = result?.coverage_report?.missing_requirements?.length ?? 0;
+  const issueCount = Math.max(
+    task.quality_report?.issue_count ?? task.quality_report?.warning_count ?? 0,
+    coverageGaps,
+  );
   const tabs: TabDefinition[] = [
     { id: "overview", label: "总览", icon: "grid" },
     { id: "sources", label: "来源", icon: "database", count: sourceCount },
     { id: "data", label: "数据", icon: "table", count: recordCount },
     { id: "charts", label: "图像 / 图表", icon: "chart", count: chartCount },
+    { id: "evidence", label: "Evidence", icon: "link", count: evidenceCount },
+    { id: "review", label: "复核", icon: "warning", count: reviewCount },
     { id: "quality", label: "质量", icon: "shield", count: issueCount },
     { id: "exports", label: "导出", icon: "download", count: Object.keys(task.download_urls).length },
     { id: "events", label: "运行记录", icon: "list" },
@@ -205,6 +215,8 @@ export function TaskWorkspace() {
         {activeTab === "sources" && <SourcesPanel result={result} onSelectRecord={setSelectedRecord} />}
         {activeTab === "data" && <DynamicDataPanel result={result} onSelectRecord={setSelectedRecord} />}
         {activeTab === "charts" && <ChartsPanel result={result} />}
+        {activeTab === "evidence" && <EvidencePanel result={result} onSelectRecord={setSelectedRecord} />}
+        {activeTab === "review" && <ReviewQueuePanel task={task} onSelectRecord={setSelectedRecord} />}
         {activeTab === "quality" && <QualityPanel task={task} onSelectRecord={setSelectedRecord} />}
         {activeTab === "exports" && <ExportsPanel task={task} />}
         {activeTab === "events" && <EventsPanel taskId={taskId} status={task.status} />}
@@ -240,7 +252,7 @@ function TaskProgressCard({ task, events }: { task: TaskResponse; events?: TaskE
   } else {
     stableProgress.current.percent = Math.max(stableProgress.current.percent, computedPercent);
   }
-  const percent = task.status === "completed" ? 100 : stableProgress.current.percent;
+  const percent = task.status === "completed" || task.status === "partial" ? 100 : stableProgress.current.percent;
   const milestones = [
     { start: 0, end: 12, label: "规划" },
     { start: 12, end: 58, label: "来源" },
@@ -255,7 +267,7 @@ function TaskProgressCard({ task, events }: { task: TaskResponse; events?: TaskE
       <div className="progress-track"><span style={{ width: `${percent}%` }} /></div>
       <div className="milestone-row">
         {milestones.map((milestone) => {
-          const done = task.status === "completed" || percent >= milestone.end;
+          const done = task.status === "completed" || task.status === "partial" || percent >= milestone.end;
           const active = task.status === "running" && percent >= milestone.start && percent < milestone.end;
           return <span key={milestone.label} className={done ? "done" : active ? "active" : ""}><i>{done ? <Icon name="check" size={11} /> : null}</i>{milestone.label}</span>;
         })}

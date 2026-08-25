@@ -18,7 +18,9 @@ from scidata_agent.agent.schemas import (
     ArxivSearchPlan,
     ArtifactActionIteration,
     QualityIssue,
+    ReviewQueueItem,
     ScientificRecord,
+    SourceSelectionPlan,
     UploadedFile,
     timestamp_task_id,
 )
@@ -26,8 +28,11 @@ from scidata_agent.llm.client import LLMConfigurationError, QwenBailianClient
 from scidata_agent.llm.nodes import QwenAgentNodes
 from scidata_agent.tools.chart_locator import locate_figures
 from scidata_agent.tools.chart_validator import validate_chart_extraction
+from scidata_agent.tools.coverage import build_coverage_report
+from scidata_agent.tools.cross_modal import build_cross_modal_checks
 from scidata_agent.tools.curator import curate_dynamic_records
 from scidata_agent.tools.exporter import export_results
+from scidata_agent.tools.evidence import build_evidence_traces
 from scidata_agent.tools.connectors.arxiv import download_arxiv_pdfs, enrich_with_arxiv_results
 from scidata_agent.tools.connectors.arxiv import (
     DEFAULT_ARXIV_BATCH_TIMEOUT_SECONDS,
@@ -38,10 +43,12 @@ from scidata_agent.tools.normalizer import normalize_records, scientific_records
 from scidata_agent.tools.parser import build_section_blocks_from_plan, fallback_section_plan_from_candidates, parse_sources
 from scidata_agent.tools.provenance import build_source_summaries
 from scidata_agent.tools.quality import build_quality_report
+from scidata_agent.tools.review import build_review_queue
 from scidata_agent.tools.source_ingestion import ingest_triaged_sources
 from scidata_agent.tools.source_catalog import refresh_source_catalog, source_catalog_summary
 from scidata_agent.tools.source_triage import (
     DEFAULT_MAX_AUTO_RESOURCES,
+    fallback_pdf_download_decisions,
     ingestible_arxiv_source_ids,
     triage_sources,
     triage_sources_from_selection,
@@ -366,6 +373,13 @@ class SciDataAgent:
                     max_table_extraction_workers=max_table_extraction_workers,
                     reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
                 )
+                self._refresh_coverage(state, "initial_content_pipeline")
+                if state.coverage_report.decision == "continue" and artifact_action_iterations < 2:
+                    artifact_action_iterations = 2
+                    state.processing_log.append(
+                        "Coverage remains incomplete after the initial content pipeline; "
+                        "one follow-up artifact-planning iteration was added."
+                    )
             if not discovery_only and artifact_action_iterations > 1:
                 self._run_step(
                     monitor,
@@ -377,10 +391,14 @@ class SciDataAgent:
                 if not state.artifact_action_plan or not state.artifact_action_plan.should_continue:
                     break
                 if not state.artifact_action_plan.actions:
+                    if state.coverage_report.decision != "continue":
+                        state.processing_log.append(
+                            "Artifact action loop stopped: planner requested continuation without actions."
+                        )
+                        break
                     state.processing_log.append(
-                        "Artifact action loop stopped: planner requested continuation without actions."
+                        "Artifact action planner returned no actions while coverage is incomplete; replanning."
                     )
-                    break
                 self._run_artifact_action_iteration(
                     monitor,
                     state,
@@ -403,6 +421,7 @@ class SciDataAgent:
                         max_table_extraction_workers=max_table_extraction_workers,
                         reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
                     )
+                    self._refresh_coverage(state, f"artifact_followup_content_pipeline_{iteration}")
                     if iteration + 1 < artifact_action_iterations:
                         self._run_step(
                             monitor,
@@ -419,9 +438,22 @@ class SciDataAgent:
                     )
             self._run_step(monitor, "quality_validation", state, self._quality_check)
             self._append_llm_trace(state, start_index=trace_start_index)
+            final_status = (
+                "partial"
+                if not discovery_only and state.coverage_report.decision != "allow_stop"
+                else "completed"
+            )
+            if final_status == "partial":
+                state.processing_log.append(
+                    "Agent task produced partial results: coverage remains incomplete after all configured action iterations."
+                )
             self._run_step(monitor, "export", state, self._export)
-            result = self._build_result(state, status="completed")
-            monitor.task("completed", "Agent task completed.", _result_snapshot(result))
+            result = self._build_result(state, status=final_status)
+            monitor.task(
+                final_status,
+                "Agent task completed." if final_status == "completed" else "Agent task partially completed.",
+                _result_snapshot(result),
+            )
             return result
         except AgentCancellationRequested:
             message = "Task cancellation requested."
@@ -506,6 +538,16 @@ class SciDataAgent:
             f"artifact_statuses={summary['source_artifact_statuses']}."
         )
 
+    def _refresh_coverage(self, state: AgentState, step: str) -> None:
+        state.coverage_report = build_coverage_report(state)
+        state.processing_log.append(
+            f"Coverage audit after {step}: decision={state.coverage_report.decision}, "
+            f"score={state.coverage_report.coverage_score:.3f}, "
+            f"missing={state.coverage_report.missing_requirements}, "
+            f"gaps={len(state.coverage_report.gaps)}, "
+            f"unprocessed_relevant={len(state.coverage_report.unprocessed_relevant_artifacts)}."
+        )
+
     def _run_artifact_action_iteration(
         self,
         monitor: AgentMonitor,
@@ -524,6 +566,8 @@ class SciDataAgent:
             iteration=iteration,
         )
         self._run_step(monitor, "artifact_action_execution", state, self._execute_artifact_actions)
+        self._refresh_catalog(state, "artifact_action_execution")
+        self._refresh_coverage(state, "artifact_action_execution")
         if any(
             result.action == "search_more" and result.status == "completed"
             for result in state.artifact_action_results
@@ -535,6 +579,8 @@ class SciDataAgent:
                 arxiv_pdf_timeout=arxiv_pdf_timeout,
                 arxiv_download_batch_timeout=arxiv_download_batch_timeout,
             )
+            self._refresh_catalog(state, "artifact_search_more_followup")
+            self._refresh_coverage(state, "artifact_search_more_followup")
 
     def _run_search_more_followup(
         self,
@@ -675,11 +721,13 @@ class SciDataAgent:
     def _plan_artifact_actions(self, state: AgentState, iteration: int = 0) -> None:
         if not state.source_catalog:
             self._refresh_catalog(state, "artifact_action_planning_input")
+        self._refresh_coverage(state, "artifact_action_planning_input")
         state.artifact_action_plan = self.llm_nodes.plan_artifact_actions(
             state.research_question,
             state.source_catalog,
             dynamic_plan=state.dynamic_extraction_plan,
             quality_report=state.quality_report,
+            coverage_report=state.coverage_report,
             processing_log=state.processing_log,
             connector_failures=[
                 item
@@ -691,6 +739,7 @@ class SciDataAgent:
         action_counts: dict[str, int] = {}
         for action in state.artifact_action_plan.actions:
             action_counts[action.action] = action_counts.get(action.action, 0) + 1
+        self._persist_artifact_assessments(state)
         state.processing_log.append(
             "Qwen Artifact Action Planner completed: "
             f"iteration={state.artifact_action_plan.iteration}, "
@@ -698,6 +747,27 @@ class SciDataAgent:
             f"actions={len(state.artifact_action_plan.actions)}, "
             f"action_counts={action_counts}."
         )
+
+    @staticmethod
+    def _persist_artifact_assessments(state: AgentState) -> None:
+        if not state.source_discovery_plan or not state.artifact_action_plan:
+            return
+        source_by_id = {
+            source.source_id: source
+            for source in state.source_discovery_plan.candidate_sources
+        }
+        catalog_artifacts = {
+            artifact.artifact_id: artifact
+            for entry in state.source_catalog
+            for artifact in entry.artifacts
+        }
+        for assessment in state.artifact_action_plan.artifact_assessments:
+            artifact = catalog_artifacts.get(assessment.artifact_id)
+            source = source_by_id.get(artifact.source_id) if artifact else None
+            if source is None or artifact is None:
+                continue
+            stored = source.metadata.setdefault("artifact_relevance_assessments", {})
+            stored[assessment.artifact_id] = assessment.model_dump(mode="json")
 
     def _execute_artifact_actions(self, state: AgentState) -> None:
         if not state.artifact_action_plan:
@@ -867,14 +937,42 @@ class SciDataAgent:
         if not state.source_discovery_plan.candidate_sources:
             state.processing_log.append("Source selection skipped: no candidate sources are available.")
             return
-        state.source_selection_plan = self.llm_nodes.select_sources(
-            state.research_question,
-            state.source_discovery_plan,
-            dynamic_plan=state.dynamic_extraction_plan,
-            multi_source_search_plan=state.multi_source_search_plan,
-            connector_status=state.connector_status,
-            max_auto_resources=max_auto_resources,
-        )
+        candidates = list(state.source_discovery_plan.candidate_sources)
+        batch_size = _positive_env_int("SCIDATA_SOURCE_SELECTION_BATCH_SIZE", 40)
+        batches = [
+            candidates[start : start + batch_size]
+            for start in range(0, len(candidates), batch_size)
+        ] or [[]]
+        plans: list[SourceSelectionPlan] = []
+        selection_errors: list[str] = []
+        for index, batch in enumerate(batches, start=1):
+            batch_plan = state.source_discovery_plan.model_copy(update={"candidate_sources": batch})
+            try:
+                plans.append(
+                    self.llm_nodes.select_sources(
+                        state.research_question,
+                        batch_plan,
+                        dynamic_plan=state.dynamic_extraction_plan,
+                        multi_source_search_plan=state.multi_source_search_plan,
+                        connector_status=state.connector_status,
+                        max_auto_resources=max_auto_resources,
+                        candidate_limit=batch_size,
+                    )
+                )
+            except Exception as exc:
+                selection_errors.append(f"batch {index}/{len(batches)}: {exc}")
+        if not plans:
+            raise RuntimeError(
+                "All source-selection batches failed: " + "; ".join(selection_errors)
+            )
+        state.source_selection_plan = _merge_source_selection_plans(plans)
+        if selection_errors:
+            state.source_selection_plan.notes.append(
+                f"{len(selection_errors)} source-selection batch(es) failed; successful batches were retained."
+            )
+            state.processing_log.extend(
+                f"Source selection warning: {error}" for error in selection_errors
+            )
         decision_counts: dict[str, int] = {}
         priority_counts: dict[str, int] = {}
         for decision in state.source_selection_plan.decisions:
@@ -884,6 +982,8 @@ class SciDataAgent:
             "Qwen Source Selector completed: "
             f"candidate_sources={len(state.source_discovery_plan.candidate_sources)}, "
             f"decisions={len(state.source_selection_plan.decisions)}, "
+            f"selection_batches={len(batches)}, "
+            f"failed_selection_batches={len(selection_errors)}, "
             f"max_auto_resources={max_auto_resources}, "
             f"decision_counts={decision_counts}, "
             f"priority_counts={priority_counts}, "
@@ -946,6 +1046,70 @@ class SciDataAgent:
             f"source_text_blocks={len(text_blocks)}, "
             f"source_insights={len(insights)}."
         )
+        failed_download_ids = {
+            decision.source_id
+            for decision in state.source_triage_decisions
+            if decision.recommended_action in {"download_pdf", "download_small_table", "download_small_supplement"}
+            and decision.should_ingest
+            and next(
+                (
+                    source
+                    for source in state.source_discovery_plan.candidate_sources
+                    if source.source_id == decision.source_id
+                ),
+                None,
+            ) is not None
+            and next(
+                (
+                    source
+                    for source in state.source_discovery_plan.candidate_sources
+                    if source.source_id == decision.source_id
+                ),
+                None,
+            ).metadata.get("last_ingestion_status") == "failed"
+        }
+        if not failed_download_ids:
+            return
+        attempted_ids = {
+            source.source_id
+            for source in state.source_discovery_plan.candidate_sources
+            if int(source.metadata.get("ingestion_attempts") or 0) > 0
+        }
+        try:
+            fallback_multiplier = max(1, int(os.getenv("SCIDATA_DOWNLOAD_FALLBACK_MULTIPLIER", "3")))
+        except ValueError:
+            fallback_multiplier = 3
+        fallback_decisions = fallback_pdf_download_decisions(
+            state.source_discovery_plan.candidate_sources,
+            attempted_ids,
+            failed_download_ids,
+            multiplier=fallback_multiplier,
+        )
+        if not fallback_decisions:
+            state.processing_log.append(
+                "Download fallback found no unattempted PDF candidates after ingestion failures."
+            )
+            return
+        state.source_triage_decisions.extend(fallback_decisions)
+        state.processing_log.append(
+            "Download fallback retry started: "
+            f"failed_sources={len(failed_download_ids)}, replacement_candidates={len(fallback_decisions)}."
+        )
+        fallback_files, fallback_blocks, fallback_insights, fallback_logs = ingest_triaged_sources(
+            state.source_discovery_plan.candidate_sources,
+            fallback_decisions,
+            state.output_dir,
+            state.task_id,
+        )
+        state.files.extend(fallback_files)
+        state.parsed_sources.text_blocks.extend(fallback_blocks)
+        state.source_insights.extend(fallback_insights)
+        state.processing_log.extend(fallback_logs)
+        state.processing_log.append(
+            "Download fallback retry completed: "
+            f"uploaded_files={len(fallback_files)}, source_text_blocks={len(fallback_blocks)}, "
+            f"source_insights={len(fallback_insights)}."
+        )
 
     def _ingest_arxiv_pdfs(
         self,
@@ -993,6 +1157,66 @@ class SciDataAgent:
             progress_callback=_arxiv_download_progress_callback(step_monitor, state),
             reuse_dirs=reuse_dirs,
         )
+        # A failed arXiv transport should not consume the whole paper-ingestion
+        # opportunity. The downloader records per-source failures, so select
+        # unattempted PDF candidates and give them the same bounded fallback
+        # treatment as other multi-source downloads.
+        attempted_arxiv_ids = {
+            source.source_id
+            for source in state.source_discovery_plan.candidate_sources
+            if str(source.metadata.get("provider") or "").strip().lower() == "arxiv"
+            and int(source.metadata.get("ingestion_attempts") or 0) > 0
+        }
+        failed_arxiv_ids = {
+            source.source_id
+            for source in state.source_discovery_plan.candidate_sources
+            if source.source_id in attempted_arxiv_ids
+            and str(source.metadata.get("provider") or "").strip().lower() == "arxiv"
+            and source.metadata.get("last_ingestion_status") == "failed"
+        }
+        if failed_arxiv_ids:
+            try:
+                fallback_multiplier = max(
+                    1,
+                    int(os.getenv("SCIDATA_DOWNLOAD_FALLBACK_MULTIPLIER", "3")),
+                )
+            except ValueError:
+                fallback_multiplier = 3
+            fallback_decisions = fallback_pdf_download_decisions(
+                state.source_discovery_plan.candidate_sources,
+                attempted_arxiv_ids,
+                failed_arxiv_ids,
+                multiplier=fallback_multiplier,
+            )
+            fallback_arxiv_decisions = [
+                decision
+                for decision in fallback_decisions
+                if decision.provider == "arxiv"
+            ]
+            if fallback_arxiv_decisions:
+                state.source_triage_decisions.extend(fallback_arxiv_decisions)
+                fallback_ids = {decision.source_id for decision in fallback_arxiv_decisions}
+                fallback_paths = download_arxiv_pdfs(
+                    state.source_discovery_plan,
+                    download_dir=download_dir,
+                    max_papers=len(fallback_ids),
+                    allowed_source_ids=fallback_ids,
+                    total_timeout=pdf_timeout,
+                    batch_timeout=batch_timeout,
+                    progress_callback=_arxiv_download_progress_callback(step_monitor, state),
+                    reuse_dirs=reuse_dirs,
+                )
+                downloaded_paths.extend(fallback_paths)
+                state.processing_log.append(
+                    "arXiv download fallback completed: "
+                    f"failed_sources={len(failed_arxiv_ids)}, "
+                    f"replacement_candidates={len(fallback_arxiv_decisions)}, "
+                    f"downloaded_pdfs={len(fallback_paths)}."
+                )
+            else:
+                state.processing_log.append(
+                    "arXiv download fallback found no unattempted PDF candidates."
+                )
         for path in downloaded_paths:
             state.files.append(
                 UploadedFile(
@@ -1433,6 +1657,37 @@ class SciDataAgent:
             table_blocks=state.parsed_sources.tables,
             mutate_records=True,
         )
+        state.cross_modal_checks = build_cross_modal_checks(
+            state.parsed_sources.text_blocks,
+            state.parsed_sources.tables,
+            state.parsed_sources.figure_assets,
+            state.chart_extractions,
+        )
+        for check in state.cross_modal_checks:
+            if check.status in {"partial", "not_comparable"}:
+                for issue in check.issues:
+                    state.quality_report.issues.append(
+                        QualityIssue(
+                            record_id=check.subject_id,
+                            level="warning" if check.status == "partial" else "info",
+                            field="cross_modal",
+                            message=f"[Cross-modal/{check.status}] {issue}",
+                        )
+                    )
+        if state.cross_modal_checks:
+            state.quality_report.issue_count = len(state.quality_report.issues)
+            state.quality_report.warning_count = sum(
+                1 for issue in state.quality_report.issues if issue.level == "warning"
+            )
+            state.quality_report.error_count = sum(
+                1 for issue in state.quality_report.issues if issue.level == "error"
+            )
+            state.quality_report.notes.append(
+                f"Cross-modal audit merged: checks={len(state.cross_modal_checks)}, "
+                f"supported={sum(1 for check in state.cross_modal_checks if check.status == 'supported')}, "
+                f"partial={sum(1 for check in state.cross_modal_checks if check.status == 'partial')}, "
+                f"not_comparable={sum(1 for check in state.cross_modal_checks if check.status == 'not_comparable')}."
+            )
         review_issue_ids = {
             issue.record_id
             for issue in state.quality_report.issues
@@ -1466,6 +1721,17 @@ class SciDataAgent:
                 f"extracted={len(state.chart_extractions)}, "
                 f"needs_review={sum(1 for v in state.chart_validations if v.needs_review)}."
             )
+        # Build provenance before queueing review risks so record items can
+        # point directly to their existing evidence trace.
+        state.evidence_traces = build_evidence_traces(state)
+        state.review_queue = build_review_queue(state)
+        state.quality_report.review_count = len(state.review_queue)
+        state.processing_log.append(
+            f"Human review queue built: items={len(state.review_queue)}, "
+            f"high={sum(1 for item in state.review_queue if item.priority == 'high')}, "
+            f"medium={sum(1 for item in state.review_queue if item.priority == 'medium')}, "
+            f"low={sum(1 for item in state.review_queue if item.priority == 'low')}."
+        )
         state.processing_log.append(
             "Quality validation completed: "
             f"issues={state.quality_report.issue_count}, "
@@ -1513,6 +1779,7 @@ class SciDataAgent:
             source_triage_decisions=state.source_triage_decisions,
             source_insights=state.source_insights,
             source_catalog=state.source_catalog,
+            evidence_traces=state.evidence_traces,
             artifact_action_plan=state.artifact_action_plan,
             artifact_action_results=state.artifact_action_results,
             artifact_action_history=state.artifact_action_history,
@@ -1537,13 +1804,16 @@ class SciDataAgent:
             dynamic_records=state.clean_dynamic_records or state.dynamic_records,
             dynamic_records_raw=state.dynamic_records,
             needs_review_records=state.needs_review_records,
+            review_queue=state.review_queue,
             figures=state.parsed_sources.figure_assets,
             chart_extractions=state.chart_extractions,
             chart_validations=state.chart_validations,
+            cross_modal_checks=state.cross_modal_checks,
             field_schema=FIELD_SCHEMA,
             sources=state.sources,
             processing_log=state.processing_log,
             quality_report=state.quality_report,
+            coverage_report=state.coverage_report,
             export_files=state.export_files,
         )
 
@@ -1606,6 +1876,7 @@ def _state_snapshot(state: AgentState) -> dict[str, Any]:
         "artifact_action_results_count": len(state.artifact_action_results),
         "artifact_action_iterations_count": len(state.artifact_action_history),
         "processing_log_tail": state.processing_log[-5:],
+        "coverage_report": state.coverage_report.model_dump(mode="json"),
     }
     if state.artifact_action_plan:
         snapshot["artifact_action_plan"] = {
@@ -1831,6 +2102,43 @@ def _state_snapshot(state: AgentState) -> dict[str, Any]:
         if exports:
             snapshot["export_files"] = exports
     return snapshot
+
+
+def _positive_env_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _merge_source_selection_plans(plans: list[SourceSelectionPlan]) -> SourceSelectionPlan:
+    """Merge independent source-selector batches without losing decisions."""
+    if not plans:
+        raise ValueError("At least one source-selection plan is required.")
+    decisions_by_id = {}
+    notes: list[str] = []
+    summaries: list[str] = []
+    time_range = None
+    research_goal = plans[0].research_goal
+    for plan in plans:
+        time_range = time_range or plan.time_range_interpreted
+        if plan.selection_summary and plan.selection_summary not in summaries:
+            summaries.append(plan.selection_summary)
+        for note in plan.notes:
+            if note and note not in notes:
+                notes.append(note)
+        for decision in plan.decisions:
+            existing = decisions_by_id.get(decision.source_id)
+            if existing is None or decision.priority_score > existing.priority_score:
+                decisions_by_id[decision.source_id] = decision
+    return SourceSelectionPlan(
+        research_goal=research_goal,
+        selection_summary=" ".join(summaries) if summaries else None,
+        time_range_interpreted=time_range,
+        decisions=list(decisions_by_id.values()),
+        notes=notes,
+    )
 
 
 def _unlimited_or_positive(value: int | None) -> int | None:

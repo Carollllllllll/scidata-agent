@@ -86,6 +86,20 @@ def test_executor_reads_csv_into_shared_state(tmp_path: Path) -> None:
     assert any("Artifact action action_parse_csv" in line for line in state.processing_log)
 
 
+def test_executor_skips_duplicate_parse_for_already_parsed_artifact(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    plan = ArtifactActionPlan(
+        research_goal=state.research_question,
+        actions=[action("parse_csv"), action("parse_csv")],
+    )
+
+    results = ArtifactActionExecutor().execute_plan(plan, state)
+
+    assert [result.status for result in results] == ["completed", "skipped"]
+    assert len(state.parsed_sources.tables) == 1
+    assert state.source_catalog[0].artifacts[0].status == "parsed"
+
+
 def test_executor_records_metadata_without_downloading(tmp_path: Path) -> None:
     state = make_state(tmp_path)
     results = ArtifactActionExecutor().execute_plan(
@@ -291,9 +305,182 @@ def test_search_more_runs_a_new_llm_planned_search(monkeypatch: pytest.MonkeyPat
     )
 
     assert result.status == "completed"
-    assert result.output_counts == {"search_requests": 1, "new_sources": 1, "failed_requests": 0}
+    assert result.output_counts == {
+        "search_requests": 1,
+        "new_sources": 1,
+        "failed_requests": 0,
+        "planning_batches": 1,
+        "failed_planning_batches": 0,
+    }
     assert state.multi_source_search_plan is not None
     assert len(state.source_discovery_plan.candidate_sources) == 1
+
+
+def test_search_more_uses_bounded_batches(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[
+            DiscoveredSource(
+                title=f"Candidate {index}",
+                source_type="paper_metadata",
+                url=f"https://example.org/{index}",
+                metadata={"provider": "crossref"},
+            )
+            for index in range(85)
+        ],
+    )
+    calls: list[tuple[int, int, str]] = []
+
+    class BoundedPlanner:
+        def plan_multi_source_search(
+            self,
+            research_question: str,
+            source_discovery_plan: SourceDiscoveryPlan,
+            *,
+            candidate_context_limit: int = 40,
+            batch_label: str = "single batch",
+        ) -> MultiSourceSearchPlan:
+            calls.append((len(source_discovery_plan.candidate_sources), candidate_context_limit, batch_label))
+            return MultiSourceSearchPlan(
+                research_goal=research_question,
+                search_requests=[
+                    SourceSearchRequest(
+                        connector_name="crossref",
+                        source_type="paper_metadata",
+                        query=f"query {batch_label}",
+                    )
+                ],
+            )
+
+    def fake_search(plan: MultiSourceSearchPlan):
+        return [], {"status": "completed", "searched": len(plan.search_requests), "failed": 0, "connector_status": []}
+
+    monkeypatch.setenv("SCIDATA_SEARCH_MORE_BATCH_SIZE", "40")
+    monkeypatch.setattr("scidata_agent.agent.action_executor.execute_multi_source_search", fake_search)
+    result = ArtifactActionExecutor(BoundedPlanner()).execute_action(
+        action("search_more", artifact_id=None), state
+    )
+
+    assert result.status == "completed"
+    assert calls == [(40, 40, "batch 1/3"), (40, 40, "batch 2/3"), (5, 40, "batch 3/3")]
+    assert result.output_counts["planning_batches"] == 3
+    assert result.output_counts["failed_planning_batches"] == 0
+
+
+def test_search_more_supports_legacy_two_argument_planner(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[
+            DiscoveredSource(
+                title="Candidate",
+                source_type="paper_metadata",
+                url="https://example.org/candidate",
+                metadata={"provider": "crossref"},
+            )
+        ],
+    )
+
+    def fake_search(plan: MultiSourceSearchPlan):
+        return [], {"status": "completed", "searched": 1, "failed": 0, "connector_status": []}
+
+    monkeypatch.setattr("scidata_agent.agent.action_executor.execute_multi_source_search", fake_search)
+    result = ArtifactActionExecutor(SearchMorePlanner()).execute_action(
+        action("search_more", artifact_id=None), state
+    )
+
+    assert result.status == "completed"
+    assert result.output_counts["planning_batches"] == 1
+
+
+def test_search_more_keeps_successful_batches_when_one_planning_batch_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[
+            DiscoveredSource(
+                title=f"Candidate {index}",
+                source_type="paper_metadata",
+                url=f"https://example.org/{index}",
+                metadata={"provider": "crossref"},
+            )
+            for index in range(85)
+        ],
+    )
+
+    class PartiallyFailingPlanner:
+        def plan_multi_source_search(
+            self,
+            research_question: str,
+            source_discovery_plan: SourceDiscoveryPlan,
+            *,
+            batch_label: str = "single batch",
+            **kwargs,
+        ) -> MultiSourceSearchPlan:
+            if batch_label == "batch 2/3":
+                raise RuntimeError("temporary planner failure")
+            return MultiSourceSearchPlan(
+                research_goal=research_question,
+                search_requests=[
+                    SourceSearchRequest(
+                        connector_name="crossref",
+                        source_type="paper_metadata",
+                        query=f"query {batch_label}",
+                    )
+                ],
+            )
+
+    def fake_search(plan: MultiSourceSearchPlan):
+        return [], {"status": "completed", "searched": len(plan.search_requests), "failed": 0, "connector_status": []}
+
+    monkeypatch.setenv("SCIDATA_SEARCH_MORE_BATCH_SIZE", "40")
+    monkeypatch.setattr("scidata_agent.agent.action_executor.execute_multi_source_search", fake_search)
+    result = ArtifactActionExecutor(PartiallyFailingPlanner()).execute_action(
+        action("search_more", artifact_id=None), state
+    )
+
+    assert result.status == "completed"
+    assert result.output_counts["planning_batches"] == 3
+    assert result.output_counts["failed_planning_batches"] == 1
+    assert result.output_counts["search_requests"] == 2
+    assert any("temporary planner failure" in line for line in state.processing_log)
+
+
+def test_search_more_fails_when_all_planning_batches_fail(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[
+            DiscoveredSource(
+                title=f"Candidate {index}",
+                source_type="paper_metadata",
+                url=f"https://example.org/{index}",
+                metadata={"provider": "crossref"},
+            )
+            for index in range(2)
+        ],
+    )
+
+    class FailingPlanner:
+        def plan_multi_source_search(self, research_question: str, source_discovery_plan: SourceDiscoveryPlan, **kwargs):
+            raise RuntimeError("planner unavailable")
+
+    result = ArtifactActionExecutor(FailingPlanner()).execute_action(
+        action("search_more", artifact_id=None), state
+    )
+
+    assert result.status == "failed"
+    assert "All search_more planning batches failed" in result.message
 
 
 class EvidenceValidator:

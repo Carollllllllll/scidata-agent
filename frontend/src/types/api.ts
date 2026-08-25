@@ -1,4 +1,4 @@
-export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type TaskStatus = "queued" | "running" | "completed" | "partial" | "failed" | "cancelled";
 
 export interface HealthResponse {
   status: "ok";
@@ -87,10 +87,38 @@ export interface ScientificRecord {
 
 export type EvidenceRecord = DynamicRecord | ScientificRecord;
 
+export interface EvidenceTrace {
+  evidence_id: string;
+  record_id: string;
+  source_id?: string | null;
+  artifact_id?: string | null;
+  source_title?: string | null;
+  source_file: string;
+  source_type?: string;
+  page?: number | null;
+  section_id?: string | null;
+  section_title?: string | null;
+  table_id?: string | null;
+  figure_id?: string | null;
+  evidence_type: "text" | "table" | "figure" | "unknown";
+  extraction_method?: string | null;
+  evidence_text?: string | null;
+  locator_status: "resolved" | "partial" | "unresolved";
+  confidence: number;
+  notes: string[];
+}
+
 export interface SourceArtifact {
   artifact_id: string;
+  name?: string | null;
   artifact_type?: string;
+  size_bytes?: number | null;
+  relevance_score?: number | null;
+  field_scores?: Record<string, number>;
+  relevance_reason?: string | null;
+  evidence_types?: string[];
   url?: string | null;
+  local_path?: string | null;
   asset_url?: string;
   status?: string;
   parser?: string | null;
@@ -175,6 +203,23 @@ export interface ConflictIssue {
   record_ids: string[];
   sources: string[];
   message: string;
+  alignment_context?: Record<string, string>;
+  comparison_basis?: string[];
+  resolution?: "preserve_all" | "not_comparable";
+}
+
+export interface CrossModalCheck {
+  check_id: string;
+  source_file: string;
+  page?: number | null;
+  subject_id: string;
+  modalities: string[];
+  status: "supported" | "partial" | "not_comparable";
+  matched_value_count: number;
+  candidate_value_count: number;
+  evidence_refs: string[];
+  issues: string[];
+  confidence: number;
 }
 
 export interface QualityReport {
@@ -198,6 +243,89 @@ export interface QualityReport {
   notes?: string[];
 }
 
+export interface CoverageItem {
+  name: string;
+  priority: "high" | "medium" | "low";
+  status: "covered" | "partial" | "missing" | "unavailable";
+  evidence_count: number;
+  evidence_types: string[];
+  reason?: string | null;
+}
+
+export interface CoverageGap {
+  gap_id: string;
+  requirement_name: string;
+  priority: "high" | "medium" | "low";
+  status: "missing" | "partial" | "unavailable";
+  missing_fields: string[];
+  missing_evidence_types: string[];
+  evidence_count: number;
+  reason: string;
+  recommended_actions: string[];
+}
+
+export interface CoverageReport {
+  decision: "continue" | "allow_stop";
+  coverage_score: number;
+  requirements: CoverageItem[];
+  gaps: CoverageGap[];
+  missing_requirements: string[];
+  required_evidence_types: string[];
+  covered_evidence_types: string[];
+  unprocessed_relevant_artifacts: string[];
+  reasons: string[];
+  recommended_actions: string[];
+}
+
+export interface ArtifactRelevanceAssessment {
+  artifact_id: string;
+  topic_alignment: number;
+  task_fit: number;
+  evidence_directness: number;
+  evidence_depth: number;
+  source_authority: number;
+  complementarity: number;
+  overall_score: number;
+  field_scores: Record<string, number>;
+  evidence_types: string[];
+  rank?: number | null;
+  recommendation: "process" | "inspect_metadata" | "skip" | "unknown";
+  rationale: string;
+}
+
+export interface ArtifactAction {
+  action_id: string;
+  artifact_id?: string | null;
+  action: string;
+  purpose: string;
+  expected_fields: string[];
+  priority: "high" | "medium" | "low";
+  reason: string;
+  gap_ids: string[];
+  parameters: Record<string, unknown>;
+}
+
+export interface ArtifactActionResult {
+  action_id: string;
+  artifact_id?: string | null;
+  action: string;
+  status: "completed" | "skipped" | "failed" | "no_op";
+  message: string;
+  output_counts: Record<string, number>;
+  warnings: string[];
+  error?: string | null;
+}
+
+export interface ArtifactActionPlan {
+  research_goal: string;
+  iteration: number;
+  should_continue: boolean;
+  stop_reason?: string | null;
+  actions: ArtifactAction[];
+  artifact_assessments: ArtifactRelevanceAssessment[];
+  notes: string[];
+}
+
 export interface AgentSummary {
   files_processed?: number;
   text_blocks_processed?: number;
@@ -215,7 +343,7 @@ export interface AgentSummary {
 
 export interface AgentResult {
   task_id: string;
-  status: "completed" | "failed";
+  status: "completed" | "partial" | "failed";
   research_question: string;
   summary: AgentSummary;
   dynamic_extraction_plan?: DynamicExtractionPlan | null;
@@ -223,11 +351,22 @@ export interface AgentResult {
   dynamic_records?: DynamicRecord[];
   dynamic_records_raw?: DynamicRecord[];
   needs_review_records?: DynamicRecord[];
+  review_queue?: ReviewQueueItem[];
   source_catalog?: SourceCatalogEntry[];
+  evidence_traces?: EvidenceTrace[];
+  artifact_action_plan?: ArtifactActionPlan | null;
+  artifact_action_results?: ArtifactActionResult[];
+  artifact_action_history?: Array<{
+    iteration: number;
+    plan: ArtifactActionPlan;
+    results: ArtifactActionResult[];
+  }>;
+  coverage_report?: CoverageReport | null;
   connector_status?: Array<Record<string, unknown>>;
   figures?: FigureAsset[];
   chart_extractions?: ChartExtraction[];
   chart_validations?: ChartValidation[];
+  cross_modal_checks?: CrossModalCheck[];
   quality_report: QualityReport;
   processing_log?: string[];
   export_files?: Record<string, string>;
@@ -250,15 +389,35 @@ export interface TaskResponse {
   result?: AgentResult | null;
   summary?: AgentSummary | null;
   quality_report?: QualityReport | null;
+  coverage_report?: CoverageReport | null;
   download_urls: Record<string, string>;
   review_decisions: Record<string, ReviewDecision>;
 }
 
 export interface ReviewDecision {
   record_id: string;
+  review_id?: string | null;
+  subject_id?: string | null;
+  subject_type?: string | null;
   decision: "approved" | "needs_changes" | "rejected";
   note?: string | null;
   updated_at: string;
+}
+
+export interface ReviewQueueItem {
+  review_id: string;
+  subject_type: "record" | "figure" | "cross_modal" | "conflict" | "coverage_gap";
+  subject_id: string;
+  priority: "high" | "medium" | "low";
+  risk_type: string;
+  title: string;
+  reason: string;
+  source_file?: string | null;
+  page?: number | null;
+  record_id?: string | null;
+  figure_id?: string | null;
+  evidence_refs: string[];
+  details: Record<string, unknown>;
 }
 
 export interface TaskListResponse {

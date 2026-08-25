@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from scidata_agent.agent.schemas import (
     ArtifactActionPlan,
+    CoverageReport,
     DynamicExtractionPlan,
     QualityReport,
     SourceArtifact,
@@ -150,6 +151,36 @@ def test_stop_plan_has_no_artifact_and_stops() -> None:
 
     assert plan.should_continue is False
     assert plan.actions[0].artifact_id is None
+
+
+def test_stop_plan_is_rejected_when_coverage_is_incomplete() -> None:
+    payload = {
+        "research_goal": "The evidence is sufficient.",
+        "should_continue": False,
+        "stop_reason": "The model decided to stop early.",
+        "actions": [
+            {
+                "action_id": "action_stop",
+                "artifact_id": None,
+                "action": "stop",
+                "purpose": "Finish the workflow.",
+                "reason": "The available evidence is sufficient.",
+            }
+        ],
+    }
+    plan = QwenAgentNodes(RecordingClient(payload)).plan_artifact_actions(
+        "The evidence is sufficient.",
+        make_catalog(),
+        coverage_report=CoverageReport(
+            decision="continue",
+            missing_requirements=["experimental setup"],
+            reasons=["Required fields are missing or partial: experimental setup."],
+        ),
+    )
+
+    assert plan.should_continue is True
+    assert plan.actions == []
+    assert "Stop rejected by coverage auditor" in (plan.stop_reason or "")
 
 
 def test_unknown_artifact_id_is_dropped_without_losing_valid_actions() -> None:

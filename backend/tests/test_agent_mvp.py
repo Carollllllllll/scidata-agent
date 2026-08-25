@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from scidata_agent.agent.schemas import (
+    AgentState,
     ArxivSearchPlan,
     DiscoveredSource,
     DynamicExtractionPlan,
@@ -15,6 +16,7 @@ from scidata_agent.agent.schemas import (
     SourceDiscoveryPlan,
     SourceSearchRequest,
     SourceSelectionPlan,
+    SourceSelectionDecision,
     SourceType,
     TableBlock,
 )
@@ -49,6 +51,62 @@ from tests.create_fixtures import create_csv_fixture, create_pdf_fixture
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_source_selection_batches_large_candidate_pool(tmp_path: Path, monkeypatch) -> None:
+    candidates = [
+        DiscoveredSource(
+            title=f"candidate-{index}",
+            source_type="paper_metadata",
+            url=f"https://example.org/{index}",
+            metadata={"provider": "openalex"},
+        )
+        for index in range(85)
+    ]
+    state = AgentState(
+        research_question="Compare glucose changes before and after meals.",
+        files=[],
+        output_dir=tmp_path,
+        source_discovery_plan=SourceDiscoveryPlan(
+            research_goal="Compare glucose changes before and after meals.",
+            candidate_sources=candidates,
+        ),
+    )
+    calls: list[int] = []
+
+    class BatchingSelector:
+        def select_sources(self, research_question, source_discovery_plan, **kwargs):
+            calls.append(len(source_discovery_plan.candidate_sources))
+            return SourceSelectionPlan(
+                research_goal=research_question,
+                decisions=[
+                    SourceSelectionDecision(
+                        source_id=source.source_id,
+                        decision="metadata_only",
+                        priority="medium",
+                        source_role="supporting_paper",
+                        priority_score=0.5,
+                        reason="batch smoke test",
+                    )
+                    for source in source_discovery_plan.candidate_sources
+                ],
+            )
+
+    agent = SciDataAgent(
+        output_dir=tmp_path / "outputs",
+        llm_client=MockQwenClient(),
+        require_llm=True,
+        monitor_console=False,
+        monitor_enabled=False,
+    )
+    agent.llm_nodes = BatchingSelector()
+    monkeypatch.setenv("SCIDATA_SOURCE_SELECTION_BATCH_SIZE", "40")
+
+    agent._select_sources(state, max_auto_resources=None)
+
+    assert calls == [40, 40, 5]
+    assert len(state.source_selection_plan.decisions) == 85
+    assert "selection_batches=3" in state.processing_log[-1]
 
 
 class MockQwenClient(QwenBailianClient):
@@ -1937,6 +1995,46 @@ def test_arxiv_pdf_download_selection_without_network() -> None:
     assert downloaded[0].exists()
     assert downloaded[0].suffix == ".pdf"
     assert any("downloaded_path" in source.metadata for source in enriched.candidate_sources)
+
+
+def test_arxiv_pdf_download_records_failure_and_continues_with_other_candidates(tmp_path: Path) -> None:
+    from scidata_agent.tools.connectors.arxiv import download_arxiv_pdfs
+
+    plan = fallback_discover_sources("offline arXiv fallback test")
+    sources = [
+        DiscoveredSource(
+            title=f"Fallback paper {index}",
+            source_type="paper",
+            url=f"https://arxiv.org/abs/9999.0000{index}",
+            metadata={
+                "provider": "arxiv",
+                "pdf_url": f"https://arxiv.org/pdf/9999.0000{index}",
+            },
+            confidence=0.9 - index * 0.1,
+        )
+        for index in range(3)
+    ]
+    plan.candidate_sources = sources
+
+    def flaky_downloader(url: str, target_path: Path, timeout: int) -> None:
+        if url.endswith("0000"):
+            raise TimeoutError("fixture timeout")
+        target_path.write_bytes(b"%PDF-1.4\nfixture\n%%EOF")
+
+    downloaded = download_arxiv_pdfs(
+        plan,
+        download_dir=tmp_path / "arxiv-fallback",
+        max_papers=3,
+        downloader=flaky_downloader,
+        retries=0,
+        max_workers=1,
+    )
+
+    assert len(downloaded) == 2
+    assert sources[0].metadata["last_ingestion_status"] == "failed"
+    assert sources[0].metadata["last_ingestion_error"] == "fixture timeout"
+    assert sources[0].metadata["ingestion_attempts"] == 1
+    assert all(source.metadata["last_ingestion_status"] == "completed" for source in sources[1:])
 
 
 def test_multi_source_search_plan_executes_all_connectors_without_network() -> None:

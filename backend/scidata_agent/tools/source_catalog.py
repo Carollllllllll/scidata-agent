@@ -278,6 +278,14 @@ def _build_artifacts(
             artifact.url,
             artifact.local_path,
         )
+        assessments = metadata.get("artifact_relevance_assessments")
+        if isinstance(assessments, dict):
+            assessment = assessments.get(artifact.artifact_id)
+            if isinstance(assessment, dict):
+                artifact.relevance_score = assessment.get("overall_score")
+                artifact.field_scores = assessment.get("field_scores") or {}
+                artifact.relevance_reason = assessment.get("rationale")
+                artifact.evidence_types = assessment.get("evidence_types") or []
         key = (artifact.artifact_type, artifact.url, artifact.local_path)
         if key in seen:
             return

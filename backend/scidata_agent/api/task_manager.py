@@ -53,8 +53,10 @@ class TaskManager:
         "dynamic_records_raw": "dynamic_records_raw.json",
         "needs_review": "needs_review.json",
         "needs_review_csv": "needs_review.csv",
+        "review_queue": "review_queue.json",
         "chart_extractions": "chart_extractions.json",
         "chart_validation": "chart_validation_report.json",
+        "cross_modal_validation": "cross_modal_validation.json",
         "connector_status": "connector_status.json",
         "discovered_sources": "discovered_sources.json",
         "summary": "summary.json",
@@ -248,7 +250,7 @@ class TaskManager:
 
     def list_tasks(self, limit: int = 20, status: str | None = None) -> list[dict[str, Any]]:
         limit = max(1, min(int(limit), 100))
-        allowed_statuses = {"queued", "running", "completed", "failed", "cancelled"}
+        allowed_statuses = {"queued", "running", "completed", "partial", "failed", "cancelled"}
         if status is not None and status not in allowed_statuses:
             raise ValueError("Invalid task status")
 
@@ -361,17 +363,24 @@ class TaskManager:
             payload = self._read_json(self._task_state_dir(task_id, create=False) / "result_payload.json")
             if payload is None:
                 raise LookupError("Task result is not ready")
-            valid_ids = _reviewable_record_ids(payload)
+            valid_ids = _reviewable_review_ids(payload)
             if record_id not in valid_ids:
                 raise KeyError(record_id)
             decisions = self.review_decisions(task_id)
+            queue_item = valid_ids[record_id]
             review = {
-                "record_id": record_id,
+                "record_id": str(queue_item.get("record_id") or record_id),
+                "review_id": record_id,
+                "subject_id": str(queue_item.get("subject_id") or record_id),
+                "subject_type": queue_item.get("subject_type"),
                 "decision": decision,
                 "note": note.strip() if isinstance(note, str) and note.strip() else None,
                 "updated_at": _now(),
             }
             decisions[record_id] = review
+            legacy_record_id = queue_item.get("record_id")
+            if legacy_record_id and str(legacy_record_id) != record_id:
+                decisions[str(legacy_record_id)] = review
             self._write_json(self._task_state_dir(task_id) / "review_decisions.json", decisions)
             self._update_state(task_id, updated_at=_now())
             return review
@@ -529,22 +538,31 @@ class TaskManager:
             failure_message = _result_failure_message(payload)
             if failure_event:
                 failure_message = failure_event.get("message") or failure_message
+            is_partial = result.status == "partial"
+            partial_message = (
+                "Agent task partially completed; coverage requirements remain unsatisfied."
+            )
             self._update_state(
                 task_id,
                 status=result.status,
                 current_step=(
                     "completed"
                     if result.status == "completed"
+                    else "partial"
+                    if is_partial
                     else (failure_event or {}).get("step") or "failed"
                 ),
                 message=(
                     "Agent task completed."
                     if result.status == "completed"
+                    else partial_message
+                    if is_partial
                     else failure_message
                 ),
                 error=(
-                    None
-                    if result.status == "completed"
+                    None if result.status == "completed"
+                    else {"code": "AGENT_TASK_PARTIAL", "message": partial_message}
+                    if is_partial
                     else {"code": "AGENT_TASK_FAILED", "message": failure_message}
                 ),
                 result_status=result.status,
@@ -750,8 +768,13 @@ def _result_failure_message(payload: dict[str, Any]) -> str:
     return "Agent task failed."
 
 
-def _reviewable_record_ids(payload: dict[str, Any]) -> set[str]:
-    result: set[str] = set()
+def _reviewable_review_ids(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    queue = payload.get("review_queue")
+    if isinstance(queue, list):
+        for item in queue:
+            if isinstance(item, dict) and item.get("review_id"):
+                result[str(item["review_id"])] = item
     for collection in ("records", "dynamic_records", "needs_review_records", "figures"):
         items = payload.get(collection)
         if not isinstance(items, list):
@@ -761,5 +784,11 @@ def _reviewable_record_ids(payload: dict[str, Any]) -> set[str]:
                 continue
             identifier = item.get("record_id") or item.get("figure_id")
             if identifier:
-                result.add(str(identifier))
+                identifier = str(identifier)
+                result.setdefault(identifier, {
+                    "review_id": identifier,
+                    "subject_id": identifier,
+                    "subject_type": "record" if item.get("record_id") else "figure",
+                    "record_id": item.get("record_id"),
+                })
     return result
