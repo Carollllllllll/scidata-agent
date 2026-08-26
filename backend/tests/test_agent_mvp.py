@@ -301,7 +301,10 @@ class MockQwenClient(QwenBailianClient):
                 "assumptions": ["Mock Qwen returns a structured task plan for tests."],
                 "schema_notes": ["Keep provenance and evidence for each extracted value."],
                 "dynamic_schema": {"entity": "string", "metric_name": "string", "metric_value": "number|null"},
-                "source_requirements": ["papers", "tables", "supplementary_materials"],
+                # The shared mock fixture only guarantees a local paper. Tests
+                # that exercise missing table or supplementary evidence declare
+                # those requirements explicitly in their own plans.
+                "source_requirements": ["papers"],
                 "validation_rules": ["metric_value must be supported by evidence_text"],
             }
         if node == "qwen_dynamic_schema_planner":
@@ -311,7 +314,7 @@ class MockQwenClient(QwenBailianClient):
                 "task_type": "data_extraction",
                 "user_focus": ["materials", "fabrication methods", "performance metrics"],
                 "time_range": None,
-                "source_requirements": ["papers", "tables"],
+                "source_requirements": ["papers"],
                 "information_needs": [
                     {
                         "need_name": "device structure and material",
@@ -1335,7 +1338,9 @@ def test_dynamic_schema_planner_rule_fallback_only_when_explicitly_allowed() -> 
         lambda: agent.run("Extract material, method, PCE, and evidence.", [pdf_path], max_pdf_pages=2)
     )
 
-    assert result.status == "completed"
+    assert result.status == "partial"
+    assert result.coverage_report.decision == "continue"
+    assert result.coverage_report.missing_requirements
     assert client.dynamic_calls == 2
     assert result.dynamic_extraction_plan is not None
     assert result.dynamic_extraction_plan.dynamic_tables
@@ -1460,7 +1465,9 @@ def test_rule_fallback_is_explicitly_marked() -> None:
 
     result = agent.run("Local tool-chain test: extract metrics from PDF and CSV.", [csv_path, pdf_path], max_pdf_pages=5)
 
-    assert result.status == "completed"
+    assert result.status == "partial"
+    assert result.coverage_report.decision == "continue"
+    assert result.coverage_report.missing_requirements
     assert result.summary.records_after_cleaning >= 1
     assert any("fallback" in log.lower() for log in result.processing_log)
 
