@@ -90,7 +90,7 @@ img { display: block; max-width: 100%; }
 }
 
 .brand { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; padding: 0 6px; }
-.brand-mark { width: 42px; height: 42px; display: grid; place-items: center; color: #fff; border-radius: 13px; background: linear-gradient(145deg, #577cff, #3654c5); box-shadow: 0 9px 24px rgba(40, 73, 190, 0.42), inset 0 1px rgba(255, 255, 255, 0.28); }
+.brand-mark { width: 44px; height: 44px; flex: 0 0 auto; border-radius: 14px; box-shadow: 0 11px 26px rgba(38, 65, 176, .43); }
 .brand strong { display: block; font-size: 17px; line-height: 1.1; letter-spacing: 0.01em; }
 .brand small { display: block; margin-top: 4px; color: #9ba6ca; font-size: 12px; letter-spacing: 0.13em; text-transform: uppercase; }
 
@@ -118,6 +118,7 @@ img { display: block; max-width: 100%; }
 .topbar-breadcrumb { display: flex; align-items: center; gap: 8px; color: #7b8398; font-size: 12px; }
 .topbar-breadcrumb strong { color: var(--ink); font-weight: 650; }
 .mobile-brand { display: none; }
+.mobile-brand img { width: 28px; height: 28px; border-radius: 9px; box-shadow: 0 5px 14px rgba(43, 67, 158, .24); }
 .page-container { width: min(1500px, 100%); margin: 0 auto; padding: 36px 38px 60px; }
 
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 28px; }
@@ -192,6 +193,7 @@ img { display: block; max-width: 100%; }
 .section-icon { width: 37px; height: 37px; display: grid; flex: 0 0 auto; place-items: center; color: #4968d8; background: var(--blue-soft); border-radius: 10px; }
 
 .recent-section { margin-top: 30px; padding: 25px; background: #fff; border: 1px solid var(--line); border-radius: 17px; box-shadow: 0 12px 34px rgba(31,43,76,.045); }
+.task-history-section { margin-top: 0; }
 .section-heading-row, .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .section-heading-row h2, .panel-heading h2, .panel-heading h3 { margin: 7px 0 0; color: #202a45; font-size: 18px; letter-spacing: -.02em; }
 .panel-heading h3 { font-size: 15px; }

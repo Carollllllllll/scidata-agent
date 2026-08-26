@@ -198,6 +198,7 @@ class QwenBailianClient:
                 ],
                 "temperature": temperature,
                 "max_tokens": self.text_max_tokens,
+                "enable_thinking": False,
             }
             try:
                 data = self._post_json(payload, timeout=self.timeout)
@@ -271,6 +272,7 @@ class QwenBailianClient:
                 ],
                 "temperature": temperature,
                 "max_tokens": self.vl_max_tokens,
+                "enable_thinking": False,
             }
             try:
                 data = self._post_json(payload, timeout=self.vl_timeout)
