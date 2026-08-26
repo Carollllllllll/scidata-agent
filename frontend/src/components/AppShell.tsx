@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const health = useQuery({ queryKey: ["health"], queryFn: getHealth, refetchInterval: 30_000 });
   const tasks = useQuery({ queryKey: ["tasks", 12], queryFn: () => listTasks(12) });
   const inTask = location.pathname.startsWith("/tasks/");
+  const inHistory = location.pathname === "/history";
   const currentTaskId = taskIdFromPath(location.pathname);
   const [rememberedTaskId, setRememberedTaskId] = useState(readRecentTaskId);
   const taskDetailId = chooseTaskDetailId(currentTaskId, tasks.data?.tasks, rememberedTaskId);
@@ -37,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <NavLink to="/" className="brand" aria-label="SciData Agent 首页">
-          <span className="brand-mark"><Icon name="beaker" size={22} /></span>
+          <img className="brand-mark" src="/scidata-mark.svg" alt="" />
           <span>
             <strong>SciData</strong>
             <small>Agent Workbench</small>
@@ -48,6 +49,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <NavLink to="/" end className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
             <Icon name="home" />
             <span>科研工作台</span>
+          </NavLink>
+          <NavLink to="/history" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+            <Icon name="clock" />
+            <span>历史任务</span>
           </NavLink>
           {taskDetailId ? (
             <NavLink
@@ -111,10 +116,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="main-shell">
         <header className="topbar">
-          <div className="mobile-brand"><Icon name="beaker" size={20} /> SciData</div>
+          <div className="mobile-brand"><img src="/scidata-mark.svg" alt="" /> SciData</div>
           <div className="topbar-breadcrumb">
             <span>科研数据工作台</span>
-            {inTask && <><Icon name="chevron" size={14} /><strong>任务详情</strong></>}
+            {(inTask || inHistory) && (
+              <><Icon name="chevron" size={14} /><strong>{inTask ? "任务详情" : "历史任务"}</strong></>
+            )}
           </div>
         </header>
         <div className="page-container">{children}</div>

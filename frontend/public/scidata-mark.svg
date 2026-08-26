@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="background" x1="9" y1="7" x2="55" y2="59" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6F8FFF"/>
+      <stop offset="0.5" stop-color="#4667E6"/>
+      <stop offset="1" stop-color="#2B3D9B"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(18 12) rotate(48) scale(45)">
+      <stop stop-color="white" stop-opacity="0.3"/>
+      <stop offset="0.72" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="track-shadow" x="10" y="6" width="44" height="52" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#17296E" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect x="1" y="1" width="62" height="62" rx="18" fill="url(#background)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="17.5" fill="url(#glow)" stroke="#B8C7FF" stroke-opacity="0.36"/>
+
+  <g filter="url(#track-shadow)">
+    <path
+      d="M46 17.5C42.1 12.9 35.1 10.9 28.8 12.5C23.1 13.9 19.2 17.7 19.2 21.9C19.2 26.7 24.4 28.5 32 30.2C39.7 31.9 44.8 34 44.8 39.3C44.8 44.2 40.7 48.2 35 49.8C28.9 51.5 21.9 49.6 18 45"
+      stroke="white"
+      stroke-width="5.2"
+      stroke-linecap="round"
+    />
+    <circle cx="46" cy="17.5" r="3.1" fill="#BFE4FF" stroke="white" stroke-width="1.7"/>
+    <circle cx="32" cy="30.2" r="2.7" fill="#BFE4FF" stroke="white" stroke-width="1.7"/>
+    <circle cx="18" cy="45" r="3.1" fill="#BFE4FF" stroke="white" stroke-width="1.7"/>
+  </g>
+</svg>

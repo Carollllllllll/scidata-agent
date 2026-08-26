@@ -99,6 +99,44 @@ def test_vl_model_failover_on_quota(tmp_path):
     assert client.model_events[0]["kind"] == "vl"
 
 
+def test_text_request_disables_thinking_for_non_streaming_call():
+    captured: dict = {}
+
+    def fake_urlopen(request, timeout):
+        captured.update(json.loads(request.data.decode("utf-8")))
+        return _Response(_success_payload())
+
+    client = QwenBailianClient(
+        api_key="test",
+        models=("text-one",),
+        http_client=_HttpClient(fake_urlopen),
+    )
+    client.generate_text("test_node", "system", "user")
+
+    assert captured["enable_thinking"] is False
+    assert "stream" not in captured
+
+
+def test_vision_request_disables_thinking_for_non_streaming_call(tmp_path):
+    captured: dict = {}
+    image_path = tmp_path / "figure.png"
+    image_path.write_bytes(b"not-a-real-image-but-valid-for-request-mocking")
+
+    def fake_urlopen(request, timeout):
+        captured.update(json.loads(request.data.decode("utf-8")))
+        return _Response(_success_payload("vision response"))
+
+    client = QwenBailianClient(
+        api_key="test",
+        vl_models=("vl-one",),
+        http_client=_HttpClient(fake_urlopen),
+    )
+    client.generate_vision_text("chart_node", "system", "user", [image_path])
+
+    assert captured["enable_thinking"] is False
+    assert "stream" not in captured
+
+
 def test_timeout_is_not_silently_converted_to_quota_failover():
     calls: list[str] = []
 
