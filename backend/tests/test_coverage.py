@@ -243,6 +243,46 @@ def test_optional_evidence_field_does_not_block_stop(tmp_path: Path) -> None:
     assert report.gaps[0].priority == "low"
 
 
+def test_required_duplicate_field_promotes_priority(tmp_path: Path) -> None:
+    state = AgentState(
+        research_question="Extract the dataset used by each experiment.",
+        files=[],
+        output_dir=tmp_path / "outputs",
+        dynamic_extraction_plan=DynamicExtractionPlan(
+            research_goal="Extract the dataset used by each experiment.",
+            dynamic_tables=[
+                {
+                    "table_name": "experiments",
+                    "fields": [
+                        {
+                            "name": "dataset_or_object",
+                            "required": False,
+                            "evidence_required": True,
+                        }
+                    ],
+                },
+                {
+                    "table_name": "dataset_usage",
+                    "fields": [
+                        {
+                            "name": "dataset_or_object",
+                            "required": True,
+                            "evidence_required": True,
+                        }
+                    ],
+                },
+            ],
+        ),
+    )
+
+    report = build_coverage_report(state)
+
+    assert len(report.requirements) == 1
+    assert report.requirements[0].priority == "high"
+    assert report.decision == "continue"
+    assert report.missing_requirements == ["dataset_or_object"]
+
+
 def test_failed_required_evidence_is_marked_unavailable(tmp_path: Path) -> None:
     state = AgentState(
         research_question="Extract the requested paper evidence.",

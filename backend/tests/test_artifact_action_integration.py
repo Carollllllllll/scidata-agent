@@ -198,8 +198,9 @@ def test_main_agent_does_not_duplicate_csv_after_artifact_action(tmp_path: Path)
         auto_fetch_arxiv=False,
     )
 
-    assert result.status == "completed"
-    assert result.coverage_report.decision == "allow_stop"
+    assert result.status == "partial"
+    assert result.coverage_report.decision == "continue"
+    assert result.coverage_report.missing_requirements == ["value"]
     assert result.artifact_action_results[0].action == "parse_csv"
     assert result.artifact_action_results[0].status == "skipped"
     assert result.artifact_action_history[0].results[0].status == "completed"

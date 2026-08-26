@@ -351,6 +351,10 @@ class SciDataAgent:
                     state.processing_log.append(
                         "Source download skipped by policy: live connector results remain metadata-only."
                     )
+            if discovery_only:
+                state.processing_log.append(
+                    "Agent completed source discovery only; content ingestion and extraction were skipped by policy."
+                )
             if not discovery_only:
                 self._run_artifact_action_iteration(
                     monitor,

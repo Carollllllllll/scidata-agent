@@ -246,12 +246,20 @@ def _requirement_specs(state: AgentState) -> list[tuple[str, str]]:
     if not values and state.task_plan:
         values.extend((field, "medium") for field in state.task_plan.target_fields if field)
     deduped: list[tuple[str, str]] = []
-    seen: set[str] = set()
+    index_by_name: dict[str, int] = {}
+    priority_rank = {"low": 0, "medium": 1, "high": 2}
     for name, priority in values:
         key = str(name).strip().casefold()
-        if key and key not in seen:
+        if not key:
+            continue
+        existing_index = index_by_name.get(key)
+        if existing_index is None:
+            index_by_name[key] = len(deduped)
             deduped.append((str(name).strip(), priority))
-            seen.add(key)
+            continue
+        existing_name, existing_priority = deduped[existing_index]
+        if priority_rank[priority] > priority_rank[existing_priority]:
+            deduped[existing_index] = (existing_name, priority)
     return deduped
 
 
