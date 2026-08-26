@@ -212,6 +212,37 @@ def test_low_priority_gap_is_reported_but_does_not_block_stop(tmp_path: Path) ->
     assert report.gaps[0].status == "missing"
 
 
+def test_optional_evidence_field_does_not_block_stop(tmp_path: Path) -> None:
+    state = AgentState(
+        research_question="Extract available results.",
+        files=[],
+        output_dir=tmp_path / "outputs",
+        dynamic_extraction_plan=DynamicExtractionPlan(
+            research_goal="Extract available results.",
+            dynamic_tables=[
+                {
+                    "table_name": "results",
+                    "priority": "high",
+                    "fields": [
+                        {
+                            "name": "optional_context",
+                            "required": False,
+                            "evidence_required": True,
+                        }
+                    ],
+                }
+            ],
+        ),
+    )
+
+    report = build_coverage_report(state)
+
+    assert report.decision == "allow_stop"
+    assert report.requirements[0].priority == "low"
+    assert report.requirements[0].status == "missing"
+    assert report.gaps[0].priority == "low"
+
+
 def test_failed_required_evidence_is_marked_unavailable(tmp_path: Path) -> None:
     state = AgentState(
         research_question="Extract the requested paper evidence.",

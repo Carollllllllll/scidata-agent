@@ -238,7 +238,11 @@ def _requirement_specs(state: AgentState) -> list[tuple[str, str]]:
         for table in plan.dynamic_tables:
             for field in table.fields:
                 if field.evidence_required and field.name:
-                    values.append((field.name, "high" if field.required else table.priority))
+                    # evidence_required is an evidence contract, not a
+                    # presence contract. Optional fields may legitimately be
+                    # absent from a source; report their gap without blocking
+                    # completion. Only explicitly required fields block.
+                    values.append((field.name, "high" if field.required else "low"))
     if not values and state.task_plan:
         values.extend((field, "medium") for field in state.task_plan.target_fields if field)
     deduped: list[tuple[str, str]] = []

@@ -42,7 +42,7 @@ class IntegrationQwenClient(QwenBailianClient):
                 "dynamic_tables": [
                     {
                         "table_name": "test_results",
-                        "fields": [{"name": "value", "evidence_required": True}],
+                        "fields": [{"name": "value", "required": True, "evidence_required": True}],
                     }
                 ],
                 "quality_rules": [],
@@ -155,7 +155,8 @@ def test_main_agent_runs_bounded_artifact_planner_and_exports_results(tmp_path: 
         auto_fetch_arxiv=False,
     )
 
-    assert result.status == "completed"
+    assert result.status == "partial"
+    assert result.coverage_report.decision == "continue"
     assert result.artifact_action_plan is not None
     assert result.artifact_action_plan.should_continue is True
     assert result.artifact_action_plan.actions == []
@@ -198,6 +199,7 @@ def test_main_agent_does_not_duplicate_csv_after_artifact_action(tmp_path: Path)
     )
 
     assert result.status == "completed"
+    assert result.coverage_report.decision == "allow_stop"
     assert result.artifact_action_results[0].action == "parse_csv"
     assert result.artifact_action_results[0].status == "skipped"
     assert result.artifact_action_history[0].results[0].status == "completed"
@@ -225,7 +227,8 @@ def test_main_agent_preserves_bounded_artifact_action_iterations(tmp_path: Path)
         max_artifact_action_iterations=2,
     )
 
-    assert result.status == "completed"
+    assert result.status == "partial"
+    assert result.coverage_report.decision == "continue"
     assert client.artifact_planner_calls == 2
     assert len(result.artifact_action_history) == 2
     assert [item.iteration for item in result.artifact_action_history] == [0, 1]

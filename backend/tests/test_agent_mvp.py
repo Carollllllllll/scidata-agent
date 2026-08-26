@@ -1247,6 +1247,7 @@ def test_source_discovery_normalizes_llm_source_type_aliases() -> None:
     result = agent.run(
         "Survey recent try-on papers and collect figure/chart evidence.",
         auto_fetch_arxiv=False,
+        discovery_only=True,
     )
 
     assert result.status == "completed"
@@ -1417,7 +1418,11 @@ def test_question_only_source_discovery_mode_with_mock_client() -> None:
     output_dir = ROOT / "outputs" / "test-runs"
     agent = SciDataAgent(output_dir=output_dir, llm_client=MockQwenClient(), require_llm=True, monitor_console=False)
 
-    result = agent.run("我希望研究 Ia 型超新星光变曲线", auto_fetch_arxiv=False)
+    result = agent.run(
+        "我希望研究 Ia 型超新星光变曲线",
+        auto_fetch_arxiv=False,
+        discovery_only=True,
+    )
 
     assert result.status == "completed"
     assert result.summary.files_processed == 0
