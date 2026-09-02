@@ -75,6 +75,9 @@ task without local files.
   "error": null,
   "uploads": [],
   "event": {},
+  "runtime": null,
+  "coverage": null,
+  "source_status": null,
   "result": null,
   "summary": null,
   "quality_report": null,
@@ -99,13 +102,28 @@ include:
 - `evidence_traces` (record-to-source/page/section/table/figure provenance)
 - `coverage_report` (deterministic stop decision, coverage score, structured
   evidence gaps, and recommended next actions)
-- `figures`, `chart_extractions`, and `chart_validations`
+- `runtime_iteration`, `runtime_status`, `runtime_stop_reason`,
+  `agent_decision_history`, `tool_result_history`, `stop_rejections`, and
+  `agent_trace` (auditable Observation-Decision-Action runtime state)
+- `export_files.agent_trace_json`, `export_files.decision_history_json`, and
+  `export_files.tool_history_json` (independent runtime history exports)
+- `figures`, `chart_extractions`, `chart_validations`, and `chart_corrections`
 - `quality_report`
 
 `cross_modal_checks` and the `cross_modal_validation` export report whether
 same-page text, table, and figure evidence numerically corroborate one another.
 Qualitative figures and missing comparison material are reported as
 `not_comparable`, not as extraction failures.
+
+While a task is running, the task envelope exposes compact `runtime`, `coverage`,
+and `source_status` snapshots when the latest checkpoint contains them. The
+runtime snapshot includes the current phase, iteration budget, no-progress
+streak/limit, and stop reason when known. The latest monitor event also carries
+the same bounded values under `data`; tool arguments, local paths, and large
+evidence payloads are intentionally omitted. Once `result_payload.json` exists,
+the task and event endpoints prefer its terminal snapshot over a stale
+intermediate monitor event. The completed task result contains the full runtime
+histories and trace.
 
 Conflict entries in `quality_report.conflicts` include the aligned context,
 the fields used for comparison, and a resolution marker. The current policy is
@@ -114,8 +132,11 @@ shown for review; the backend never silently chooses one value.
 
 The top-level `summary` and `quality_report` mirror the corresponding result
 fields for fast rendering. `GET /api/tasks/{task_id}/events?tail=80` reads a
-bounded window from the end of the monitor file and omits event `data` by
-default. Add `include_data=true` only for detailed diagnostics.
+bounded window from the end of the monitor file. Ordinary event payloads are
+omitted by default, while events with a checkpoint expose only bounded
+`data.runtime`, `data.coverage`, and `data.source_status`. Add
+`include_data=true` only for detailed diagnostics; that mode returns the raw
+event data subject to the normal public path sanitizer.
 
 Lifecycle and review mutations:
 
@@ -145,7 +166,8 @@ fields.
 
 `GET /api/tasks/{task_id}/export?format=review_queue` downloads the structured
 human-review queue. `GET /api/tasks/{task_id}/export?format=csv` uses a
-server-side allowlist. Use
+server-side allowlist. `format=chart_corrections` downloads the initial/second-pass
+comparison records. Use
 the returned `download_urls`; never reconstruct a server path in the browser.
 
 ## Error contract
@@ -179,8 +201,8 @@ is bounded by `SCIDATA_MAX_PENDING_TASKS`.
 5. Keep source lifecycle status separate from record quality status.
 6. When `coverage_report.decision` is `continue`, show `coverage_report.gaps`
    and their recommended actions instead of treating the result as complete.
-6. Use `download_urls` and public asset URLs only.
-7. Do not fabricate placeholder scientific results for empty responses.
-8. Render `evidence_traces` as the record-to-source audit trail. An
+7. Use `download_urls` and public asset URLs only.
+8. Do not fabricate placeholder scientific results for empty responses.
+9. Render `evidence_traces` as the record-to-source audit trail. An
    `unresolved` locator means the backend did not have enough evidence to claim
    a precise page, section, table, or figure location.

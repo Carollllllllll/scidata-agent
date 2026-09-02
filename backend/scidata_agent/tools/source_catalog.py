@@ -584,7 +584,8 @@ def _match_local_path(url: str | None, metadata: dict[str, Any], known_files: li
 
 
 def _artifact_type(value: str | None, source_type: str) -> str:
-    suffix = Path(urlparse(value).path if value and "://" in value else value or "").suffix.lower()
+    raw_value = str(value or "")
+    suffix = Path(urlparse(raw_value).path if value and "://" in value else raw_value).suffix.lower()
     if suffix == ".pdf":
         lowered = str(value or "").lower()
         return "supplementary_pdf" if source_type == "supplementary_material" or any(token in lowered for token in ("supplement", "supp_", "appendix")) else "pdf"
@@ -600,6 +601,21 @@ def _artifact_type(value: str | None, source_type: str) -> str:
         return "code_archive"
     if source_type in {"dataset", "open_database"}:
         return "file_manifest"
+    # Downloaded search/landing pages often have generated names such as
+    # ``search`` or ``VBench-project`` without an extension. Sniff only the
+    # small prefix needed to route the local artifact to the right parser.
+    path = Path(raw_value)
+    if path.is_file() and not suffix:
+        try:
+            prefix = path.read_bytes()[:4096].lstrip().lower()
+        except OSError:
+            prefix = b""
+        if prefix.startswith(b"%pdf-"):
+            return "pdf"
+        if prefix.startswith((b"<!doctype html", b"<html", b"<?xml")) or b"<html" in prefix:
+            return "html"
+        if prefix.startswith((b"{", b"[")):
+            return "json"
     return "html" if value and "://" in value else "unknown"
 
 

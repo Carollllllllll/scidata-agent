@@ -12,12 +12,14 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from scidata_agent.agent.field_schema import DEFAULT_TARGET_FIELDS
+from scidata_agent.agent.action_registry import is_global_action
 from scidata_agent.agent.planner import plan_task as fallback_plan_task
 from scidata_agent.agent.schemas import (
     ArxivSearchPlan,
     ArtifactRelevanceAssessment,
     ArtifactActionPlan,
     ChartExtraction,
+    ChartValidationResult,
     DynamicExtractionPlan,
     DynamicFieldSpec,
     DynamicRecord,
@@ -50,6 +52,8 @@ from scidata_agent.llm.prompts import (
     CHART_CLASSIFIER_USER,
     CHART_EXTRACTOR_SYSTEM,
     CHART_EXTRACTOR_USER,
+    CHART_CORRECTION_SYSTEM,
+    CHART_CORRECTION_USER,
     DYNAMIC_EXTRACTOR_SYSTEM,
     DYNAMIC_EXTRACTOR_USER,
     DYNAMIC_PLANNER_SYSTEM,
@@ -352,6 +356,7 @@ class QwenAgentNodes:
         *,
         candidate_context_limit: int = 40,
         batch_label: str = "single batch",
+        search_strategy: dict[str, Any] | None = None,
     ) -> MultiSourceSearchPlan:
         try:
             candidate_context = _source_candidate_summaries(
@@ -374,6 +379,7 @@ class QwenAgentNodes:
                     source_discovery_plan_json=json.dumps(compact_discovery_plan, ensure_ascii=False, indent=2),
                     candidate_context_json=json.dumps(candidate_context, ensure_ascii=False, indent=2),
                     batch_label=batch_label,
+                    search_strategy_json=json.dumps(search_strategy or {}, ensure_ascii=False, indent=2),
                 ),
             )
             if not isinstance(payload, dict):
@@ -458,6 +464,8 @@ class QwenAgentNodes:
         processing_log: list[str] | None = None,
         connector_failures: list[dict[str, Any]] | None = None,
         iteration: int = 0,
+        observation_json: str | None = None,
+        allow_workflow_stage_actions: bool = False,
     ) -> ArtifactActionPlan:
         """Ask Qwen which concrete artifact operations should run next."""
         catalog_payload = [
@@ -484,7 +492,13 @@ class QwenAgentNodes:
                     source_catalog_json=json.dumps(catalog_payload, ensure_ascii=False, indent=2),
                     processing_log_json=json.dumps((processing_log or [])[-40:], ensure_ascii=False, indent=2),
                     connector_failures_json=json.dumps(connector_failures or [], ensure_ascii=False, indent=2),
+                    observation_json=observation_json or "null",
                     iteration=iteration,
+                    runtime_mode=(
+                        "dynamic ODA runtime"
+                        if allow_workflow_stage_actions
+                        else "legacy compatibility pipeline"
+                    ),
                 ),
                 temperature=0.05,
             )
@@ -516,11 +530,25 @@ class QwenAgentNodes:
             for source in source_catalog
             for artifact in source.artifacts
         }
-        global_actions = {"search_more", "validate_evidence", "stop"}
         valid_actions = []
         dropped_actions = []
+        workflow_stage_actions = {
+            "parse_source_content",
+            "extract_figures",
+            "interpret_sections",
+            "extract_dynamic_records",
+            "extract_records",
+            "normalize_records",
+            "track_provenance",
+        }
         for action in plan.actions:
-            if action.action in global_actions:
+            if is_global_action(action.action):
+                if action.action in workflow_stage_actions and not allow_workflow_stage_actions:
+                    dropped_actions.append(action)
+                    plan.notes.append(
+                        f"Dropped dynamic workflow stage {action.action!r} outside dynamic ODA runtime."
+                    )
+                    continue
                 if action.artifact_id is not None:
                     plan.notes.append(
                         f"Cleared artifact_id from global action {action.action!r}."
@@ -1059,6 +1087,46 @@ class QwenAgentNodes:
         )
         if not isinstance(payload, dict):
             raise LLMCallError("Chart extractor did not return a JSON object.")
+        payload.setdefault("chart_type", chart_type)
+        payload["contains_data"] = True
+        payload["figure_id"] = figure.figure_id
+        payload["source_file"] = figure.source_file
+        payload["page"] = figure.page
+        _repair_chart_extraction_payload(payload, max_points=max_points)
+        return ChartExtraction.model_validate(payload)
+
+    def recheck_chart_data(
+        self,
+        figure: FigureAsset,
+        chart_type: str,
+        first_extraction: ChartExtraction,
+        validation: ChartValidationResult,
+        max_points: int = 40,
+    ) -> ChartExtraction:
+        """Ask Qwen-VL for one targeted second opinion on a flagged chart."""
+        if not figure.image_path:
+            raise LLMCallError("Chart recheck requires a rendered figure image.")
+        payload = self._generate_vision_json_with_retries(
+            "qwen_vl_chart_rechecker",
+            CHART_CORRECTION_SYSTEM,
+            CHART_CORRECTION_USER.format(
+                chart_type=chart_type,
+                caption=figure.caption or "(no caption available)",
+                first_extraction_json=json.dumps(
+                    first_extraction.model_dump(mode="json"),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                issues_json=json.dumps(
+                    [issue.model_dump(mode="json") for issue in validation.issues],
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            ),
+            [figure.image_path],
+        )
+        if not isinstance(payload, dict):
+            raise LLMCallError("Chart rechecker did not return a JSON object.")
         payload.setdefault("chart_type", chart_type)
         payload["contains_data"] = True
         payload["figure_id"] = figure.figure_id

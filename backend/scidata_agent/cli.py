@@ -75,6 +75,35 @@ def main() -> None:
         default=1,
         help="Maximum LLM artifact-planning iterations. Default 1; explicitly set a larger value when needed.",
     )
+    runtime_group = parser.add_mutually_exclusive_group()
+    runtime_group.add_argument(
+        "--dynamic-runtime",
+        dest="dynamic_runtime",
+        action="store_true",
+        help="Enable the Observation-Decision-Action runtime (the default).",
+    )
+    runtime_group.add_argument(
+        "--legacy-runtime",
+        dest="dynamic_runtime",
+        action="store_false",
+        help="Use the compatibility pipeline instead of the dynamic Agent runtime.",
+    )
+    parser.set_defaults(dynamic_runtime=True)
+    parser.add_argument(
+        "--max-agent-iterations",
+        type=int,
+        default=None,
+        help="Safety budget for dynamic Agent turns; this does not cap sources or downloaded resources.",
+    )
+    parser.add_argument(
+        "--task-id",
+        help="Reuse a specific task ID when resuming from its checkpoint.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Load the checkpoint for --task-id and continue the previous task.",
+    )
     parser.add_argument(
         "--arxiv-pdf-timeout",
         type=int,
@@ -113,6 +142,10 @@ def main() -> None:
         max_artifact_action_iterations=args.max_artifact_action_iterations,
         arxiv_pdf_timeout=args.arxiv_pdf_timeout,
         arxiv_download_batch_timeout=args.arxiv_download_batch_timeout,
+        enable_dynamic_runtime=args.dynamic_runtime,
+        max_agent_iterations=args.max_agent_iterations,
+        task_id=args.task_id,
+        resume=args.resume,
     )
     print(json.dumps(result.model_dump(mode="json", by_alias=True), ensure_ascii=False, indent=2))
 

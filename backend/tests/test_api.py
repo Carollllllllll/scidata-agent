@@ -255,6 +255,167 @@ def test_api_validation_and_http_errors(tmp_path, monkeypatch) -> None:
         manager.shutdown()
 
 
+def test_running_events_expose_bounded_agent_runtime_snapshot(tmp_path) -> None:
+    manager = TaskManager(
+        output_dir=tmp_path / "outputs",
+        state_dir=tmp_path / "tasks",
+        max_workers=1,
+    )
+    task_id = "live_runtime_1"
+    task_dir = manager.output_dir / task_id
+    task_dir.mkdir(parents=True)
+    manager._write_state(
+        task_id,
+        {
+            "task_id": task_id,
+            "status": "running",
+            "research_question": "inspect evidence",
+            "uploads": [],
+        },
+    )
+    (task_dir / "agent_monitor.jsonl").write_text(
+        json.dumps(
+            {
+                "timestamp": "2026-08-20T12:00:00+00:00",
+                "event_type": "step",
+                "step": "agent_runtime_iteration_1",
+                "status": "completed",
+                "message": "Agent iteration completed.",
+                "data": {
+                    "runtime": {
+                        "iteration": 1,
+                        "status": "running",
+                        "decision_count": 2,
+                        "tool_result_count": 3,
+                        "trace_count": 9,
+                        "recent_decisions": [
+                            {
+                                "decision": "continue",
+                                "reason": "Read the selected evidence.",
+                                "tool_calls": [
+                                    {
+                                        "call_id": "call-1",
+                                        "tool_name": "parse_content",
+                                        "arguments": {"local_path": str(tmp_path / "private.pdf")},
+                                    }
+                                ],
+                            }
+                        ],
+                        "recent_tool_results": [
+                            {
+                                "call_id": "call-1",
+                                "tool_name": "parse_content",
+                                "status": "completed",
+                                "evidence_refs": ["ev-1"],
+                            }
+                        ],
+                    },
+                    "runtime_event": {
+                        "event_type": "tool_started",
+                        "iteration": 1,
+                        "call_id": "call-1",
+                        "tool_name": "parse_content",
+                        "status": "started",
+                    },
+                    "coverage_report": {
+                        "decision": "continue",
+                        "coverage_score": 0.4,
+                        "missing_requirements": ["evaluation"],
+                        "gaps": [{"gap_id": "gap-1"}],
+                        "unprocessed_relevant_artifacts": ["artifact-1"],
+                    },
+                    "source_catalog_count": 4,
+                    "source_artifacts_count": 6,
+                    "source_catalog_statuses": {"selected": 2, "failed": 1},
+                    "source_artifact_statuses": {"downloaded": 3, "failed": 1},
+                    "connector_status": [
+                        {
+                            "connector": "arxiv",
+                            "status": "failed",
+                            "error": "HTTP 503",
+                            "query": "evidence",
+                            "local_path": str(tmp_path / "private.pdf"),
+                        }
+                    ],
+                },
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    try:
+        response = manager.get_events(task_id, tail=10)
+        assert response["runtime"]["iteration"] == 1
+        assert response["coverage"]["missing_requirements"] == ["evaluation"]
+        assert response["source_status"]["catalog_count"] == 4
+        assert response["source_status"]["connectors"][0]["connector"] == "arxiv"
+        event = response["events"][0]
+        assert event["data"]["runtime"]["latest_event"]["tool_name"] == "parse_content"
+        assert event["data"]["runtime"]["recent_decisions"][0]["tool_calls"][0]["tool_name"] == "parse_content"
+        assert "arguments" not in event["data"]["runtime"]["recent_decisions"][0]["tool_calls"][0]
+        assert str(tmp_path) not in json.dumps(response, ensure_ascii=False)
+    finally:
+        manager.shutdown()
+
+
+def test_public_running_events_sanitize_snapshot_paths(tmp_path, monkeypatch) -> None:
+    manager = TaskManager(
+        output_dir=tmp_path / "outputs",
+        state_dir=tmp_path / "tasks",
+        max_workers=1,
+    )
+    task_id = "live_public_1"
+    task_dir = manager.output_dir / task_id
+    task_dir.mkdir(parents=True)
+    manager._write_state(task_id, {"task_id": task_id, "status": "running", "uploads": []})
+    (task_dir / "agent_monitor.jsonl").write_text(
+        json.dumps({
+            "timestamp": "2026-08-20T12:00:00+00:00",
+            "event_type": "step",
+            "step": "agent_runtime_iteration_1",
+            "status": "completed",
+            "message": "Agent iteration completed.",
+            "data": {
+                "runtime": {
+                    "iteration": 1,
+                    "status": "running",
+                    "recent_decisions": [{
+                        "decision": "continue",
+                        "reason": "path C:\\private\\secret.pdf",
+                        "tool_calls": [{"call_id": "c1", "tool_name": "parse_content"}],
+                    }],
+                },
+                "source_catalog_count": 1,
+                "connector_status": [{
+                    "connector": "arxiv",
+                    "status": "failed",
+                    "error": "failed at C:\\private\\secret.pdf",
+                }],
+            },
+        }, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(api_main, "TASK_MANAGER", manager)
+    client = TestClient(api_main.app)
+    try:
+        task_response = client.get(f"/api/tasks/{task_id}")
+        assert task_response.status_code == 200
+        task_payload = task_response.json()
+        assert task_payload["runtime"]["iteration"] == 1
+        assert task_payload["source_status"]["catalog_count"] == 1
+        assert "secret.pdf" not in json.dumps(task_payload, ensure_ascii=False)
+
+        response = client.get(f"/api/tasks/{task_id}/events?tail=5")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["source_status"]["catalog_count"] == 1
+        assert "secret.pdf" not in json.dumps(payload, ensure_ascii=False)
+    finally:
+        manager.shutdown()
+
+
 def test_api_security_handles_non_ascii_and_cors_preflight(monkeypatch) -> None:
     monkeypatch.setenv("SCIDATA_API_TOKEN", "expected-token")
     api_main._RATE_LIMIT_BUCKETS.clear()

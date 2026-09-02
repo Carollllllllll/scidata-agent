@@ -188,6 +188,18 @@ export interface ChartValidation {
   }>;
 }
 
+export interface ChartCorrection {
+  figure_id: string;
+  first_extraction: ChartExtraction;
+  first_validation: ChartValidation;
+  second_extraction?: ChartExtraction | null;
+  second_validation?: ChartValidation | null;
+  selected_pass: "first" | "second";
+  decision: "accepted_second" | "kept_first" | "manual_review" | "second_pass_failed";
+  decision_reason: string[];
+  needs_review: boolean;
+}
+
 export interface QualityIssue {
   record_id?: string | null;
   level: "info" | "warning" | "error";
@@ -366,7 +378,21 @@ export interface AgentResult {
   figures?: FigureAsset[];
   chart_extractions?: ChartExtraction[];
   chart_validations?: ChartValidation[];
+  chart_corrections?: ChartCorrection[];
   cross_modal_checks?: CrossModalCheck[];
+  runtime_iteration?: number;
+  runtime_iteration_budget?: number | null;
+  runtime_status?: string;
+  runtime_phase?: string | null;
+  runtime_stop_reason?: string | null;
+  runtime_no_progress_streak?: number;
+  runtime_no_progress_limit?: number;
+  runtime_last_progress_iteration?: number | null;
+  runtime_requires_source_discovery?: boolean;
+  agent_decision_history?: AgentDecision[];
+  tool_result_history?: ToolResult[];
+  stop_rejections?: string[];
+  agent_trace?: AgentTraceEvent[];
   quality_report: QualityReport;
   processing_log?: string[];
   export_files?: Record<string, string>;
@@ -386,6 +412,9 @@ export interface TaskResponse {
   error?: { code?: string; message?: string; [key: string]: unknown } | null;
   uploads: UploadedFileInfo[];
   event?: Record<string, unknown> | null;
+  runtime?: AgentRuntimeSnapshot | null;
+  coverage?: LiveCoverageSnapshot | null;
+  source_status?: SourceStatusSnapshot | null;
   result?: AgentResult | null;
   summary?: AgentSummary | null;
   quality_report?: QualityReport | null;
@@ -402,6 +431,110 @@ export interface ReviewDecision {
   decision: "approved" | "needs_changes" | "rejected";
   note?: string | null;
   updated_at: string;
+}
+
+export interface AgentDecision {
+  decision: "continue" | "stop";
+  reason?: string;
+  tool_calls?: Array<{
+    call_id: string;
+    tool_name: string;
+    arguments?: Record<string, unknown>;
+    reason?: string;
+    purpose?: string;
+    priority?: "high" | "medium" | "low";
+    gap_ids?: string[];
+    expected_evidence?: string[];
+  }>;
+  expected_evidence?: string[];
+  stop_reason?: string | null;
+}
+
+export interface ToolResult {
+  call_id: string;
+  tool_name: string;
+  status: "completed" | "partial" | "failed" | "skipped";
+  data?: Record<string, unknown>;
+  artifact_refs?: string[];
+  evidence_refs?: string[];
+  warnings?: string[];
+  errors?: string[];
+  elapsed_ms?: number;
+  retry_count?: number;
+  cached?: boolean;
+}
+
+export interface AgentTraceEvent {
+  event_id?: string;
+  event_type: string;
+  iteration?: number;
+  call_id?: string | null;
+  tool_name?: string | null;
+  status?: string | null;
+  payload?: Record<string, unknown>;
+  created_at?: string;
+}
+
+export interface AgentRuntimeSnapshot {
+  iteration?: number;
+  iteration_budget?: number | null;
+  status?: string | null;
+  phase?: string | null;
+  stop_reason?: string | null;
+  no_progress_streak?: number;
+  no_progress_limit?: number;
+  last_progress_iteration?: number | null;
+  decision_count?: number;
+  tool_result_count?: number;
+  trace_count?: number;
+  recent_decisions?: AgentDecision[];
+  recent_tool_results?: ToolResult[];
+  stop_rejections?: string[];
+  latest_event?: {
+    event_type?: string;
+    iteration?: number;
+    call_id?: string | null;
+    tool_name?: string | null;
+    status?: string | null;
+    retry_count?: number;
+    cached?: boolean;
+    evidence_count?: number;
+    artifact_count?: number;
+    warning_count?: number;
+    error_count?: number;
+    reason_count?: number;
+  };
+}
+
+export interface LiveCoverageSnapshot {
+  decision?: "continue" | "allow_stop" | string;
+  coverage_score?: number;
+  gap_count?: number;
+  missing_requirements?: string[];
+  required_evidence_types?: string[];
+  covered_evidence_types?: string[];
+  unprocessed_relevant_artifacts_count?: number;
+  reasons?: string[];
+  recommended_actions?: string[];
+}
+
+export interface SourceStatusSnapshot {
+  catalog_count?: number | null;
+  artifact_count?: number | null;
+  source_status_counts?: Record<string, number>;
+  artifact_status_counts?: Record<string, number>;
+  connectors?: Array<{
+    connector?: string;
+    connector_name?: string;
+    query?: string;
+    status?: string;
+    attempt?: number;
+    attempts?: number;
+    retry_count?: number;
+    added_sources_count?: number;
+    error?: string;
+    message?: string;
+  }>;
 }
 
 export interface ReviewQueueItem {
@@ -432,13 +565,21 @@ export interface TaskEvent {
   status?: string;
   message?: string;
   duration_ms?: number;
-  data?: Record<string, unknown>;
+  data?: {
+    runtime?: AgentRuntimeSnapshot;
+    coverage?: LiveCoverageSnapshot;
+    source_status?: SourceStatusSnapshot;
+    [key: string]: unknown;
+  };
 }
 
 export interface TaskEventsResponse {
   task_id: string;
   status: TaskStatus;
   events: TaskEvent[];
+  runtime?: AgentRuntimeSnapshot | null;
+  coverage?: LiveCoverageSnapshot | null;
+  source_status?: SourceStatusSnapshot | null;
 }
 
 export interface TaskSubmissionResponse {

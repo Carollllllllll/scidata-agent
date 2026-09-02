@@ -6,7 +6,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from scidata_agent.agent.action_registry import artifact_type_supported, get_action_capability, is_global_action
 from scidata_agent.agent.schemas import (
@@ -21,6 +21,9 @@ from scidata_agent.agent.schemas import (
     TextBlock,
     UploadedFile,
 )
+from scidata_agent.agent.tool_protocol import ToolCall, ToolResult
+from scidata_agent.agent.tool_registry import build_artifact_tool_registry
+from scidata_agent.agent.tool_runtime import ToolRuntime
 from scidata_agent.llm.nodes import QwenAgentNodes
 from scidata_agent.tools.connectors.registry import execute_multi_source_search, merge_sources
 
@@ -30,11 +33,19 @@ class ArtifactActionExecutor:
 
     The executor is intentionally bounded to one plan. It does not decide what
     to do next and it does not run a hidden fallback. The planner or outer
-    workflow owns iteration; this class only routes actions to existing tools.
+    workflow owns iteration; this class routes artifact actions and, when
+    supplied, outer workflow actions to existing tools.
     """
 
-    def __init__(self, llm_nodes: QwenAgentNodes | None = None):
+    def __init__(
+        self,
+        llm_nodes: QwenAgentNodes | None = None,
+        workflow_handler: Callable[[ArtifactAction, AgentState], ArtifactActionResult] | None = None,
+    ):
         self.llm_nodes = llm_nodes
+        self.workflow_handler = workflow_handler
+        self.tool_registry = build_artifact_tool_registry()
+        self.tool_runtime = ToolRuntime(self.tool_registry, handler=self._handle_tool_call)
 
     def execute_plan(
         self,
@@ -46,12 +57,15 @@ class ArtifactActionExecutor:
     ) -> list[ArtifactActionResult]:
         results: list[ArtifactActionResult] = []
         for action in plan.actions:
-            result = self.execute_action(
-                action,
-                state,
-                max_pdf_pages=max_pdf_pages,
-                max_figures_per_action=max_figures_per_action,
+            tool_result = self.tool_runtime.execute(
+                _tool_call_from_action(action),
+                context=state,
+                options={
+                    "max_pdf_pages": max_pdf_pages,
+                    "max_figures_per_action": max_figures_per_action,
+                },
             )
+            result = _artifact_result_from_tool_result(action, tool_result)
             results.append(result)
             state.processing_log.append(
                 f"Artifact action {action.action_id}: action={action.action}, "
@@ -61,6 +75,22 @@ class ArtifactActionExecutor:
             if action.action == "stop":
                 break
         return results
+
+    def _handle_tool_call(
+        self,
+        call: ToolCall,
+        state: AgentState,
+        options: dict[str, Any],
+    ) -> ToolResult:
+        """Bridge the new tool protocol to the legacy action implementation."""
+        action = _action_from_tool_call(call)
+        legacy_result = self.execute_action(
+            action,
+            state,
+            max_pdf_pages=options.get("max_pdf_pages"),
+            max_figures_per_action=int(options.get("max_figures_per_action", 6)),
+        )
+        return _tool_result_from_action_result(legacy_result, call)
 
     def execute_action(
         self,
@@ -133,6 +163,27 @@ class ArtifactActionExecutor:
     def _execute_global(self, action: ArtifactAction, state: AgentState) -> ArtifactActionResult:
         if action.action == "stop":
             return self._result(action, "no_op", "Planner requested workflow stop.")
+        if self.workflow_handler is not None and action.action in {
+            "plan_task",
+            "plan_dynamic_schema",
+            "discover_sources",
+            "plan_multi_source_search",
+            "search_sources",
+            "select_sources",
+            "triage_sources",
+            "ingest_sources",
+            "ingest_arxiv_pdfs",
+            "parse_content",
+            "parse_source_content",
+            "extract_figures",
+            "interpret_sections",
+            "extract_dynamic_records",
+            "extract_records",
+            "normalize_records",
+            "track_provenance",
+            "validate_quality",
+        }:
+            return self.workflow_handler(action, state)
         if action.action == "search_more":
             return self._search_more(action, state)
         if action.action == "validate_evidence":
@@ -147,6 +198,7 @@ class ArtifactActionExecutor:
 
         try:
             candidates = list(state.source_discovery_plan.candidate_sources)
+            search_strategy = _normalize_search_strategy(action.parameters)
             batch_size = _positive_env_int("SCIDATA_SEARCH_MORE_BATCH_SIZE", 40)
             batches = [
                 candidates[start : start + batch_size]
@@ -164,6 +216,7 @@ class ArtifactActionExecutor:
                             batch_plan,
                             candidate_context_limit=batch_size,
                             batch_label=f"batch {index}/{len(batches)}",
+                            search_strategy=search_strategy,
                         )
                     )
                 except Exception as exc:
@@ -173,6 +226,11 @@ class ArtifactActionExecutor:
                     "All search_more planning batches failed: " + "; ".join(planning_errors)
                 )
             plan = _merge_search_plans(plans)
+            plan = _apply_search_strategy(plan, search_strategy)
+            if plan.should_search and not plan.search_requests:
+                raise RuntimeError(
+                    "Dynamic search strategy removed all search requests; choose another connector or source type."
+                )
             if planning_errors:
                 plan.notes.append(
                     f"{len(planning_errors)} search-planning batch(es) failed; successful batches were executed."
@@ -209,10 +267,21 @@ class ArtifactActionExecutor:
                 f"requests={status.get('searched', 0)}, new_sources={added}, "
                 f"failed_requests={status.get('failed', 0)}, status={status.get('status')}."
             )
+            search_status = str(status.get("status") or "completed")
+            result_status = (
+                "failed"
+                if search_status == "failed"
+                else "partial"
+                if search_status == "partial"
+                else "completed"
+            )
             return self._result(
                 action,
-                "completed",
-                "LLM generated and executed a new multi-source search plan.",
+                result_status,
+                (
+                    "LLM generated and executed a new multi-source search plan"
+                    f" with status={search_status}."
+                ),
                 search_requests=len(plan.search_requests),
                 new_sources=added,
                 failed_requests=int(status.get("failed", 0)),
@@ -547,6 +616,94 @@ class ArtifactActionExecutor:
         return result
 
 
+def _tool_call_from_action(action: ArtifactAction) -> ToolCall:
+    return ToolCall(
+        call_id=action.action_id,
+        tool_name=action.action,
+        arguments={
+            "artifact_id": action.artifact_id,
+            "parameters": dict(action.parameters),
+        },
+        purpose=action.purpose,
+        reason=action.reason,
+        priority=action.priority,
+        gap_ids=list(action.gap_ids),
+        expected_evidence=list(action.expected_fields),
+    )
+
+
+def _action_from_tool_call(call: ToolCall) -> ArtifactAction:
+    arguments = dict(call.arguments)
+    artifact_id = arguments.pop("artifact_id", None)
+    raw_parameters = arguments.pop("parameters", None)
+    parameters = dict(raw_parameters) if isinstance(raw_parameters, dict) else arguments
+    return ArtifactAction(
+        action_id=call.call_id,
+        artifact_id=artifact_id,
+        action=call.tool_name,
+        purpose=call.purpose or call.reason or f"Invoke {call.tool_name}.",
+        expected_fields=list(call.expected_evidence),
+        priority=call.priority,
+        reason=call.reason or f"Invoke {call.tool_name}.",
+        gap_ids=list(call.gap_ids),
+        parameters=parameters,
+    )
+
+
+def _tool_result_from_action_result(
+    result: ArtifactActionResult,
+    call: ToolCall,
+) -> ToolResult:
+    status = "completed" if result.status == "no_op" else result.status
+    data: dict[str, Any] = {
+        "message": result.message,
+        "output_counts": dict(result.output_counts),
+        "legacy_status": result.status,
+    }
+    errors = [result.error] if result.error else []
+    return ToolResult(
+        call_id=call.call_id,
+        tool_name=call.tool_name,
+        status=status,  # type: ignore[arg-type]
+        data=data,
+        warnings=list(result.warnings),
+        errors=errors,
+        idempotency_key=call.effective_idempotency_key(),
+    )
+
+
+def _artifact_result_from_tool_result(
+    action: ArtifactAction,
+    result: ToolResult,
+) -> ArtifactActionResult:
+    legacy_status = result.data.get("legacy_status")
+    if result.cached:
+        status = "skipped"
+        message = "Duplicate tool call skipped; the completed result was already available."
+    elif legacy_status in {"completed", "partial", "skipped", "failed", "no_op"}:
+        status = legacy_status
+        message = str(result.data.get("message") or "")
+    else:
+        status = result.status
+        message = str(result.data.get("message") or "")
+    if not message:
+        message = "; ".join(result.errors) if result.errors else f"Tool {action.action} returned {status}."
+    return ArtifactActionResult(
+        action_id=action.action_id,
+        artifact_id=action.artifact_id,
+        action=action.action,
+        status=status,  # type: ignore[arg-type]
+        message=message,
+        output_counts={
+            str(key): int(value)
+            for key, value in (result.data.get("output_counts") or {}).items()
+            if isinstance(value, (int, float))
+        },
+        warnings=list(result.warnings),
+        error=(result.errors[0] if result.errors else None),
+    )
+
+
 def _uploaded_file(artifact: SourceArtifact) -> UploadedFile:
     if not artifact.local_path:
         raise ValueError(f"Artifact {artifact.artifact_id!r} has no local_path.")
@@ -589,6 +746,7 @@ def _plan_search_batch(
     *,
     candidate_context_limit: int,
     batch_label: str,
+    search_strategy: dict[str, Any] | None = None,
 ) -> Any:
     """Call the bounded planner while preserving compatibility with old adapters.
 
@@ -610,9 +768,87 @@ def _plan_search_batch(
         planner_kwargs["candidate_context_limit"] = candidate_context_limit
     if supports_kwargs or "batch_label" in parameters:
         planner_kwargs["batch_label"] = batch_label
+    if supports_kwargs or "search_strategy" in parameters:
+        planner_kwargs["search_strategy"] = search_strategy or {}
     if planner_kwargs:
         return planner(research_question, source_discovery_plan, **planner_kwargs)
     return planner(research_question, source_discovery_plan)
+
+
+def _normalize_search_strategy(parameters: dict[str, Any] | None) -> dict[str, Any]:
+    """Normalize model-authored search recovery hints without hard-coding a plan."""
+    raw = parameters if isinstance(parameters, dict) else {}
+    strategy: dict[str, Any] = {}
+    for key in ("connector_names", "avoid_connectors", "source_types"):
+        value = raw.get(key)
+        if isinstance(value, str):
+            value = [value]
+        if isinstance(value, list):
+            cleaned = [str(item).strip().casefold() for item in value if str(item).strip()]
+            if cleaned:
+                strategy[key] = list(dict.fromkeys(cleaned))
+    for key in ("query_focus", "failure_reason"):
+        value = raw.get(key)
+        if isinstance(value, str) and value.strip():
+            strategy[key] = value.strip()
+    revised = raw.get("revised_queries")
+    if isinstance(revised, dict):
+        normalized: dict[str, list[str]] = {}
+        for connector, queries in revised.items():
+            if isinstance(queries, str):
+                queries = [queries]
+            if not isinstance(queries, list):
+                continue
+            values = [" ".join(str(query).split()) for query in queries if str(query).strip()]
+            if values:
+                normalized[str(connector).strip().casefold()] = list(dict.fromkeys(values))
+        if normalized:
+            strategy["revised_queries"] = normalized
+    return strategy
+
+
+def _apply_search_strategy(plan: Any, strategy: dict[str, Any]) -> Any:
+    """Apply explicit recovery constraints after an LLM search plan is returned."""
+    if not strategy:
+        return plan
+    allowed = set(strategy.get("connector_names", []))
+    avoided = set(strategy.get("avoid_connectors", []))
+    source_types = set(strategy.get("source_types", []))
+    revised = strategy.get("revised_queries", {})
+    requests = []
+    for request in plan.search_requests:
+        connector = str(request.connector_name).casefold()
+        if allowed and connector not in allowed:
+            continue
+        if connector in avoided:
+            continue
+        if source_types and str(request.source_type).casefold() not in source_types:
+            continue
+        connector_queries = revised.get(connector, []) if isinstance(revised, dict) else []
+        if connector_queries:
+            requests.extend(
+                request.model_copy(update={"query": query})
+                for query in connector_queries
+            )
+        else:
+            requests.append(request)
+    return plan.model_copy(update={"search_requests": _dedupe_search_requests(requests)})
+
+
+def _dedupe_search_requests(requests: list[Any]) -> list[Any]:
+    seen: set[tuple[str, str, str]] = set()
+    unique = []
+    for request in requests:
+        key = (
+            str(request.connector_name).casefold(),
+            str(request.source_type).casefold(),
+            " ".join(str(request.query).split()).casefold(),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(request)
+    return unique
 
 
 def _merge_search_plans(plans: list[Any]) -> Any:

@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 
   import { ApiError, cancelTask, getTask, getTaskEvents, resumeTask, retryTask } from "../../api/client";
 import { Icon, type IconName } from "../../components/Icon";
-import { StatusBadge } from "../../components/StatusBadge";
+import { QualityBadge, StatusBadge } from "../../components/StatusBadge";
 import { formatDate, overallProgressPercent, stageLabel } from "../../lib/task";
 import type { EvidenceRecord, TaskEvent, TaskResponse } from "../../types/api";
 import {
@@ -192,6 +192,8 @@ export function TaskWorkspace() {
         <TaskProgressCard task={task} events={progressEventsQuery.data?.events} />
       </section>
 
+      <LiveAgentRuntimePanel task={task} />
+
       {task.status === "failed" && (
         <div className="failure-banner">
           <Icon name="warning" size={20} />
@@ -274,6 +276,90 @@ function TaskProgressCard({ task, events }: { task: TaskResponse; events?: TaskE
       </div>
       <div className="current-stage"><span className={task.status === "running" ? "pulse-dot" : "static-dot"} /><div><small>当前阶段</small><strong>{stageLabel(task.current_step)}</strong></div></div>
     </div>
+  );
+}
+
+function LiveAgentRuntimePanel({ task }: { task: TaskResponse }) {
+  const result = task.result;
+  const resultDecisions = result?.agent_decision_history ?? [];
+  const resultToolResults = result?.tool_result_history ?? [];
+  const resultCatalog = result?.source_catalog ?? [];
+  const runtime = task.runtime ?? (result ? {
+    iteration: result.runtime_iteration,
+    iteration_budget: result.runtime_iteration_budget,
+    status: result.runtime_status,
+    phase: result.runtime_phase,
+    stop_reason: result.runtime_stop_reason,
+    no_progress_streak: result.runtime_no_progress_streak,
+    no_progress_limit: result.runtime_no_progress_limit,
+    last_progress_iteration: result.runtime_last_progress_iteration,
+    decision_count: resultDecisions.length,
+    tool_result_count: resultToolResults.length,
+    trace_count: result.agent_trace?.length ?? 0,
+    recent_decisions: resultDecisions.slice(-3),
+    recent_tool_results: resultToolResults.slice(-5),
+    stop_rejections: result.stop_rejections?.slice(-8) ?? [],
+  } : undefined);
+  const coverage = task.coverage ?? result?.coverage_report;
+  const sourceStatus = task.source_status ?? (result ? {
+    catalog_count: resultCatalog.length,
+    artifact_count: resultCatalog.reduce((total, source) => total + (source.artifacts?.length ?? 0), 0),
+    source_status_counts: resultCatalog.reduce<Record<string, number>>((counts, source) => {
+      const status = source.status || "unknown";
+      counts[status] = (counts[status] ?? 0) + 1;
+      return counts;
+    }, {}),
+  } : undefined);
+  if (!runtime && !coverage && !sourceStatus) return null;
+
+  const decisions = runtime?.recent_decisions?.length ? runtime.recent_decisions : resultDecisions.slice(-3);
+  const latestDecision = decisions.length ? decisions[decisions.length - 1] : undefined;
+  const calls = latestDecision?.tool_calls ?? [];
+  const recentResults = runtime?.recent_tool_results?.length ? runtime.recent_tool_results : resultToolResults.slice(-5);
+  const connectors = sourceStatus?.connectors ?? [];
+  const stopReason = runtime?.stop_reason ?? (
+    task.status === "running"
+      ? "Agent is still working; no stop reason has been recorded."
+      : task.message ?? "No stop reason recorded."
+  );
+
+  return (
+    <section className="live-runtime-panel panel-card" aria-live="polite">
+      <div className="live-runtime-heading">
+        <div><span className="eyebrow dark">LIVE AGENT RUNTIME</span><h2>Current decision state</h2></div>
+        <QualityBadge tone={runtime?.status === "completed" ? "success" : runtime?.status === "partial" ? "warning" : "info"}>
+          {runtime?.status || task.status}
+        </QualityBadge>
+      </div>
+      <div className="live-runtime-stats">
+        <span><small>Iteration</small><strong>{runtime?.iteration ?? 0}{runtime?.iteration_budget ? ` / ${runtime.iteration_budget}` : ""}</strong></span>
+        <span><small>Decisions</small><strong>{runtime?.decision_count ?? decisions.length}</strong></span>
+        <span><small>Tools</small><strong>{runtime?.tool_result_count ?? recentResults.length}</strong></span>
+        <span><small>Coverage</small><strong>{coverage?.coverage_score !== undefined ? `${Math.round(coverage.coverage_score * 100)}%` : "-"}</strong></span>
+        <span><small>Sources</small><strong>{sourceStatus?.catalog_count ?? resultCatalog.length}</strong></span>
+      </div>
+      <div className="live-runtime-columns">
+        <div className="live-runtime-decision">
+          <small>Latest model decision</small>
+          <strong>{latestDecision?.decision || (task.status === "running" ? "Waiting for the next decision" : "No decision recorded")}</strong>
+          {latestDecision?.reason && <p>{latestDecision.reason}</p>}
+          {calls.length > 0 && <div className="live-runtime-tools">{calls.slice(0, 8).map((call) => <span key={call.call_id}><Icon name="play" size={12} />{call.tool_name}</span>)}</div>}
+        </div>
+        <div className="live-runtime-sources">
+          <small>Source status</small>
+          <div className="live-runtime-status-list">
+            {Object.entries(sourceStatus?.source_status_counts ?? {}).slice(0, 5).map(([name, count]) => <span key={name}>{name}<strong>{count}</strong></span>)}
+            {connectors.slice(-4).map((connector, index) => <span key={`${connector.connector || connector.connector_name || "connector"}-${index}`}><em>{connector.connector || connector.connector_name || "connector"}</em><strong>{connector.status || "unknown"}</strong></span>)}
+          </div>
+        </div>
+      </div>
+      {runtime?.latest_event?.event_type && <div className="live-runtime-latest"><small>Latest runtime event</small><span><strong>{runtime.latest_event.event_type.replaceAll("_", " ")}</strong>{runtime.latest_event.tool_name ? ` / ${runtime.latest_event.tool_name}` : ""}{runtime.latest_event.status ? ` / ${runtime.latest_event.status}` : ""}</span></div>}
+      {recentResults.length > 0 && <div className="live-runtime-results"><small>Recent tool results</small><div>{recentResults.slice(-5).map((result) => <span key={`${result.call_id}-${result.tool_name}`} className={`live-tool-result live-tool-${result.status}`}><strong>{result.tool_name}</strong><em>{result.status}</em>{(result.evidence_refs?.length ?? 0) > 0 && <i>{result.evidence_refs?.length} evidence</i>}</span>)}</div></div>}
+      {(coverage?.missing_requirements?.length ?? 0) > 0 && <div className="live-runtime-gap"><Icon name="warning" size={14} /><span>Open requirements: {coverage?.missing_requirements?.slice(0, 4).join(", ")}</span></div>}
+      {stopReason && <div className="live-runtime-stop"><small>Stop reason</small><span>{stopReason}</span></div>}
+      {runtime?.phase && <div className="live-runtime-latest"><small>Runtime phase</small><span>{runtime.phase.replaceAll("_", " ")}{runtime.no_progress_streak !== undefined && runtime.no_progress_limit !== undefined ? `; no progress ${runtime.no_progress_streak}/${runtime.no_progress_limit}` : ""}</span></div>}
+      {(runtime?.stop_rejections?.length ?? 0) > 0 && <div className="live-runtime-gap"><Icon name="warning" size={14} /><span>Policy / stop-gate rejections: {runtime?.stop_rejections?.slice(-2).join("; ")}</span></div>}
+    </section>
   );
 }
 

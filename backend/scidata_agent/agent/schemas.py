@@ -164,6 +164,41 @@ class ArtifactRelevanceAssessment(BaseModel):
     def clamp_assessment_score(cls, value: float) -> float:
         return max(0.0, min(4.0, float(value)))
 
+    @field_validator("recommendation", mode="before")
+    @classmethod
+    def normalize_recommendation(cls, value: Any) -> Any:
+        """Accept concrete planner actions while retaining a strict category."""
+        if not isinstance(value, str):
+            return value
+        canonical = value.strip().casefold().replace("-", "_").replace(" ", "_")
+        if canonical in {
+            "process",
+            "process_artifact",
+            "download",
+            "download_artifact",
+            "parse",
+            "parse_pdf",
+            "parse_pdf_text",
+            "parse_pdf_sections",
+            "parse_table",
+            "parse_figure",
+            "parse_html",
+            "parse_csv",
+            "read_readme",
+            "read_file_manifest",
+            "extract_figures",
+            "extract_records",
+            "extract_dynamic_records",
+        }:
+            return "process"
+        if canonical in {"inspect", "inspect_metadata", "metadata", "read_metadata", "read_source_metadata"}:
+            return "inspect_metadata"
+        if canonical in {"skip", "ignore", "irrelevant", "reject", "do_not_process"}:
+            return "skip"
+        if canonical in {"unknown", "unclear", "undecided", "not_sure", "n_a", "na"}:
+            return "unknown"
+        return value
+
 
 class SourceCatalogEntry(BaseModel):
     """Normalized source plus its artifacts and current execution state."""
@@ -203,6 +238,11 @@ class ArtifactAction(BaseModel):
     action_id: str
     artifact_id: str | None = None
     action: Literal[
+        "plan_task",
+        "plan_dynamic_schema",
+        "discover_sources",
+        "plan_multi_source_search",
+        "search_sources",
         "read_metadata",
         "download_artifact",
         "parse_pdf_text",
@@ -215,6 +255,19 @@ class ArtifactAction(BaseModel):
         "read_file_manifest",
         "search_more",
         "validate_evidence",
+        "select_sources",
+        "triage_sources",
+        "ingest_sources",
+        "ingest_arxiv_pdfs",
+        "parse_content",
+        "parse_source_content",
+        "extract_figures",
+        "interpret_sections",
+        "extract_dynamic_records",
+        "extract_records",
+        "normalize_records",
+        "track_provenance",
+        "validate_quality",
         "stop",
     ]
     purpose: str
@@ -243,7 +296,7 @@ class ArtifactActionResult(BaseModel):
     action_id: str
     artifact_id: str | None = None
     action: str
-    status: Literal["completed", "skipped", "failed", "no_op"]
+    status: Literal["completed", "partial", "skipped", "failed", "no_op"]
     message: str
     output_counts: dict[str, int] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
@@ -603,6 +656,25 @@ class ChartValidationResult(BaseModel):
     checked_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
+class ChartCorrectionResult(BaseModel):
+    """Auditable comparison between the initial and second-pass VL reads."""
+
+    figure_id: str
+    first_extraction: ChartExtraction
+    first_validation: ChartValidationResult
+    second_extraction: ChartExtraction | None = None
+    second_validation: ChartValidationResult | None = None
+    selected_pass: Literal["first", "second"] = "first"
+    decision: Literal[
+        "accepted_second",
+        "kept_first",
+        "manual_review",
+        "second_pass_failed",
+    ] = "kept_first"
+    decision_reason: list[str] = Field(default_factory=list)
+    needs_review: bool = True
+
+
 class CrossModalCheck(BaseModel):
     """Auditable comparison between text, table, and figure evidence."""
 
@@ -901,10 +973,14 @@ class ExportFiles(BaseModel):
     figures_dir: str | None = None
     chart_extractions_json: str | None = None
     chart_validation_json: str | None = None
+    chart_corrections_json: str | None = None
     cross_modal_validation_json: str | None = None
     chart_tables_dir: str | None = None
     final_report: str | None = None
     summary_json: str | None = None
+    agent_trace_json: str | None = None
+    decision_history_json: str | None = None
+    tool_history_json: str | None = None
 
 
 class AgentSummary(BaseModel):
@@ -951,12 +1027,26 @@ class AgentResult(BaseModel):
     figures: list[FigureAsset] = Field(default_factory=list)
     chart_extractions: list[ChartExtraction] = Field(default_factory=list)
     chart_validations: list[ChartValidationResult] = Field(default_factory=list)
+    chart_corrections: list[ChartCorrectionResult] = Field(default_factory=list)
     cross_modal_checks: list[CrossModalCheck] = Field(default_factory=list)
     field_schema: list[dict[str, str]]
     sources: list[SourceSummary]
     processing_log: list[str]
     quality_report: QualityReport
     coverage_report: CoverageReport = Field(default_factory=CoverageReport)
+    runtime_iteration: int = 0
+    runtime_iteration_budget: int | None = None
+    runtime_status: str = "legacy_pipeline"
+    runtime_phase: str = "planning"
+    runtime_stop_reason: str | None = None
+    runtime_no_progress_streak: int = 0
+    runtime_no_progress_limit: int = 4
+    runtime_last_progress_iteration: int | None = None
+    runtime_requires_source_discovery: bool = False
+    agent_decision_history: list[dict[str, Any]] = Field(default_factory=list)
+    tool_result_history: list[dict[str, Any]] = Field(default_factory=list)
+    stop_rejections: list[str] = Field(default_factory=list)
+    agent_trace: list[dict[str, Any]] = Field(default_factory=list)
     export_files: ExportFiles
 
 
@@ -982,6 +1072,7 @@ class AgentState(BaseModel):
     parsed_sources: ParsedSources = Field(default_factory=ParsedSources)
     chart_extractions: list[ChartExtraction] = Field(default_factory=list)
     chart_validations: list[ChartValidationResult] = Field(default_factory=list)
+    chart_corrections: list[ChartCorrectionResult] = Field(default_factory=list)
     cross_modal_checks: list[CrossModalCheck] = Field(default_factory=list)
     candidate_records: list[ScientificRecord] = Field(default_factory=list)
     final_records: list[ScientificRecord] = Field(default_factory=list)
@@ -992,6 +1083,19 @@ class AgentState(BaseModel):
     sources: list[SourceSummary] = Field(default_factory=list)
     quality_report: QualityReport = Field(default_factory=QualityReport)
     coverage_report: CoverageReport = Field(default_factory=CoverageReport)
+    runtime_iteration: int = 0
+    runtime_iteration_budget: int | None = None
+    runtime_status: str = "legacy_pipeline"
+    runtime_phase: str = "planning"
+    runtime_stop_reason: str | None = None
+    runtime_no_progress_streak: int = 0
+    runtime_no_progress_limit: int = 4
+    runtime_last_progress_iteration: int | None = None
+    runtime_requires_source_discovery: bool = False
+    agent_decision_history: list[dict[str, Any]] = Field(default_factory=list)
+    tool_result_history: list[dict[str, Any]] = Field(default_factory=list)
+    stop_rejections: list[str] = Field(default_factory=list)
+    agent_trace: list[dict[str, Any]] = Field(default_factory=list)
     processing_log: list[str] = Field(default_factory=list)
     export_files: ExportFiles = Field(default_factory=ExportFiles)
     monitor_log_path: Path | None = None

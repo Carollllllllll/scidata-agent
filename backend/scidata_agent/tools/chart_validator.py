@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import math
 import re
 
-from scidata_agent.agent.schemas import ChartExtraction, ChartValidationIssue, ChartValidationResult, FigureAsset
+from scidata_agent.agent.schemas import (
+    ChartCorrectionResult,
+    ChartExtraction,
+    ChartValidationIssue,
+    ChartValidationResult,
+    FigureAsset,
+)
 
 # Numbers embedded in captions, e.g. "peaks at 550 nm", " declines by 2.5 mag".
 _CAPTION_NUMBER_RE = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
@@ -126,6 +133,179 @@ def validate_chart_extraction(
         issues=issues,
         needs_review=error_count > 0 or warning_count >= 2 or extraction.confidence < _LOW_CONFIDENCE,
     )
+
+
+def compare_chart_extractions(
+    first_extraction: ChartExtraction,
+    first_validation: ChartValidationResult,
+    second_extraction: ChartExtraction,
+    second_validation: ChartValidationResult,
+) -> ChartCorrectionResult:
+    """Choose a second-pass chart read only when deterministic checks improve.
+
+    Model confidence is intentionally not the primary signal. A second pass may
+    be selected when it removes hard errors, or when it removes warnings without
+    introducing a structural regression. Equal-quality but materially different
+    reads are preserved for human review instead of being guessed away.
+    """
+    reasons: list[str] = []
+    if first_extraction.figure_id != second_extraction.figure_id:
+        return _correction_result(
+            first_extraction,
+            first_validation,
+            second_extraction,
+            second_validation,
+            decision="manual_review",
+            reasons=["二次结果的 figure_id 与初次结果不一致。"],
+        )
+
+    if _has_structural_regression(first_extraction, second_extraction):
+        return _correction_result(
+            first_extraction,
+            first_validation,
+            second_extraction,
+            second_validation,
+            decision="manual_review",
+            reasons=["二次结果丢失了初次结果中已有的数据结构或可读数据点。"],
+        )
+
+    first_errors = _issue_count(first_validation, "error")
+    second_errors = _issue_count(second_validation, "error")
+    first_warnings = _issue_count(first_validation, "warning")
+    second_warnings = _issue_count(second_validation, "warning")
+
+    if second_errors < first_errors:
+        reasons.append(f"二次结果将 error 数量从 {first_errors} 降到 {second_errors}。")
+        return _correction_result(
+            first_extraction,
+            first_validation,
+            second_extraction,
+            second_validation,
+            decision="accepted_second",
+            selected_pass="second",
+            reasons=reasons,
+        )
+
+    if second_errors == first_errors and second_warnings < first_warnings:
+        reasons.append(f"error 数量相同，但 warning 数量从 {first_warnings} 降到 {second_warnings}。")
+        return _correction_result(
+            first_extraction,
+            first_validation,
+            second_extraction,
+            second_validation,
+            decision="accepted_second",
+            selected_pass="second",
+            reasons=reasons,
+        )
+
+    if _materially_conflicts(first_extraction, second_extraction):
+        reasons.append("两次结果质量等级相同，但关键图表字段存在实质差异。")
+        return _correction_result(
+            first_extraction,
+            first_validation,
+            second_extraction,
+            second_validation,
+            decision="manual_review",
+            reasons=reasons,
+        )
+
+    reasons.append("二次结果没有证明自己优于初次结果，保留初次结果。")
+    return _correction_result(
+        first_extraction,
+        first_validation,
+        second_extraction,
+        second_validation,
+        decision="kept_first",
+        selected_pass="first",
+        reasons=reasons,
+    )
+
+
+def _correction_result(
+    first_extraction: ChartExtraction,
+    first_validation: ChartValidationResult,
+    second_extraction: ChartExtraction,
+    second_validation: ChartValidationResult,
+    *,
+    decision: str,
+    reasons: list[str],
+    selected_pass: str = "first",
+) -> ChartCorrectionResult:
+    selected_validation = second_validation if selected_pass == "second" else first_validation
+    needs_review = (
+        decision in {"manual_review", "second_pass_failed"}
+        or selected_validation.needs_review
+    )
+    return ChartCorrectionResult(
+        figure_id=first_extraction.figure_id,
+        first_extraction=first_extraction,
+        first_validation=first_validation,
+        second_extraction=second_extraction,
+        second_validation=second_validation,
+        selected_pass=selected_pass,
+        decision=decision,
+        decision_reason=reasons,
+        needs_review=needs_review,
+    )
+
+
+def _issue_count(validation: ChartValidationResult, severity: str) -> int:
+    return sum(1 for issue in validation.issues if issue.severity == severity)
+
+
+def _point_count(extraction: ChartExtraction) -> int:
+    return sum(len(series.points) for series in extraction.series)
+
+
+def _has_structural_regression(first: ChartExtraction, second: ChartExtraction) -> bool:
+    if first.contains_data and not second.contains_data:
+        return True
+    if first.series and not second.series:
+        return True
+    if _point_count(first) > 0 and _point_count(second) == 0:
+        return True
+    if _axis_range_lost(first.x_axis, second.x_axis):
+        return True
+    if _axis_range_lost(first.y_axis, second.y_axis):
+        return True
+    return False
+
+
+def _axis_range_lost(first_axis, second_axis) -> bool:
+    """Treat either missing endpoint as a loss of an established axis range."""
+    first_has_range = first_axis.range_min is not None or first_axis.range_max is not None
+    second_has_incomplete_range = (
+        second_axis.range_min is None or second_axis.range_max is None
+    )
+    return first_has_range and second_has_incomplete_range
+
+
+def _materially_conflicts(first: ChartExtraction, second: ChartExtraction) -> bool:
+    if first.chart_type != second.chart_type and first.chart_type != "unknown" and second.chart_type != "unknown":
+        return True
+    for first_axis, second_axis in ((first.x_axis, second.x_axis), (first.y_axis, second.y_axis)):
+        if first_axis.unit and second_axis.unit and _normalize_unit(first_axis.unit) != _normalize_unit(second_axis.unit):
+            return True
+        if first_axis.scale != "unknown" and second_axis.scale != "unknown" and first_axis.scale != second_axis.scale:
+            return True
+    if len(first.series) != len(second.series):
+        return True
+    if _point_count(first) != _point_count(second):
+        return True
+    for first_series, second_series in zip(first.series, second.series):
+        if first_series.name and second_series.name and first_series.name != second_series.name:
+            return True
+        for first_point, second_point in zip(first_series.points, second_series.points):
+            if any(not _close_enough(a, b) for a, b in zip(first_point, second_point)):
+                return True
+    return False
+
+
+def _close_enough(first: float, second: float) -> bool:
+    if not math.isfinite(first) or not math.isfinite(second):
+        return False
+    scale = max(1.0, abs(first), abs(second))
+    return abs(first - second) <= scale * 0.1
 
 
 def _within_axis(value: float, range_min: float | None, range_max: float | None) -> bool:

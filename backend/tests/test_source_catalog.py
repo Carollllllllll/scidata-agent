@@ -54,6 +54,26 @@ def test_pdf_source_catalog_tracks_downloaded_artifact(tmp_path: Path) -> None:
     assert pdf.local_path == str(pdf_path)
 
 
+def test_catalog_sniffs_extensionless_downloaded_html(tmp_path: Path) -> None:
+    html_path = tmp_path / "search"
+    html_path.write_text("<!doctype html><html><body>results</body></html>", encoding="utf-8")
+    source = DiscoveredSource(
+        title="Search results",
+        source_type="paper_search",
+        url="https://example.org/search",
+        metadata={
+            "provider": "example",
+            "downloaded_path": str(html_path),
+        },
+    )
+
+    entry = build_source_catalog(_state(tmp_path, [source]))[0]
+
+    downloaded = next(artifact for artifact in entry.artifacts if artifact.local_path == str(html_path))
+    assert downloaded.artifact_type == "html"
+    assert downloaded.status == "downloaded"
+
+
 def test_github_readme_is_a_parsed_artifact(tmp_path: Path) -> None:
     source = DiscoveredSource(
         title="demo/research-code",

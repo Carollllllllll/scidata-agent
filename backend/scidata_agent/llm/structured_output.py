@@ -184,7 +184,64 @@ def _normalize_literal(value: Any, choices: tuple[Any, ...], path: str, events: 
             if isinstance(choice, str) and _canonical_token(choice) == canonical:
                 _event(events, path, "literal_token_normalization", value, choice)
                 return choice
+        semantic = _semantic_literal_alias(canonical, choices)
+        if semantic is not None:
+            _event(events, path, "literal_semantic_normalization", value, semantic)
+            return semantic
     return value
+
+
+def _semantic_literal_alias(canonical: str, choices: tuple[Any, ...]) -> str | None:
+    """Map an action-shaped classification to its allowed semantic label.
+
+    LLM planners occasionally return the concrete operation they would run
+    (for example ``download_artifact``) where the schema asks for the
+    assessment category ``process``. This normalization is deliberately
+    limited to the assessment vocabulary; arbitrary unsupported literals are
+    still rejected by Pydantic and therefore remain visible to callers.
+    """
+
+    string_choices = {choice for choice in choices if isinstance(choice, str)}
+    if not {"process", "inspect_metadata", "skip", "unknown"}.issubset(string_choices):
+        return None
+
+    process_tokens = {
+        "process",
+        "process_artifact",
+        "download",
+        "download_artifact",
+        "parse",
+        "parse_pdf",
+        "parse_pdf_text",
+        "parse_pdf_sections",
+        "parse_table",
+        "parse_figure",
+        "parse_html",
+        "parse_csv",
+        "read_readme",
+        "read_file_manifest",
+        "extract_figures",
+        "extract_records",
+        "extract_dynamic_records",
+    }
+    metadata_tokens = {
+        "inspect",
+        "inspect_metadata",
+        "metadata",
+        "read_metadata",
+        "read_source_metadata",
+    }
+    skip_tokens = {"skip", "ignore", "irrelevant", "reject", "do_not_process"}
+    unknown_tokens = {"unknown", "unclear", "undecided", "not_sure", "n_a", "na"}
+    if canonical in process_tokens:
+        return "process"
+    if canonical in metadata_tokens:
+        return "inspect_metadata"
+    if canonical in skip_tokens:
+        return "skip"
+    if canonical in unknown_tokens:
+        return "unknown"
+    return None
 
 
 def _canonical_token(value: str) -> str:

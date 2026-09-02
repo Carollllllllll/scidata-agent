@@ -4,12 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from scidata_agent.agent.action_executor import ArtifactActionExecutor
+from scidata_agent.agent.action_executor import ArtifactActionExecutor, _apply_search_strategy, _normalize_search_strategy
 from scidata_agent.agent.action_registry import artifact_type_supported, list_action_capabilities
 from scidata_agent.agent.schemas import (
     AgentState,
     ArtifactAction,
     ArtifactActionPlan,
+    ArtifactActionResult,
     DiscoveredSource,
     MultiSourceSearchPlan,
     SourceDiscoveryPlan,
@@ -67,6 +68,36 @@ def test_registry_exposes_supported_actions_and_types() -> None:
     assert artifact_type_supported("parse_csv", "csv")
     assert not artifact_type_supported("parse_pdf_text", "csv")
     assert artifact_type_supported("read_metadata", "csv")
+
+
+def test_workflow_global_action_is_routed_to_handler(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    seen: list[str] = []
+
+    def workflow_handler(selected_action: ArtifactAction, selected_state: AgentState) -> ArtifactActionResult:
+        seen.append(selected_action.action)
+        return ArtifactActionResult(
+            action_id=selected_action.action_id,
+            artifact_id=None,
+            action=selected_action.action,
+            status="completed",
+            message="workflow stage executed",
+        )
+
+    executor = ArtifactActionExecutor(workflow_handler=workflow_handler)
+    result = executor.execute_action(
+        ArtifactAction(
+            action_id="select-1",
+            artifact_id=None,
+            action="select_sources",
+            purpose="select sources",
+            reason="test workflow routing",
+        ),
+        state,
+    )
+
+    assert result.status == "completed"
+    assert seen == ["select_sources"]
 
 
 def test_executor_reads_csv_into_shared_state(tmp_path: Path) -> None:
@@ -316,6 +347,48 @@ def test_search_more_runs_a_new_llm_planned_search(monkeypatch: pytest.MonkeyPat
     assert len(state.source_discovery_plan.candidate_sources) == 1
 
 
+def test_search_more_propagates_partial_connector_status(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[],
+    )
+
+    def fake_search(plan: MultiSourceSearchPlan):
+        return (
+            [
+                DiscoveredSource(
+                    title="Partial fallback paper",
+                    source_type="paper_metadata",
+                    url="https://example.org/partial-paper",
+                    metadata={"provider": "openalex"},
+                )
+            ],
+            {
+                "status": "partial",
+                "searched": len(plan.search_requests),
+                "failed": 1,
+                "connector_status": [
+                    {"connector": "arxiv", "status": "failed", "error": "timeout"},
+                    {"connector": "openalex", "status": "completed", "added": 1},
+                ],
+            },
+        )
+
+    monkeypatch.setattr(
+        "scidata_agent.agent.action_executor.execute_multi_source_search",
+        fake_search,
+    )
+    result = ArtifactActionExecutor(SearchMorePlanner()).execute_action(
+        action("search_more", artifact_id=None),
+        state,
+    )
+
+    assert result.status == "partial"
+    assert result.output_counts["failed_requests"] == 1
+    assert "status=partial" in result.message
+
+
 def test_search_more_uses_bounded_batches(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     state = make_state(tmp_path)
     state.source_discovery_plan = SourceDiscoveryPlan(
@@ -481,6 +554,40 @@ def test_search_more_fails_when_all_planning_batches_fail(
 
     assert result.status == "failed"
     assert "All search_more planning batches failed" in result.message
+
+
+def test_search_recovery_strategy_switches_connector_and_revises_query() -> None:
+    plan = MultiSourceSearchPlan(
+        research_goal="Compare model RMSE results.",
+        search_requests=[
+            SourceSearchRequest(
+                connector_name="arxiv",
+                source_type="paper_metadata",
+                query="failed broad query",
+            ),
+            SourceSearchRequest(
+                connector_name="openalex",
+                source_type="paper_metadata",
+                query="old openalex query",
+            ),
+        ],
+    )
+    strategy = _normalize_search_strategy(
+        {
+            "connector_names": ["OpenAlex", "not-a-connector"],
+            "avoid_connectors": ["arxiv"],
+            "source_types": ["paper_metadata"],
+            "query_focus": "benchmark RMSE tables",
+            "revised_queries": {"OPENALEX": ["benchmark RMSE table reproducibility"]},
+            "failure_reason": "arXiv returned HTTP 503",
+        }
+    )
+
+    recovered = _apply_search_strategy(plan, strategy)
+
+    assert [request.connector_name for request in recovered.search_requests] == ["openalex"]
+    assert [request.query for request in recovered.search_requests] == ["benchmark RMSE table reproducibility"]
+    assert strategy["failure_reason"] == "arXiv returned HTTP 503"
 
 
 class EvidenceValidator:

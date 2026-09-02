@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { AgentResult, DynamicRecord, SourceCatalogEntry, TaskResponse } from "../../../types/api";
-import { DynamicDataPanel, QualityPanel, SourceDetail, SourcesPanel } from "./ResultPanels";
+import { AgentRuntimePanel, DynamicDataPanel, QualityPanel, SourceDetail, SourcesPanel } from "./ResultPanels";
 
 function dynamicRecord(overrides: Partial<DynamicRecord> = {}): DynamicRecord {
   return {
@@ -136,5 +136,25 @@ describe("result panels", () => {
     expect(html).toContain("method");
     expect(html).toContain("experimental_result");
     expect(html).toContain("Contains the requested architecture and benchmark results.");
+  });
+
+  it("renders the Agent decision and tool trace", () => {
+    const result = {
+      runtime_iteration: 3,
+      runtime_status: "partial",
+      runtime_stop_reason: "Agent runtime safety budget exhausted after 3 iteration(s).",
+      agent_decision_history: [{ decision: "continue", reason: "Collect missing table evidence.", tool_calls: [{ call_id: "call_1", tool_name: "parse_table" }] }],
+      tool_result_history: [{ call_id: "call_1", tool_name: "parse_table", status: "failed", errors: ["TATR weights unavailable"] }],
+      stop_rejections: ["Coverage gate is 'continue'; required evidence is not complete."],
+      agent_trace: [{ event_type: "tool_failed", iteration: 2, tool_name: "parse_table", status: "failed" }],
+    } as unknown as AgentResult;
+
+    const html = renderToStaticMarkup(<AgentRuntimePanel result={result} />);
+
+    expect(html).toContain("AGENT RUNTIME");
+    expect(html).toContain("safety budget exhausted");
+    expect(html).toContain("tool failed");
+    expect(html).toContain("parse_table");
+    expect(html).toContain("Coverage gate");
   });
 });

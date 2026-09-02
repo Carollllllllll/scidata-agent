@@ -25,13 +25,19 @@ def test_checkpoint_round_trip_and_fingerprint_guard() -> None:
         fingerprint = build_run_fingerprint("q", [], {"max_pages": None})
         store = AgentCheckpointStore(root / state.task_id)
 
-        store.save(state, fingerprint=fingerprint, completed_steps={"task_planning"})
+        store.save(
+            state,
+            fingerprint=fingerprint,
+            completed_steps={"task_planning"},
+            last_error="recoverable test failure",
+        )
 
         restored = store.load(fingerprint=fingerprint)
         assert restored is not None
         restored_state, completed_steps = restored
         assert restored_state.task_id == state.task_id
         assert completed_steps == {"task_planning"}
+        assert store.path.read_text(encoding="utf-8").find("recoverable test failure") >= 0
         assert store.load(fingerprint="wrong") is None
         assert store.last_load_reason == "fingerprint_mismatch"
 

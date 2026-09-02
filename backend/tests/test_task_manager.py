@@ -235,6 +235,76 @@ def test_task_manager_preserves_failed_step_and_message(tmp_path, monkeypatch) -
         manager.shutdown()
 
 
+def test_get_task_prefers_final_runtime_snapshot_over_stale_monitor_event(tmp_path) -> None:
+    manager = TaskManager(tmp_path / "outputs", tmp_path / "tasks", max_workers=1)
+    task_id = "20260820_120000_000_snapshot"
+    manager._write_state(
+        task_id,
+        {
+            "task_id": task_id,
+            "status": "partial",
+            "message": "Agent task partially completed.",
+        },
+    )
+    output_task_dir = manager.output_dir / task_id
+    output_task_dir.mkdir(parents=True, exist_ok=True)
+    (output_task_dir / "agent_monitor.jsonl").write_text(
+        json.dumps({
+            "timestamp": "2026-08-20T12:00:00+00:00",
+            "event_type": "agent",
+            "step": "agent_runtime",
+            "status": "running",
+            "message": "tool completed",
+            "data": {"runtime": {"status": "running", "iteration": 2}},
+        }) + "\n",
+        encoding="utf-8",
+    )
+    manager._write_json(
+        manager._task_state_dir(task_id) / "result_payload.json",
+        {
+            "status": "partial",
+            "runtime_iteration": 8,
+            "runtime_iteration_budget": 24,
+            "runtime_status": "partial",
+            "runtime_phase": "partial",
+            "runtime_stop_reason": "Agent stopped after 4 consecutive turns without new scientific evidence or processing progress.",
+            "runtime_no_progress_streak": 4,
+            "runtime_no_progress_limit": 4,
+            "agent_decision_history": [{"decision": "continue", "reason": "inspect"}],
+            "tool_result_history": [{"call_id": "tool-1", "tool_name": "inspect", "status": "completed"}],
+            "agent_trace": [{"event_type": "agent_no_progress_stop", "status": "partial"}],
+            "source_catalog": [
+                {"source_id": "source-1", "title": "Paper", "status": "selected", "artifacts": [
+                    {"artifact_id": "artifact-1", "status": "failed"}
+                ]}
+            ],
+            "coverage_report": {
+                "decision": "continue",
+                "coverage_score": 0.25,
+                "missing_requirements": ["experimental setup"],
+                "gaps": [],
+            },
+            "summary": {},
+            "quality_report": {},
+        },
+    )
+
+    try:
+        task = manager.get_task(task_id)
+        assert task["runtime"]["status"] == "partial"
+        assert task["runtime"]["iteration"] == 8
+        assert task["runtime"]["iteration_budget"] == 24
+        assert "4 consecutive turns" in task["runtime"]["stop_reason"]
+        assert task["coverage"]["coverage_score"] == 0.25
+        assert task["source_status"]["catalog_count"] == 1
+        assert task["source_status"]["artifact_count"] == 1
+        events = manager.get_events(task_id)
+        assert events["runtime"]["status"] == "partial"
+        assert events["runtime"]["stop_reason"].startswith("Agent stopped after 4")
+    finally:
+        manager.shutdown()
+
+
 def test_task_manager_persists_partial_status_and_coverage_message(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(task_manager_module, "SciDataAgent", _FakePartialAgent)
     manager = TaskManager(tmp_path / "outputs", tmp_path / "tasks", max_workers=1)

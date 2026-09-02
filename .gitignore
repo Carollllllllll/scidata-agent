@@ -32,3 +32,4 @@ htmlcov/
 *.tmp
 *.log
 .pytest_tmp/
+backend/.pytest-tmp*/

@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from scidata_agent.agent.schemas import (
     AgentState,
+    ArtifactRelevanceAssessment,
     ArtifactActionPlan,
     DynamicExtractionPlan,
     SourceSelectionPlan,
@@ -71,6 +72,41 @@ def test_schema_driven_normalization_recurses_through_nested_models() -> None:
     assert plan.dynamic_tables[0].fields[0].examples == ["0.91"]
     assert plan.information_needs[0].need_name == "evaluation"
     assert len(events) >= 6
+
+
+def test_action_shaped_artifact_recommendation_is_normalized_semantically() -> None:
+    payload = {
+        "research_goal": "extract evidence",
+        "artifact_assessments": [
+            {
+                "artifact_id": "artifact-1",
+                "recommendation": "download_artifact",
+                "overall_score": "3.5",
+            },
+            {
+                "artifact_id": "artifact-2",
+                "recommendation": "read_metadata",
+            },
+        ],
+    }
+
+    normalized, events = normalize_payload_for_model(payload, ArtifactActionPlan)
+    plan = ArtifactActionPlan.model_validate(normalized)
+
+    assert [item.recommendation for item in plan.artifact_assessments] == [
+        "process",
+        "inspect_metadata",
+    ]
+    assert any(event["rule"] == "literal_semantic_normalization" for event in events)
+
+
+def test_artifact_recommendation_boundary_accepts_action_alias_without_normalizer() -> None:
+    assessment = ArtifactRelevanceAssessment(
+        artifact_id="artifact-1",
+        recommendation="parse_pdf_text",
+    )
+
+    assert assessment.recommendation == "process"
 
 
 def test_normalization_events_are_recorded_by_agent_nodes() -> None:

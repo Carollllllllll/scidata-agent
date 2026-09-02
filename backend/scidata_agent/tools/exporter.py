@@ -88,6 +88,10 @@ def export_results(state: AgentState) -> ExportFiles:
     figures_dir = task_dir / "figures"
     summary_json_path = task_dir / "summary.json"
     final_report_path = task_dir / "final_report.md"
+    chart_corrections_path = task_dir / "chart_corrections.json"
+    agent_trace_path = task_dir / "agent_trace.json"
+    decision_history_path = task_dir / "decision_history.json"
+    tool_history_path = task_dir / "tool_history.json"
 
     _write_csv(record_dicts, csv_path)
     summary_payload = _summary_payload(state)
@@ -139,9 +143,25 @@ def export_results(state: AgentState) -> ExportFiles:
         "quality_report": state.quality_report.model_dump(mode="json"),
         "coverage_report": state.coverage_report.model_dump(mode="json"),
         "cross_modal_checks": [check.model_dump(mode="json") for check in state.cross_modal_checks],
+        "chart_corrections": [correction.model_dump(mode="json") for correction in state.chart_corrections],
+        "runtime": {
+            "iteration": state.runtime_iteration,
+            "status": state.runtime_status,
+            "stop_reason": state.runtime_stop_reason,
+            "decision_count": len(state.agent_decision_history),
+            "tool_result_count": len(state.tool_result_history),
+            "trace_count": len(state.agent_trace),
+        },
         "processing_log": state.processing_log,
     }
     json_path.write_text(json.dumps(json_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    agent_trace_path.write_text(json.dumps(state.agent_trace, ensure_ascii=False, indent=2), encoding="utf-8")
+    decision_history_path.write_text(
+        json.dumps(state.agent_decision_history, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    tool_history_path.write_text(
+        json.dumps(state.tool_result_history, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     log_path.write_text(json.dumps(state.processing_log, ensure_ascii=False, indent=2), encoding="utf-8")
     quality_path.write_text(
         json.dumps(state.quality_report.model_dump(mode="json"), ensure_ascii=False, indent=2),
@@ -283,6 +303,14 @@ def export_results(state: AgentState) -> ExportFiles:
         ),
         encoding="utf-8",
     )
+    chart_corrections_path.write_text(
+        json.dumps(
+            [correction.model_dump(mode="json") for correction in state.chart_corrections],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     cross_modal_validation_path.write_text(
         json.dumps(
             [check.model_dump(mode="json") for check in state.cross_modal_checks],
@@ -336,10 +364,14 @@ def export_results(state: AgentState) -> ExportFiles:
         figures_dir=str(figures_dir) if figures_dir.exists() else None,
         chart_extractions_json=str(chart_extractions_path),
         chart_validation_json=str(chart_validation_path),
+        chart_corrections_json=str(chart_corrections_path),
         cross_modal_validation_json=str(cross_modal_validation_path),
         chart_tables_dir=str(chart_tables_dir) if chart_tables_dir.exists() else None,
         final_report=str(final_report_path),
         summary_json=str(summary_json_path),
+        agent_trace_json=str(agent_trace_path),
+        decision_history_json=str(decision_history_path),
+        tool_history_json=str(tool_history_path),
     )
 
 
@@ -680,10 +712,20 @@ def _dynamic_record_to_row(record: DynamicRecord) -> dict:
 def build_human_summary(state: AgentState, paper_survey_records: list[dict]) -> dict:
     dynamic_records = state.clean_dynamic_records or state.dynamic_records
     dynamic_tables = sorted({record.table_name for record in dynamic_records})
+    runtime_status = str(state.runtime_status or "")
+    result_status = (
+        "partial"
+        if runtime_status in {"running", "partial", "failed"}
+        else "completed"
+    )
     return {
         "task_id": state.task_id,
         "research_question": state.research_question,
-        "status": "completed",
+        "status": result_status,
+        "runtime_status": runtime_status,
+        "runtime_iteration": state.runtime_iteration,
+        "runtime_stop_reason": state.runtime_stop_reason,
+        "stop_rejections_count": len(state.stop_rejections),
         "files_processed": len(state.files),
         "heading_candidates": len(state.parsed_sources.heading_candidates),
         "section_blocks": len(state.parsed_sources.section_blocks),

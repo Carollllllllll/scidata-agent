@@ -56,8 +56,12 @@ class TaskManager:
         "review_queue": "review_queue.json",
         "chart_extractions": "chart_extractions.json",
         "chart_validation": "chart_validation_report.json",
+        "chart_corrections": "chart_corrections.json",
         "cross_modal_validation": "cross_modal_validation.json",
         "connector_status": "connector_status.json",
+        "agent_trace": "agent_trace.json",
+        "decision_history": "decision_history.json",
+        "tool_history": "tool_history.json",
         "discovered_sources": "discovered_sources.json",
         "summary": "summary.json",
         "final_report": "final_report.md",
@@ -222,8 +226,10 @@ class TaskManager:
             if not (response.get("status") == "failed" and response.get("error")):
                 response["message"] = event.get("message") or response.get("message")
             response["updated_at"] = event.get("timestamp") or response.get("updated_at")
-            response["event"] = _compact_monitor_event(event, include_data=False)
+            compact_event = _compact_monitor_event(event, include_data=False)
+            response["event"] = compact_event
             event_data = event.get("data") or {}
+            _apply_live_snapshot(response, compact_event.get("data"))
             if "progress_index" in event_data or "progress_total" in event_data:
                 response["progress"] = {
                     "current": event_data.get("progress_index"),
@@ -241,6 +247,10 @@ class TaskManager:
                     "review_decisions": self.review_decisions(task_id),
                 }
             )
+            # A final payload is authoritative. The last monitor event can be
+            # an intermediate tool event written before the Agent updates its
+            # terminal status and stop reason.
+            response.update(_snapshot_from_result_payload(payload))
         else:
             response["review_decisions"] = self.review_decisions(task_id)
         return response
@@ -288,6 +298,7 @@ class TaskManager:
                         item["current_step"] = event.get("step") or item.get("current_step")
                     item["message"] = event.get("message") or item.get("message")
                     item["updated_at"] = event.get("timestamp") or item.get("updated_at")
+                    _apply_live_snapshot(item, _compact_monitor_event(event, include_data=False).get("data"))
                     event_data = event.get("data") or {}
                     if "progress_index" in event_data or "progress_total" in event_data:
                         item["progress"] = {
@@ -297,6 +308,8 @@ class TaskManager:
             item["result"] = None
             item["summary"] = payload.get("summary") if payload else None
             item["quality_report"] = payload.get("quality_report") if payload else None
+            if payload:
+                item.update(_snapshot_from_result_payload(payload))
             item["download_urls"] = self.download_urls(task_id)
             tasks.append(item)
             if len(tasks) >= limit:
@@ -330,6 +343,7 @@ class TaskManager:
         tail = max(1, min(int(tail), 500))
         log_path = self._monitor_path(task_id)
         events: list[dict[str, Any]] = []
+        live_snapshot: dict[str, Any] = {}
         if log_path.exists():
             for line in _tail_text_lines(log_path, tail):
                 try:
@@ -337,8 +351,21 @@ class TaskManager:
                 except json.JSONDecodeError:
                     continue
                 if isinstance(event, dict):
-                    events.append(_compact_monitor_event(event, include_data=include_data))
-        return {"task_id": task_id, "status": state.get("status"), "events": events}
+                    compact_event = _compact_monitor_event(event, include_data=include_data)
+                    events.append(compact_event)
+                    _merge_live_snapshot(
+                        live_snapshot,
+                        event.get("data") if include_data else compact_event.get("data"),
+                    )
+        response: dict[str, Any] = {"task_id": task_id, "status": state.get("status"), "events": events}
+        if live_snapshot:
+            response.update(live_snapshot)
+        payload = self._read_json(self._task_state_dir(task_id, create=False) / "result_payload.json")
+        if payload:
+            # Event tails are useful while a task runs, but the persisted
+            # result is authoritative once the task reaches a terminal state.
+            response.update(_snapshot_from_result_payload(payload))
+        return response
 
     def review_decisions(self, task_id: str) -> dict[str, dict[str, Any]]:
         payload = self._read_json(self._task_state_dir(task_id, create=False) / "review_decisions.json")
@@ -732,7 +759,320 @@ def _compact_monitor_event(event: dict[str, Any], *, include_data: bool) -> dict
         "message",
         "duration_ms",
     )
-    return {key: event[key] for key in public_keys if key in event}
+    compact = {key: event[key] for key in public_keys if key in event}
+    live_snapshot = _live_snapshot_from_event_data(event.get("data"))
+    if live_snapshot:
+        compact["data"] = live_snapshot
+    return compact
+
+
+def _apply_live_snapshot(target: dict[str, Any], data: Any) -> None:
+    snapshot = _normalise_live_snapshot(data)
+    if snapshot:
+        target.update(snapshot)
+
+
+def _merge_live_snapshot(target: dict[str, Any], data: Any) -> None:
+    snapshot = _normalise_live_snapshot(data)
+    if snapshot:
+        target.update(snapshot)
+
+
+def _normalise_live_snapshot(data: Any) -> dict[str, Any]:
+    if isinstance(data, dict) and any(
+        key in data for key in ("runtime", "coverage", "source_status")
+    ):
+        return {
+            key: data[key]
+            for key in ("runtime", "coverage", "source_status")
+            if key in data
+        }
+    return _live_snapshot_from_event_data(data)
+
+
+def _live_snapshot_from_event_data(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        return {}
+    runtime = _compact_runtime_snapshot(data.get("runtime"))
+    runtime_event = _compact_runtime_event(data.get("runtime_event"))
+    if runtime_event:
+        runtime["latest_event"] = runtime_event
+    coverage = _compact_coverage_snapshot(data.get("coverage_report"))
+    source_status = _compact_source_status(data)
+    snapshot: dict[str, Any] = {}
+    if runtime:
+        snapshot["runtime"] = runtime
+    if coverage:
+        snapshot["coverage"] = coverage
+    if source_status:
+        snapshot["source_status"] = source_status
+    return snapshot
+
+
+def _compact_runtime_event(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    event = {
+        key: value[key]
+        for key in ("event_type", "iteration", "call_id", "tool_name", "status")
+        if key in value
+    }
+    payload = value.get("payload")
+    if isinstance(payload, dict):
+        result = payload.get("result")
+        if isinstance(result, dict):
+            for key in ("retry_count", "cached"):
+                if key in result:
+                    event[key] = result[key]
+            for source_key, target_key in (
+                ("evidence_refs", "evidence_count"),
+                ("artifact_refs", "artifact_count"),
+                ("warnings", "warning_count"),
+                ("errors", "error_count"),
+            ):
+                values = result.get(source_key)
+                if isinstance(values, list):
+                    event[target_key] = len(values)
+        reasons = payload.get("reasons")
+        if isinstance(reasons, list):
+            event["reason_count"] = len(reasons)
+    return event
+
+
+def _compact_runtime_snapshot(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+
+    decisions = []
+    raw_decisions = value.get("recent_decisions", [])
+    if not isinstance(raw_decisions, list):
+        raw_decisions = []
+    for raw in raw_decisions[-3:]:
+        if not isinstance(raw, dict):
+            continue
+        calls = []
+        raw_calls = raw.get("tool_calls", [])
+        if not isinstance(raw_calls, list):
+            raw_calls = []
+        for call in raw_calls[:12]:
+            if not isinstance(call, dict):
+                continue
+            item = {
+                key: call[key]
+                for key in ("call_id", "tool_name", "priority", "gap_ids")
+                if key in call
+            }
+            for key in ("reason", "purpose"):
+                if key in call:
+                    item[key] = _public_text(call[key])
+            for key in ("expected_evidence",):
+                if isinstance(call.get(key), list):
+                    item[key] = [_public_text(entry) for entry in call[key][:12]]
+            calls.append(item)
+        decision = {
+            key: raw[key]
+            for key in ("decision",)
+            if key in raw
+        }
+        for key in ("reason", "stop_reason"):
+            if key in raw:
+                decision[key] = _public_text(raw[key])
+        if isinstance(raw.get("expected_evidence"), list):
+            decision["expected_evidence"] = [
+                _public_text(entry) for entry in raw["expected_evidence"][:12]
+            ]
+        decisions.append(decision | {"tool_calls": calls})
+
+    results = []
+    raw_results = value.get("recent_tool_results", [])
+    if not isinstance(raw_results, list):
+        raw_results = []
+    for raw in raw_results[-5:]:
+        if not isinstance(raw, dict):
+            continue
+        item = {
+            key: raw[key]
+            for key in (
+                "call_id",
+                "tool_name",
+                "status",
+                "elapsed_ms",
+                "retry_count",
+                "cached",
+            )
+            if key in raw
+        }
+        for key in ("artifact_refs", "evidence_refs", "warnings", "errors"):
+            if isinstance(raw.get(key), list):
+                item[key] = [_public_text(entry) for entry in raw[key][:12]]
+        results.append(item)
+
+    snapshot = {
+        key: value[key]
+        for key in (
+            "iteration",
+            "iteration_budget",
+            "status",
+            "phase",
+            "stop_reason",
+            "no_progress_streak",
+            "no_progress_limit",
+            "last_progress_iteration",
+            "decision_count",
+            "tool_result_count",
+            "trace_count",
+        )
+        if key in value
+    }
+    for key in ("stop_reason",):
+        if key in snapshot:
+            snapshot[key] = _public_text(snapshot[key])
+    snapshot["recent_decisions"] = decisions
+    snapshot["recent_tool_results"] = results
+    raw_rejections = value.get("stop_rejections", [])
+    if not isinstance(raw_rejections, list):
+        raw_rejections = []
+    snapshot["stop_rejections"] = [_public_text(item) for item in raw_rejections[-8:]]
+    return snapshot
+
+
+def _snapshot_from_result_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Project a completed Agent result into the live API snapshot shape."""
+    decisions = payload.get("agent_decision_history")
+    if not isinstance(decisions, list):
+        decisions = []
+    tool_results = payload.get("tool_result_history")
+    if not isinstance(tool_results, list):
+        tool_results = []
+    trace = payload.get("agent_trace")
+    if not isinstance(trace, list):
+        trace = []
+    rejections = payload.get("stop_rejections")
+    if not isinstance(rejections, list):
+        rejections = []
+    runtime_data = {
+        "iteration": payload.get("runtime_iteration", 0),
+        "iteration_budget": payload.get("runtime_iteration_budget"),
+        "status": payload.get("runtime_status") or payload.get("status"),
+        "phase": payload.get("runtime_phase"),
+        "stop_reason": payload.get("runtime_stop_reason"),
+        "no_progress_streak": payload.get("runtime_no_progress_streak", 0),
+        "no_progress_limit": payload.get("runtime_no_progress_limit", 4),
+        "last_progress_iteration": payload.get("runtime_last_progress_iteration"),
+        "decision_count": len(decisions),
+        "tool_result_count": len(tool_results),
+        "trace_count": len(trace),
+        "recent_decisions": decisions[-3:],
+        "recent_tool_results": tool_results[-5:],
+        "stop_rejections": rejections[-8:],
+    }
+
+    catalog = payload.get("source_catalog")
+    if not isinstance(catalog, list):
+        catalog = []
+    artifacts = [
+        artifact
+        for source in catalog
+        if isinstance(source, dict)
+        for artifact in (source.get("artifacts") or [])
+        if isinstance(artifact, dict)
+    ]
+
+    def count_by(items: list[dict[str, Any]], key: str) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for item in items:
+            value = str(item.get(key) or "unknown")
+            counts[value] = counts.get(value, 0) + 1
+        return counts
+
+    source_data = {
+        "source_catalog_count": len(catalog),
+        "source_artifacts_count": len(artifacts),
+        "source_catalog_statuses": count_by(
+            [item for item in catalog if isinstance(item, dict)], "status"
+        ),
+        "source_artifact_statuses": count_by(artifacts, "status"),
+        "connector_status": payload.get("connector_status", []),
+    }
+    return {
+        "runtime": _compact_runtime_snapshot(runtime_data),
+        "coverage": _compact_coverage_snapshot(payload.get("coverage_report")),
+        "source_status": _compact_source_status(source_data),
+    }
+
+
+def _compact_coverage_snapshot(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    gaps = value.get("gaps")
+    missing = value.get("missing_requirements")
+    unprocessed = value.get("unprocessed_relevant_artifacts")
+    snapshot = {
+        key: value[key]
+        for key in (
+            "decision",
+            "coverage_score",
+            "required_evidence_types",
+            "covered_evidence_types",
+            "reasons",
+            "recommended_actions",
+        )
+        if key in value
+    }
+    for key in ("required_evidence_types", "covered_evidence_types", "reasons", "recommended_actions"):
+        if isinstance(value.get(key), list):
+            snapshot[key] = [_public_text(item) for item in value[key][:12]]
+    return snapshot | {
+        "gap_count": len(gaps) if isinstance(gaps, list) else 0,
+        "missing_requirements": [_public_text(item) for item in missing[:12]] if isinstance(missing, list) else [],
+        "unprocessed_relevant_artifacts_count": len(unprocessed) if isinstance(unprocessed, list) else 0,
+    }
+
+
+def _compact_source_status(data: dict[str, Any]) -> dict[str, Any]:
+    catalog_count = data.get("source_catalog_count")
+    artifact_count = data.get("source_artifacts_count")
+    source_counts = data.get("source_catalog_statuses")
+    artifact_counts = data.get("source_artifact_statuses")
+    connector_items = []
+    connector_status = data.get("connector_status", [])
+    if not isinstance(connector_status, list):
+        connector_status = []
+    for raw in connector_status[:12]:
+        if not isinstance(raw, dict):
+            continue
+        connector_items.append({
+            key: _public_text(raw[key]) if key in {"query", "error", "message"} else raw[key]
+            for key in (
+                "connector",
+                "connector_name",
+                "query",
+                "status",
+                "attempt",
+                "attempts",
+                "retry_count",
+                "added_sources_count",
+                "error",
+                "message",
+            )
+            if key in raw
+        })
+    if not any(value is not None for value in (catalog_count, artifact_count, source_counts, artifact_counts)) and not connector_items:
+        return {}
+    return {
+        "catalog_count": catalog_count,
+        "artifact_count": artifact_count,
+        "source_status_counts": source_counts if isinstance(source_counts, dict) else {},
+        "artifact_status_counts": artifact_counts if isinstance(artifact_counts, dict) else {},
+        "connectors": connector_items,
+    }
+
+
+def _public_text(value: Any, max_length: int = 1000) -> str:
+    """Bound diagnostic text and redact Windows paths from live snapshots."""
+    text = str(value)
+    text = re.sub(r"(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|\\\\)[^\s,;]+", "[local path]", text)
+    return text if len(text) <= max_length else text[:max_length] + "...[truncated]"
 
 
 def _now() -> str:

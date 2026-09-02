@@ -34,6 +34,9 @@ class TaskResponse(BaseModel):
     error: dict[str, Any] | None = None
     uploads: list[dict[str, Any]] = Field(default_factory=list)
     event: dict[str, Any] | None = None
+    runtime: dict[str, Any] | None = None
+    coverage: dict[str, Any] | None = None
+    source_status: dict[str, Any] | None = None
     result: dict[str, Any] | None = None
     summary: dict[str, Any] | None = None
     quality_report: dict[str, Any] | None = None
@@ -50,6 +53,9 @@ class TaskEventsResponse(BaseModel):
     task_id: str
     status: TaskStatus
     events: list[dict[str, Any]] = Field(default_factory=list)
+    runtime: dict[str, Any] | None = None
+    coverage: dict[str, Any] | None = None
+    source_status: dict[str, Any] | None = None
 
 
 class HealthResponse(BaseModel):

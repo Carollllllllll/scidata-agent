@@ -98,6 +98,9 @@ Source discovery plan:
 Already discovered candidate context (one bounded batch; it may be incomplete):
 {candidate_context_json}
 
+Dynamic search recovery strategy (may be empty for initial discovery):
+{search_strategy_json}
+
 Search-planning batch: {batch_label}
 
 Create a broad multi-source survey search plan.
@@ -134,6 +137,10 @@ Planning requirements:
 9. Do not include generic low-value queries such as "paper", "dataset", or "science".
 10. If the task already provides local files and does not need web discovery, set should_search=false and return an empty search_requests list.
 11. Use Chinese in purpose/notes when helpful for the user.
+12. When a dynamic recovery strategy is present, honor its connector_names,
+    avoid_connectors, source_types, query_focus, revised_queries, and
+    failure_reason. Change the search strategy instead of repeating a failed
+    connector/query pair.
 """
 
 
@@ -225,8 +232,14 @@ Current source/artifact catalog:
 Recent processing observations:
 {processing_log_json}
 
+Runtime mode:
+{runtime_mode}
+
 Connector failures or warnings:
 {connector_failures_json}
+
+Bounded Agent observation (the decision must use this current state view):
+{observation_json}
 
 Current planner iteration: {iteration}
 
@@ -249,7 +262,7 @@ Return JSON with this structure:
       "field_scores": {{"field_name": 0}},
       "evidence_types": ["paper_full_text | table | figure | supplementary_material | code_repository | dataset"],
       "rank": 1,
-      "recommendation": "process | inspect_metadata | skip | unknown",
+        "recommendation": "process | inspect_metadata | skip | unknown (classification only; if you name a concrete action such as download_artifact, it will be interpreted as process)",
       "rationale": "why this artifact does or does not support the research goal"
     }}
   ],
@@ -257,7 +270,7 @@ Return JSON with this structure:
     {{
       "action_id": "action_001",
       "artifact_id": "artifact_id copied exactly from the catalog, or null for a global action",
-      "action": "read_metadata | download_artifact | parse_pdf_text | parse_pdf_sections | parse_table | parse_figure | parse_html | parse_csv | read_readme | read_file_manifest | search_more | validate_evidence | stop",
+      "action": "plan_task | plan_dynamic_schema | discover_sources | plan_multi_source_search | search_sources | read_metadata | download_artifact | parse_pdf_text | parse_pdf_sections | parse_table | parse_figure | parse_html | parse_csv | read_readme | read_file_manifest | search_more | validate_evidence | select_sources | triage_sources | ingest_sources | ingest_arxiv_pdfs | parse_content | parse_source_content | extract_figures | interpret_sections | extract_dynamic_records | extract_records | normalize_records | track_provenance | validate_quality | stop",
       "purpose": "what evidence this action is intended to obtain",
       "expected_fields": ["field names from the dynamic extraction plan"],
       "priority": "high | medium | low",
@@ -271,12 +284,16 @@ Return JSON with this structure:
 
 Planning rules:
 1. Use an artifact-specific action for a concrete file/page. The artifact_id must exactly match an ID in the catalog.
-2. Use artifact_id=null only for global actions: search_more, validate_evidence, or stop.
+2. Use artifact_id=null only for global actions: plan_task, plan_dynamic_schema, discover_sources, plan_multi_source_search, search_sources, search_more, validate_evidence, select_sources, triage_sources, ingest_sources, ingest_arxiv_pdfs, parse_content, parse_source_content, extract_figures, interpret_sections, extract_dynamic_records, extract_records, normalize_records, track_provenance, validate_quality, or stop.
 3. Use parse_pdf_sections when section-aware reading is needed; use parse_pdf_text when plain text evidence is sufficient.
 4. Use parse_table for CSV/TSV/XLSX or a detected table artifact, parse_figure for image/chart evidence, parse_html for HTML, and read_readme/read_file_manifest for repositories and file listings.
 5. Use read_metadata before expensive parsing when the artifact has not been inspected and metadata can determine its value.
 6. Use download_artifact before parsing a remote artifact with no local_path. Do not download an artifact merely because it exists; select it for the research goal first.
 7. Use search_more when important information needs or source types are missing; explain what is missing in purpose and reason.
+   For recovery, put a JSON strategy in parameters when useful:
+   {{"connector_names": ["openalex", "crossref"], "avoid_connectors": ["arxiv"],
+     "query_focus": "...", "revised_queries": {{"openalex": ["..."]}},
+     "source_types": ["paper_metadata"], "failure_reason": "..."}}
 8. Assess every catalog artifact against the dynamic extraction needs using the 0-4 rubric: 0 unrelated, 1 peripheral mention, 2 topical but indirect, 3 direct evidence, 4 core evidence.
 9. Score each artifact per expected field, not only by title similarity. An artifact may be high priority when it uniquely covers a missing field even if its overall topic score is moderate.
 10. Rank candidates comparatively. Do not assign the same middle score to every artifact without field-level reasons.
@@ -286,6 +303,22 @@ Planning rules:
 14. Do not select an action merely because the artifact exists. Prefer actions that answer the user's question and preserve source evidence.
 15. Do not fabricate missing values. The executor will record failures and nulls explicitly.
 16. Return a small actionable set for this iteration; do not repeat an already completed action unless the reason explains why a retry is needed.
+17. A recovery search must change at least one of connector, query focus, query text, or source type when prior connector failures are present.
+18. In dynamic runtime mode, initialize missing state through global actions:
+    plan_task -> plan_dynamic_schema -> discover_sources ->
+    plan_multi_source_search -> search_sources, followed by source selection,
+    triage, ingestion, parsing, and quality validation as justified by the
+    observation. Do not assume this order is mandatory; inspect the catalog,
+    coverage gaps, and tool results before choosing the next action, and do not
+    emit several mutually dependent workflow stages in one decision.
+    After materialization, prefer the smallest useful content action:
+    parse_source_content -> extract_figures / interpret_sections ->
+    extract_dynamic_records / extract_records -> normalize_records ->
+    track_provenance -> validate_quality. Use parse_content only when the
+    complete compatibility pipeline is explicitly justified.
+19. If live search is not enabled or no connector search plan is needed, do not
+    force plan_multi_source_search or search_sources; use uploaded/local
+    artifacts and the evidence gaps to choose the next useful action.
 """
 
 
@@ -562,6 +595,31 @@ Read a chart image from a scientific paper and extract its axes, legend, and dat
 Return only a JSON object. Do not include explanatory text outside JSON.
 Never invent data: if a value cannot be read from the image, use null or omit it.
 All values read from chart pixels are approximations; say so in notes."""
+
+CHART_CORRECTION_SYSTEM = """You are a scientific chart second-opinion Agent.
+Re-read the same chart image after a deterministic validator found possible extraction problems.
+Return only one JSON object using the chart extraction schema. Never invent values.
+Keep values that are supported by the image, correct only fields implicated by the feedback,
+and use null or an empty list when a value cannot be confirmed. Values read from pixels are
+approximations and must be described in notes."""
+
+
+CHART_CORRECTION_USER = """The image is a {chart_type} chart cropped from a scientific PDF.
+Its caption (may be empty) is:
+{caption}
+
+This was the first extraction:
+{first_extraction_json}
+
+The deterministic validator reported these issues:
+{issues_json}
+
+Re-read the original image with special attention to the reported issues. Return one JSON object
+with the same fields as the original chart extraction: title, x_axis, y_axis, series, notes,
+approximate, and confidence. Use axis data coordinates for points. Do not copy an uncertain
+value merely to make the result complete, and do not remove a readable series without a visual
+reason. The result will be compared with the first extraction by deterministic code."""
+
 
 CHART_EXTRACTOR_USER = """The image is a {chart_type} chart cropped from a scientific PDF.
 Its caption (may be empty) is:

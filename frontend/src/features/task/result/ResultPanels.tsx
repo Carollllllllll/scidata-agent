@@ -15,6 +15,7 @@ import { QualityBadge } from "../../../components/StatusBadge";
 import { displayValue, stageLabel } from "../../../lib/task";
 import type {
   AgentResult,
+  ChartCorrection,
   ChartExtraction,
   ChartValidation,
   CrossModalCheck,
@@ -398,13 +399,14 @@ export function ChartsPanel({ result }: { result?: AgentResult | null }) {
   const figures = result?.figures ?? [];
   const extractionByFigure = useMemo(() => new Map((result?.chart_extractions ?? []).map((item) => [item.figure_id, item])), [result?.chart_extractions]);
   const validationByFigure = useMemo(() => new Map((result?.chart_validations ?? []).map((item) => [item.figure_id, item])), [result?.chart_validations]);
+  const correctionByFigure = useMemo(() => new Map((result?.chart_corrections ?? []).map((item) => [item.figure_id, item])), [result?.chart_corrections]);
   const crossModalBySubject = useMemo(() => new Map((result?.cross_modal_checks ?? []).map((item) => [item.subject_id, item])), [result?.cross_modal_checks]);
 
   if (!result) return <PanelEmptyState title="图表结果尚未生成" text="任务解析 PDF 图像后，图表和校验信息会出现在这里。" />;
   return (
     <section className="panel-card charts-panel">
       <div className="panel-heading wide"><div><span className="eyebrow dark">FIGURE INTELLIGENCE</span><h2>图表与图像解析</h2><p>近似读数会明确标记，无法确认的数字不会作为确定值展示。</p></div><div className="source-summary"><span><strong>{figures.length}</strong><small>检测图像</small></span><span><strong>{result.chart_extractions?.length ?? 0}</strong><small>结构化图表</small></span><span><strong>{result.chart_validations?.filter((item) => item.needs_review).length ?? 0}</strong><small>需要复核</small></span><span><strong>{result.cross_modal_checks?.filter((item) => item.status === "supported").length ?? 0}</strong><small>证据互证</small></span></div></div>
-      {figures.length === 0 ? <EmptyState icon="chart" title="没有检测到可展示图表" text="这可能表示资料没有图表、图表分支未运行，或检测结果为空。" /> : <div className="figure-grid">{figures.map((figure) => <FigureCard key={figure.figure_id} figure={figure} extraction={extractionByFigure.get(figure.figure_id)} validation={validationByFigure.get(figure.figure_id)} crossModalCheck={crossModalBySubject.get(figure.figure_id)} />)}</div>}
+      {figures.length === 0 ? <EmptyState icon="chart" title="没有检测到可展示图表" text="这可能表示资料没有图表、图表分支未运行，或检测结果为空。" /> : <div className="figure-grid">{figures.map((figure) => <FigureCard key={figure.figure_id} figure={figure} extraction={extractionByFigure.get(figure.figure_id)} validation={validationByFigure.get(figure.figure_id)} correction={correctionByFigure.get(figure.figure_id)} crossModalCheck={crossModalBySubject.get(figure.figure_id)} />)}</div>}
     </section>
   );
 }
@@ -472,12 +474,12 @@ function EvidenceTraceCard({
   );
 }
 
-function FigureCard({ figure, extraction, validation, crossModalCheck }: { figure: FigureAsset; extraction?: ChartExtraction; validation?: ChartValidation; crossModalCheck?: CrossModalCheck }) {
+function FigureCard({ figure, extraction, validation, correction, crossModalCheck }: { figure: FigureAsset; extraction?: ChartExtraction; validation?: ChartValidation; correction?: ChartCorrection; crossModalCheck?: CrossModalCheck }) {
   const points = extraction?.series?.reduce((sum, series) => sum + (series.points?.length ?? 0), 0) ?? 0;
   return (
     <article className="figure-card">
       <div className="figure-image">{figure.image_url ? <ApiAssetImage path={figure.image_url} alt={figure.caption || figure.label || figure.figure_id} /> : <div><Icon name="chart" size={28} /><span>图像文件不可访问</span></div>}<span className="figure-page">第 {figure.page} 页</span></div>
-      <div className="figure-body"><div className="figure-title-row"><div><small>{figure.label || figure.figure_id}</small><h3>{extraction?.title || figure.caption || "未命名图表"}</h3></div>{validation?.needs_review ? <QualityBadge tone="warning">需复核</QualityBadge> : validation?.passed ? <QualityBadge tone="success">校验通过</QualityBadge> : <QualityBadge tone="neutral">未校验</QualityBadge>}</div><p className="figure-caption">{figure.caption || "没有提取到 Caption。"}</p><div className="figure-stats"><span><small>类型</small><strong>{extraction?.chart_type || "未分类"}</strong></span><span><small>数据点</small><strong>{points}</strong></span><span><small>VL 置信度</small><strong>{extraction?.confidence !== undefined ? `${Math.round(extraction.confidence * 100)}%` : "—"}</strong></span></div>{extraction && <div className="axis-row"><span>X · {axisLabel(extraction.x_axis)}</span><span>Y · {axisLabel(extraction.y_axis)}</span>{extraction.approximate && <QualityBadge tone="info">近似读数</QualityBadge>}</div>}{validation?.issues?.slice(0, 2).map((issue) => <div className="chart-issue" key={issue.code}><Icon name="warning" size={14} />{issue.message}</div>)}{crossModalCheck && <div className={`cross-modal-status cross-modal-${crossModalCheck.status}`}><strong>Cross-modal: {crossModalCheck.status}</strong><span>{crossModalCheck.matched_value_count}/{crossModalCheck.candidate_value_count} numeric matches · {crossModalCheck.modalities.join(" + ")}</span></div>}</div>
+      <div className="figure-body"><div className="figure-title-row"><div><small>{figure.label || figure.figure_id}</small><h3>{extraction?.title || figure.caption || "未命名图表"}</h3></div>{validation?.needs_review ? <QualityBadge tone="warning">需复核</QualityBadge> : validation?.passed ? <QualityBadge tone="success">校验通过</QualityBadge> : <QualityBadge tone="neutral">未校验</QualityBadge>}</div><p className="figure-caption">{figure.caption || "没有提取到 Caption。"}</p><div className="figure-stats"><span><small>类型</small><strong>{extraction?.chart_type || "未分类"}</strong></span><span><small>数据点</small><strong>{points}</strong></span><span><small>VL 置信度</small><strong>{extraction?.confidence !== undefined ? `${Math.round(extraction.confidence * 100)}%` : "—"}</strong></span></div>{extraction && <div className="axis-row"><span>X · {axisLabel(extraction.x_axis)}</span><span>Y · {axisLabel(extraction.y_axis)}</span>{extraction.approximate && <QualityBadge tone="info">近似读数</QualityBadge>}</div>}{correction && <div className={`chart-correction-status chart-correction-${correction.decision}`}><strong>二次复查：{chartCorrectionLabel(correction)}</strong><span>{correction.decision_reason[0] || "已记录初次与复查结果。"}</span></div>}{validation?.issues?.slice(0, 2).map((issue) => <div className="chart-issue" key={issue.code}><Icon name="warning" size={14} />{issue.message}</div>)}{crossModalCheck && <div className={`cross-modal-status cross-modal-${crossModalCheck.status}`}><strong>Cross-modal: {crossModalCheck.status}</strong><span>{crossModalCheck.matched_value_count}/{crossModalCheck.candidate_value_count} numeric matches · {crossModalCheck.modalities.join(" + ")}</span></div>}</div>
     </article>
   );
 }
@@ -509,6 +511,7 @@ export function QualityPanel({
       </div>
 
       {coverage && <CoverageAuditPanel report={coverage} />}
+      {result && <AgentRuntimePanel result={result} />}
 
       <div className="quality-columns">
         <section className="panel-card coverage-panel">
@@ -579,6 +582,51 @@ export function CoverageAuditPanel({ report }: { report: CoverageReport }) {
   );
 }
 
+export function AgentRuntimePanel({ result }: { result: AgentResult }) {
+  const decisions = result.agent_decision_history ?? [];
+  const tools = result.tool_result_history ?? [];
+  const trace = result.agent_trace ?? [];
+  const failedTools = tools.filter((item) => item.status === "failed");
+  const runtimeStatus = result.runtime_status || "legacy_pipeline";
+  const stopReason = result.runtime_stop_reason || "No runtime stop reason recorded.";
+  return (
+    <section className="panel-card agent-runtime-panel">
+      <div className="panel-heading wide">
+        <div>
+          <span className="eyebrow dark">AGENT RUNTIME</span>
+          <h2>Decision and tool trace</h2>
+        </div>
+        <QualityBadge tone={runtimeStatus === "completed" ? "success" : runtimeStatus === "partial" ? "warning" : "info"}>
+          {runtimeStatus}
+        </QualityBadge>
+      </div>
+      <div className="agent-runtime-summary">
+        <span><small>Iterations</small><strong>{result.runtime_iteration ?? 0}</strong></span>
+        <span><small>Decisions</small><strong>{decisions.length}</strong></span>
+        <span><small>Tool results</small><strong>{tools.length}</strong></span>
+        <span><small>Failures</small><strong>{failedTools.length}</strong></span>
+      </div>
+      <div className="agent-runtime-stop"><small>Stop reason</small><strong>{stopReason}</strong></div>
+      {result.stop_rejections && result.stop_rejections.length > 0 && (
+        <div className="agent-runtime-rejections">
+          <small>Rejected decisions</small>
+          {result.stop_rejections.slice(-3).map((item) => <span key={item}><Icon name="warning" size={13} />{item}</span>)}
+        </div>
+      )}
+      {trace.length > 0 && (
+        <div className="agent-runtime-timeline">
+          {trace.slice(-10).map((event, index) => (
+            <div className="agent-runtime-event" key={`${event.event_id ?? event.event_type}-${index}`}>
+              <span className={`runtime-event-dot runtime-event-${event.status || "neutral"}`} />
+              <div><strong>{event.event_type.replaceAll("_", " ")}</strong><small>iteration {event.iteration ?? 0}{event.tool_name ? ` / ${event.tool_name}` : ""}{event.status ? ` / ${event.status}` : ""}</small></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 const exportDescriptions: Record<string, { name: string; description: string; kind: "data" | "quality" | "research" | "log" }> = {
   coverage_report: { name: "任务覆盖审核", description: "动态字段、证据类型和未处理高相关资料", kind: "quality" },
   csv: { name: "科研指标 CSV", description: "清洗后的指标型结构化记录", kind: "data" },
@@ -599,6 +647,9 @@ const exportDescriptions: Record<string, { name: string; description: string; ki
   source_triage: { name: "来源分诊记录", description: "下载、解析与跳过决策", kind: "research" },
   paper_survey: { name: "论文调研表", description: "按论文聚合的方法、数据集与指标", kind: "research" },
   connector_status: { name: "连接器状态", description: "数据源查询成功、失败与原因", kind: "log" },
+  agent_trace: { name: "Agent Trace", description: "决策、工具生命周期与失败恢复事件", kind: "log" },
+  decision_history: { name: "决策历史", description: "LLM 根据观察状态生成的动作决策", kind: "log" },
+  tool_history: { name: "工具结果历史", description: "每次工具调用的结果、证据和幂等状态", kind: "log" },
   discovered_sources: { name: "检索结果", description: "各连接器返回的规范化来源", kind: "research" },
   summary: { name: "任务摘要", description: "供演示和前端快速读取的摘要", kind: "research" },
   final_report: { name: "调研报告 Markdown", description: "适合阅读和后续整理的最终报告", kind: "research" },
@@ -843,6 +894,13 @@ function reviewDecisionLabel(decision: ReviewDecision["decision"]): string {
   if (decision === "approved") return "确认通过";
   if (decision === "needs_changes") return "需要修改";
   return "拒绝记录";
+}
+
+function chartCorrectionLabel(correction: ChartCorrection): string {
+  if (correction.decision === "accepted_second") return "已采用二次结果";
+  if (correction.decision === "manual_review") return "两次结果冲突，需人工复核";
+  if (correction.decision === "second_pass_failed") return "二次复查失败，保留初次结果";
+  return "保留初次结果";
 }
 
 function recordsForSource(source: SourceCatalogEntry, records: DynamicRecord[]): DynamicRecord[] {

@@ -7,9 +7,16 @@ from pathlib import Path
 from typing import Any, Callable
 
 from scidata_agent.agent.field_schema import FIELD_SCHEMA
-from scidata_agent.agent.action_executor import ArtifactActionExecutor
+from scidata_agent.agent.action_executor import (
+    ArtifactActionExecutor,
+    _artifact_result_from_tool_result,
+    _tool_call_from_action,
+)
 from scidata_agent.agent.checkpoint import AgentCheckpointStore, build_run_fingerprint
+from scidata_agent.agent.decision import AgentDecision
+from scidata_agent.agent.harness import AgentHarness
 from scidata_agent.agent.monitor import AgentMonitor
+from scidata_agent.agent.observation import AgentObservation
 from scidata_agent.agent.planner import plan_task as fallback_plan_task
 from scidata_agent.agent.schemas import (
     AgentResult,
@@ -17,6 +24,8 @@ from scidata_agent.agent.schemas import (
     AgentSummary,
     ArxivSearchPlan,
     ArtifactActionIteration,
+    ArtifactActionResult,
+    ChartCorrectionResult,
     QualityIssue,
     ReviewQueueItem,
     ScientificRecord,
@@ -24,10 +33,11 @@ from scidata_agent.agent.schemas import (
     UploadedFile,
     timestamp_task_id,
 )
+from scidata_agent.agent.tool_protocol import ToolResult
 from scidata_agent.llm.client import LLMConfigurationError, QwenBailianClient
 from scidata_agent.llm.nodes import QwenAgentNodes
 from scidata_agent.tools.chart_locator import locate_figures
-from scidata_agent.tools.chart_validator import validate_chart_extraction
+from scidata_agent.tools.chart_validator import compare_chart_extractions, validate_chart_extraction
 from scidata_agent.tools.coverage import build_coverage_report
 from scidata_agent.tools.cross_modal import build_cross_modal_checks
 from scidata_agent.tools.curator import curate_dynamic_records
@@ -185,6 +195,8 @@ class SciDataAgent:
         task_id: str | None = None,
         cancel_check: Callable[[], bool] | None = None,
         resume: bool = False,
+        enable_dynamic_runtime: bool | None = None,
+        max_agent_iterations: int | None = None,
     ) -> AgentResult:
         self._completed_checkpoint_steps = set()
         max_pdf_pages = _unlimited_or_positive(max_pdf_pages)
@@ -204,6 +216,12 @@ class SciDataAgent:
             else enable_live_search
         )
         artifact_action_iterations = max(1, int(max_artifact_action_iterations))
+        dynamic_runtime_enabled = _resolve_bool_option(
+            enable_dynamic_runtime,
+            env_name="SCIDATA_AGENT_RUNTIME",
+            default=False,
+        )
+        agent_iteration_budget = _agent_iteration_budget(max_agent_iterations)
         uploaded_files = [UploadedFile(filename=Path(path).name, path=Path(path)) for path in (files or [])]
         run_options_for_fingerprint = {
             "max_pdf_pages": max_pdf_pages,
@@ -224,6 +242,8 @@ class SciDataAgent:
             "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
             "arxiv_pdf_timeout": arxiv_pdf_timeout,
             "arxiv_download_batch_timeout": arxiv_download_batch_timeout,
+            "enable_dynamic_runtime": dynamic_runtime_enabled,
+            "max_agent_iterations": agent_iteration_budget,
         }
         resolved_task_id = task_id or timestamp_task_id()
         self._checkpoint_store = AgentCheckpointStore(self.output_dir / resolved_task_id)
@@ -234,6 +254,9 @@ class SciDataAgent:
             research_question=research_question,
             files=uploaded_files,
             output_dir=self.output_dir,
+            runtime_requires_source_discovery=(
+                dynamic_runtime_enabled and live_search_enabled and not discovery_only
+            ),
         )
         if self._resume_enabled:
             checkpoint = self._checkpoint_store.load(fingerprint=self._checkpoint_fingerprint)
@@ -246,6 +269,17 @@ class SciDataAgent:
                 )
             elif checkpoint is not None:
                 self._checkpoint_store.last_load_reason = "task_id_mismatch"
+        # This is derived from the current run options so old checkpoints can
+        # safely resume after the dynamic-runtime gate was introduced.
+        state.runtime_requires_source_discovery = (
+            dynamic_runtime_enabled and live_search_enabled and not discovery_only
+        )
+        # These controls are derived from the current run, including after a
+        # checkpoint restore, so an old checkpoint cannot silently retain the
+        # previous short safety budget.
+        state.runtime_iteration_budget = agent_iteration_budget
+        state.runtime_no_progress_limit = _agent_no_progress_limit()
+        state.runtime_phase = _runtime_phase(state)
         monitor = AgentMonitor(
             task_id=state.task_id,
             output_dir=state.output_dir,
@@ -307,55 +341,90 @@ class SciDataAgent:
                 "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
                 "arxiv_pdf_timeout": arxiv_pdf_timeout,
                 "arxiv_download_batch_timeout": arxiv_download_batch_timeout,
+                "enable_dynamic_runtime": dynamic_runtime_enabled,
+                "max_agent_iterations": agent_iteration_budget,
             },
         )
 
         try:
             self._run_step(monitor, "ensure_llm_ready", state, self._ensure_llm_ready)
-            self._run_step(monitor, "task_planning", state, self._plan)
-            self._run_step(monitor, "dynamic_schema_planning", state, self._plan_dynamic_schema)
-            self._run_step(monitor, "source_discovery", state, self._discover_sources)
+            if dynamic_runtime_enabled:
+                state.processing_log.append(
+                    "Dynamic runtime owns task planning, schema planning, source discovery, "
+                    "and multi-source search; initialization is deferred to Agent decisions."
+                )
+            else:
+                self._run_step(monitor, "task_planning", state, self._plan)
+                self._run_step(monitor, "dynamic_schema_planning", state, self._plan_dynamic_schema)
+                self._run_step(monitor, "source_discovery", state, self._discover_sources)
             # Uploaded files seed the analysis; they must not disable connector
             # search.  Search and download are separate controls so discovery-
             # only tasks can query live providers without fetching artifacts.
-            if live_search_enabled:
+            if live_search_enabled and not dynamic_runtime_enabled:
                 self._run_step(monitor, "multi_source_search_planning", state, self._plan_multi_source_search)
                 self._run_step(monitor, "multi_source_search", state, self._execute_multi_source_search)
-                self._run_step(
-                    monitor,
-                    "source_selection",
-                    state,
-                    self._select_sources,
-                    max_auto_resources=resource_cap,
-                )
-                self._run_step(
-                    monitor,
-                    "source_triage",
-                    state,
-                    self._triage_sources,
-                    max_auto_resources=resource_cap,
-                )
-                if auto_download_sources and not discovery_only:
-                    self._run_step(monitor, "multi_source_ingestion", state, self._ingest_triaged_sources)
+                if not dynamic_runtime_enabled:
                     self._run_step(
                         monitor,
-                        "arxiv_pdf_ingestion",
+                        "source_selection",
                         state,
-                        self._ingest_arxiv_pdfs,
+                        self._select_sources,
                         max_auto_resources=resource_cap,
-                        step_monitor=monitor,
-                        pdf_timeout=arxiv_pdf_timeout,
-                        batch_timeout=arxiv_download_batch_timeout,
                     )
+                    self._run_step(
+                        monitor,
+                        "source_triage",
+                        state,
+                        self._triage_sources,
+                        max_auto_resources=resource_cap,
+                    )
+                    if auto_download_sources and not discovery_only:
+                        self._run_step(monitor, "multi_source_ingestion", state, self._ingest_triaged_sources)
+                        self._run_step(
+                            monitor,
+                            "arxiv_pdf_ingestion",
+                            state,
+                            self._ingest_arxiv_pdfs,
+                            max_auto_resources=resource_cap,
+                            step_monitor=monitor,
+                            pdf_timeout=arxiv_pdf_timeout,
+                            batch_timeout=arxiv_download_batch_timeout,
+                        )
+                    else:
+                        state.processing_log.append(
+                            "Source download skipped by policy: live connector results remain metadata-only."
+                        )
                 else:
-                    state.processing_log.append(
-                        "Source download skipped by policy: live connector results remain metadata-only."
-                    )
+                    self._refresh_catalog(state, "multi_source_search")
+                    self._refresh_coverage(state, "multi_source_search")
             if discovery_only:
                 state.processing_log.append(
                     "Agent completed source discovery only; content ingestion and extraction were skipped by policy."
                 )
-            if not discovery_only:
+            if not discovery_only and dynamic_runtime_enabled:
+                state.processing_log.append(
+                    "Dynamic runtime owns source selection, ingestion, and content parsing; "
+                    "the initial content pipeline is deferred to an Agent tool decision."
+                )
+                self._run_dynamic_agent_loop(
+                    monitor,
+                    state,
+                    max_iterations=agent_iteration_budget,
+                    max_pdf_pages=max_pdf_pages,
+                    max_dynamic_text_blocks=max_dynamic_text_blocks,
+                    max_record_text_blocks=max_record_text_blocks,
+                    max_figures_per_pdf=max_figures_per_pdf,
+                    max_pdf_parse_workers=max_pdf_parse_workers,
+                    max_chart_workers=max_chart_workers,
+                    max_text_extraction_workers=max_text_extraction_workers,
+                    max_table_extraction_workers=max_table_extraction_workers,
+                    reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
+                    max_auto_resources=resource_cap,
+                    auto_download_sources=auto_download_sources,
+                    arxiv_pdf_timeout=arxiv_pdf_timeout,
+                    arxiv_download_batch_timeout=arxiv_download_batch_timeout,
+                )
+            if not discovery_only and not dynamic_runtime_enabled:
                 self._run_artifact_action_iteration(
                     monitor,
                     state,
@@ -384,14 +453,15 @@ class SciDataAgent:
                         "Coverage remains incomplete after the initial content pipeline; "
                         "one follow-up artifact-planning iteration was added."
                     )
-            if not discovery_only and artifact_action_iterations > 1:
+            if not discovery_only and not dynamic_runtime_enabled and artifact_action_iterations > 1:
                 self._run_step(
                     monitor,
                     "quality_validation_before_artifact_followup",
                     state,
                     self._quality_check,
                 )
-            for iteration in range(1, artifact_action_iterations if not discovery_only else 1):
+            legacy_iterations = artifact_action_iterations if not discovery_only and not dynamic_runtime_enabled else 1
+            for iteration in range(1, legacy_iterations):
                 if not state.artifact_action_plan or not state.artifact_action_plan.should_continue:
                     break
                 if not state.artifact_action_plan.actions:
@@ -435,16 +505,29 @@ class SciDataAgent:
                         )
                 if not state.artifact_action_plan or not state.artifact_action_plan.should_continue:
                     break
-            if not discovery_only and artifact_action_iterations > 1 and len(state.artifact_action_history) >= artifact_action_iterations:
+            if (
+                not discovery_only
+                and not dynamic_runtime_enabled
+                and artifact_action_iterations > 1
+                and len(state.artifact_action_history) >= artifact_action_iterations
+            ):
                 if state.artifact_action_plan and state.artifact_action_plan.should_continue:
                     state.processing_log.append(
                         f"Artifact action loop reached configured cap={artifact_action_iterations}."
                     )
             self._run_step(monitor, "quality_validation", state, self._quality_check)
             self._append_llm_trace(state, start_index=trace_start_index)
+            dynamic_runtime_incomplete = (
+                dynamic_runtime_enabled
+                and state.runtime_status != "completed"
+            )
             final_status = (
                 "partial"
-                if not discovery_only and state.coverage_report.decision != "allow_stop"
+                if not discovery_only
+                and (
+                    dynamic_runtime_incomplete
+                    or state.coverage_report.decision != "allow_stop"
+                )
                 else "completed"
             )
             if final_status == "partial":
@@ -468,6 +551,12 @@ class SciDataAgent:
         except Exception as exc:
             LOGGER.exception("SciData Agent task %s failed", state.task_id)
             state.processing_log.append(f"Task failed: {exc}")
+            state.runtime_status = "failed"
+            state.runtime_stop_reason = f"Task failed: {exc}"
+            try:
+                self._save_checkpoint_state(state, last_error=str(exc))
+            except Exception:
+                LOGGER.exception("Unable to persist failed task checkpoint for %s", state.task_id)
             monitor.error("task", f"Agent task failed: {exc}", _state_snapshot(state))
             self._append_llm_trace(state, start_index=trace_start_index)
             result = self._build_result(state, status="failed")
@@ -501,13 +590,19 @@ class SciDataAgent:
         state.processing_log.extend(self.llm_nodes.node_warnings[warning_start:])
         self._append_normalization_log(state, step, normalization_start)
         self._completed_checkpoint_steps.add(step)
-        if self._checkpoint_store is not None and self._checkpoint_fingerprint is not None:
-            self._checkpoint_store.save(
-                state,
-                fingerprint=self._checkpoint_fingerprint,
-                completed_steps=self._completed_checkpoint_steps,
-            )
+        self._save_checkpoint_state(state)
         monitor.end(step, f"{step} completed.", _state_snapshot(state))
+
+    def _save_checkpoint_state(self, state: AgentState, last_error: str | None = None) -> None:
+        """Persist the current state at both stage and tool boundaries."""
+        if self._checkpoint_store is None or self._checkpoint_fingerprint is None:
+            return
+        self._checkpoint_store.save(
+            state,
+            fingerprint=self._checkpoint_fingerprint,
+            completed_steps=self._completed_checkpoint_steps,
+            last_error=last_error,
+        )
 
     def _append_normalization_log(
         self,
@@ -564,12 +659,11 @@ class SciDataAgent:
     ) -> None:
         self._run_step(
             monitor,
-            "artifact_action_planning",
+            f"agent_runtime_iteration_{iteration}",
             state,
-            self._plan_artifact_actions,
+            self._execute_agent_harness_iteration,
             iteration=iteration,
         )
-        self._run_step(monitor, "artifact_action_execution", state, self._execute_artifact_actions)
         self._refresh_catalog(state, "artifact_action_execution")
         self._refresh_coverage(state, "artifact_action_execution")
         if any(
@@ -585,6 +679,565 @@ class SciDataAgent:
             )
             self._refresh_catalog(state, "artifact_search_more_followup")
             self._refresh_coverage(state, "artifact_search_more_followup")
+
+    def _run_dynamic_agent_loop(
+        self,
+        monitor: AgentMonitor,
+        state: AgentState,
+        *,
+        max_iterations: int,
+        max_pdf_pages: int | None,
+        max_dynamic_text_blocks: int | None,
+        max_record_text_blocks: int | None,
+        max_figures_per_pdf: int | None,
+        max_pdf_parse_workers: int | None,
+        max_chart_workers: int | None,
+        max_text_extraction_workers: int | None,
+        max_table_extraction_workers: int | None,
+        reuse_dynamic_records_for_metrics: bool,
+        max_auto_resources: int | None,
+        auto_download_sources: bool,
+        arxiv_pdf_timeout: int,
+        arxiv_download_batch_timeout: int,
+    ) -> None:
+        """Run model-directed artifact turns until the gate or safety budget."""
+        if state.runtime_status != "completed":
+            state.runtime_status = "running"
+            state.runtime_stop_reason = None
+        start_iteration = max(0, int(state.runtime_iteration))
+        executor = ArtifactActionExecutor(
+            self.llm_nodes,
+            workflow_handler=self._build_dynamic_workflow_handler(
+                monitor,
+                max_pdf_pages=max_pdf_pages,
+                max_dynamic_text_blocks=max_dynamic_text_blocks,
+                max_record_text_blocks=max_record_text_blocks,
+                max_figures_per_pdf=max_figures_per_pdf,
+                max_pdf_parse_workers=max_pdf_parse_workers,
+                max_chart_workers=max_chart_workers,
+                max_text_extraction_workers=max_text_extraction_workers,
+                max_table_extraction_workers=max_table_extraction_workers,
+                reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
+                max_auto_resources=max_auto_resources,
+                auto_download_sources=auto_download_sources,
+                arxiv_pdf_timeout=arxiv_pdf_timeout,
+                arxiv_download_batch_timeout=arxiv_download_batch_timeout,
+            ),
+        )
+        restored_tools = executor.tool_runtime.restore_completed(state.tool_result_history)
+        if restored_tools:
+            state.processing_log.append(
+                f"Agent runtime restored {restored_tools} completed tool result(s) from checkpoint."
+            )
+        harness = self._build_artifact_harness(state, executor, monitor=monitor)
+        # The iteration argument is persisted in the checkpoint, so the
+        # safety budget must be task-global. Resuming a task consumes only
+        # the turns that remain instead of granting a fresh batch.
+        remaining_iterations = max(0, int(max_iterations) - start_iteration)
+        for offset in range(remaining_iterations):
+            iteration = start_iteration + offset
+            if state.runtime_status in {"completed", "partial", "failed"}:
+                break
+            before_progress = _scientific_progress_signature(state)
+            state.runtime_phase = _runtime_phase(state)
+            self._run_step(
+                monitor,
+                f"agent_runtime_iteration_{iteration}",
+                state,
+                self._execute_shared_agent_harness_iteration,
+                harness=harness,
+                iteration=iteration,
+            )
+            self._refresh_catalog(state, "artifact_action_execution")
+            self._refresh_coverage(state, "artifact_action_execution")
+            has_search_more = any(
+                result.action == "search_more" and result.status == "completed"
+                for result in state.artifact_action_results
+            )
+            if has_search_more:
+                # In dynamic mode, the next LLM turn chooses whether to select,
+                # triage, ingest, or change the query strategy. Do not silently
+                # run the old fixed follow-up chain here.
+                self._refresh_catalog(state, "artifact_search_more")
+                self._refresh_coverage(state, "artifact_search_more")
+            # Content work is itself part of the dynamic tool vocabulary. A
+            # download or artifact parser result must be observed by the next
+            # decision instead of silently triggering the legacy all-in-one
+            # pipeline here. This keeps the chosen parser, TATR/VL path, and
+            # extraction scope visible in the Agent trace and checkpoint.
+            if self._artifact_actions_need_content_refresh(state.artifact_action_results):
+                self._refresh_catalog(state, f"agent_runtime_content_ready_{iteration}")
+                self._refresh_coverage(state, f"agent_runtime_content_ready_{iteration}")
+                state.processing_log.append(
+                    "Dynamic runtime observed new content; the next Agent decision "
+                    "must select the appropriate parsing or extraction tool."
+                )
+            after_progress = _scientific_progress_signature(state)
+            if after_progress != before_progress:
+                state.runtime_no_progress_streak = 0
+                state.runtime_last_progress_iteration = iteration
+            else:
+                state.runtime_no_progress_streak += 1
+            state.runtime_phase = _runtime_phase(state)
+            if state.runtime_no_progress_streak >= state.runtime_no_progress_limit:
+                state.runtime_status = "partial"
+                state.runtime_stop_reason = (
+                    "Agent stopped after "
+                    f"{state.runtime_no_progress_streak} consecutive turns without "
+                    "new scientific evidence or processing progress."
+                )
+                state.runtime_phase = "partial"
+                state.agent_trace.append({
+                    "event_type": "agent_no_progress_stop",
+                    "iteration": iteration,
+                    "status": "partial",
+                    "payload": {
+                        "no_progress_streak": state.runtime_no_progress_streak,
+                        "no_progress_limit": state.runtime_no_progress_limit,
+                    },
+                })
+                state.processing_log.append(state.runtime_stop_reason)
+                self._save_checkpoint_state(state)
+                break
+            if state.runtime_status == "completed":
+                break
+        if state.runtime_status == "running":
+            state.runtime_status = "partial"
+            state.runtime_stop_reason = (
+                f"Agent runtime safety budget exhausted after {max_iterations} iteration(s)."
+            )
+        state.runtime_phase = _runtime_phase(state)
+        self._save_checkpoint_state(state)
+        monitor.emit(
+            "agent",
+            "agent_runtime_terminal",
+            state.runtime_status,
+            state.runtime_stop_reason or "Agent runtime reached a terminal state.",
+            _state_snapshot(state),
+        )
+
+    def _build_dynamic_workflow_handler(
+        self,
+        monitor: AgentMonitor,
+        *,
+        max_pdf_pages: int | None,
+        max_dynamic_text_blocks: int | None,
+        max_record_text_blocks: int | None,
+        max_figures_per_pdf: int | None,
+        max_pdf_parse_workers: int | None,
+        max_chart_workers: int | None,
+        max_text_extraction_workers: int | None,
+        max_table_extraction_workers: int | None,
+        reuse_dynamic_records_for_metrics: bool,
+        max_auto_resources: int | None,
+        auto_download_sources: bool,
+        arxiv_pdf_timeout: int,
+        arxiv_download_batch_timeout: int,
+    ) -> Callable[[Any, AgentState], ArtifactActionResult]:
+        """Adapt outer pipeline stages to the same tool protocol as artifacts."""
+
+        def run_stage(
+            action: Any,
+            state: AgentState,
+        ) -> ArtifactActionResult:
+            before_sources = len(state.source_catalog)
+            before_artifacts = sum(len(entry.artifacts) for entry in state.source_catalog)
+            before_text = len(state.parsed_sources.text_blocks)
+            before_tables = len(state.parsed_sources.tables)
+            before_figures = len(state.chart_extractions)
+            connector_status_start = len(state.connector_status)
+            stage_step = f"agent_tool_{action.action}_{action.action_id}"
+
+            if action.action == "plan_task":
+                self._run_step(monitor, stage_step, state, self._plan)
+            elif action.action == "plan_dynamic_schema":
+                self._run_step(monitor, stage_step, state, self._plan_dynamic_schema)
+            elif action.action == "discover_sources":
+                self._run_step(monitor, stage_step, state, self._discover_sources)
+            elif action.action == "plan_multi_source_search":
+                self._run_step(monitor, stage_step, state, self._plan_multi_source_search)
+            elif action.action == "search_sources":
+                self._run_step(monitor, stage_step, state, self._execute_multi_source_search)
+            elif action.action == "select_sources":
+                self._run_step(
+                    monitor,
+                    stage_step,
+                    state,
+                    self._select_sources,
+                    max_auto_resources=max_auto_resources,
+                )
+            elif action.action == "triage_sources":
+                self._run_step(
+                    monitor,
+                    stage_step,
+                    state,
+                    self._triage_sources,
+                    max_auto_resources=max_auto_resources,
+                )
+            elif action.action == "ingest_sources":
+                if not auto_download_sources:
+                    return ArtifactActionResult(
+                        action_id=action.action_id,
+                        artifact_id=None,
+                        action=action.action,
+                        status="skipped",
+                        message="Source download is disabled by the task policy.",
+                    )
+                self._run_step(monitor, stage_step, state, self._ingest_triaged_sources)
+            elif action.action == "ingest_arxiv_pdfs":
+                if not auto_download_sources:
+                    return ArtifactActionResult(
+                        action_id=action.action_id,
+                        artifact_id=None,
+                        action=action.action,
+                        status="skipped",
+                        message="Source download is disabled by the task policy.",
+                    )
+                self._run_step(
+                    monitor,
+                    stage_step,
+                    state,
+                    self._ingest_arxiv_pdfs,
+                    max_auto_resources=max_auto_resources,
+                    step_monitor=monitor,
+                    pdf_timeout=arxiv_pdf_timeout,
+                    batch_timeout=arxiv_download_batch_timeout,
+                )
+            elif action.action == "parse_content":
+                self._run_step(
+                    monitor,
+                    stage_step,
+                    state,
+                    lambda current_state: self._run_content_pipeline(
+                        monitor,
+                        current_state,
+                        max_pdf_pages=max_pdf_pages,
+                        max_dynamic_text_blocks=max_dynamic_text_blocks,
+                        max_record_text_blocks=max_record_text_blocks,
+                        max_figures_per_pdf=max_figures_per_pdf,
+                        max_pdf_parse_workers=max_pdf_parse_workers,
+                        max_chart_workers=max_chart_workers,
+                        max_text_extraction_workers=max_text_extraction_workers,
+                        max_table_extraction_workers=max_table_extraction_workers,
+                        reuse_dynamic_records_for_metrics=reuse_dynamic_records_for_metrics,
+                    ),
+                )
+            elif action.action == "parse_source_content":
+                self._run_step(
+                    monitor,
+                    "source_parsing",
+                    state,
+                    self._parse,
+                    max_pdf_pages=max_pdf_pages,
+                    max_workers=max_pdf_parse_workers,
+                )
+            elif action.action == "extract_figures":
+                self._run_step(
+                    monitor,
+                    "figure_chart_extraction",
+                    state,
+                    self._extract_charts,
+                    step_monitor=monitor,
+                    max_figures_per_pdf=max_figures_per_pdf,
+                    max_workers=max_chart_workers,
+                )
+            elif action.action == "interpret_sections":
+                self._run_step(monitor, "section_interpretation", state, self._interpret_sections)
+            elif action.action == "extract_dynamic_records":
+                self._run_step(
+                    monitor,
+                    "dynamic_extraction",
+                    state,
+                    self._extract_dynamic,
+                    step_monitor=monitor,
+                    max_text_blocks=max_dynamic_text_blocks,
+                    max_text_workers=max_text_extraction_workers,
+                    max_table_workers=max_table_extraction_workers,
+                )
+            elif action.action == "extract_records":
+                self._run_step(
+                    monitor,
+                    "record_extraction",
+                    state,
+                    self._extract,
+                    step_monitor=monitor,
+                    max_text_blocks=max_record_text_blocks,
+                    reuse_dynamic_records=reuse_dynamic_records_for_metrics,
+                    max_text_workers=max_text_extraction_workers,
+                    max_table_workers=max_table_extraction_workers,
+                )
+            elif action.action == "normalize_records":
+                self._run_step(monitor, "normalization", state, self._normalize)
+            elif action.action == "track_provenance":
+                self._run_step(monitor, "provenance_tracking", state, self._trace)
+            elif action.action == "validate_quality":
+                self._run_step(monitor, stage_step, state, self._quality_check)
+                self._refresh_coverage(state, "agent_tool_validate_quality")
+            else:
+                return ArtifactActionResult(
+                    action_id=action.action_id,
+                    artifact_id=None,
+                    action=action.action,
+                    status="failed",
+                    message=f"Unsupported dynamic workflow action: {action.action!r}",
+                    error=f"Unsupported dynamic workflow action: {action.action!r}",
+                )
+
+            after_sources = len(state.source_catalog)
+            after_artifacts = sum(len(entry.artifacts) for entry in state.source_catalog)
+            new_connector_status = state.connector_status[connector_status_start:]
+            failed_connectors = sum(
+                1
+                for item in new_connector_status
+                if isinstance(item, dict) and item.get("status") in {"failed", "error"}
+            )
+            tool_status = "completed"
+            if action.action in {"search_sources"} and failed_connectors:
+                successful_connectors = len(new_connector_status) - failed_connectors
+                tool_status = "partial" if successful_connectors else "failed"
+            return ArtifactActionResult(
+                action_id=action.action_id,
+                artifact_id=None,
+                action=action.action,
+                status=tool_status,
+                message=(
+                    f"Dynamic workflow tool {action.action} completed with "
+                    f"{failed_connectors} failed connector request(s)."
+                    if failed_connectors
+                    else f"Dynamic workflow tool {action.action} completed."
+                ),
+                output_counts={
+                    "source_catalog_delta": max(0, after_sources - before_sources),
+                    "artifact_delta": max(0, after_artifacts - before_artifacts),
+                    "text_blocks_delta": max(0, len(state.parsed_sources.text_blocks) - before_text),
+                    "tables_delta": max(0, len(state.parsed_sources.tables) - before_tables),
+                    "chart_extractions_delta": max(0, len(state.chart_extractions) - before_figures),
+                    "failed_connector_requests": failed_connectors,
+                },
+            )
+
+        return run_stage
+
+    def _execute_agent_harness_iteration(self, state: AgentState, iteration: int = 0) -> None:
+        """Run one Observe-Decision-Policy-Action turn over legacy artifact tools.
+
+        The surrounding pipeline still owns the expensive content refresh and
+        export stages. This adapter makes the decision and tool boundaries
+        auditable first, so those stages can migrate to the same loop without
+        changing the existing PDF/table/figure implementations in one step.
+        """
+        executor = ArtifactActionExecutor(self.llm_nodes)
+        restored_tools = executor.tool_runtime.restore_completed(state.tool_result_history)
+        if restored_tools:
+            state.processing_log.append(
+                f"Agent runtime restored {restored_tools} completed tool result(s) from checkpoint."
+            )
+        harness = self._build_artifact_harness(
+            state,
+            executor,
+            enable_policy_retries=False,
+        )
+        harness_result = harness.run(state, max_iterations=1, start_iteration=iteration)
+
+        # Policy rejection is intentionally not sent to the legacy executor.
+        # Preserve the old result shape with explicit skipped entries so the
+        # API remains compatible while the trace records the real rejection.
+        if not state.artifact_action_results and state.artifact_action_plan is not None:
+            if any("already completed" in reason for reason in harness_result.stop_rejections):
+                state.artifact_action_results = [
+                    ArtifactActionResult(
+                        action_id=action.action_id,
+                        artifact_id=action.artifact_id,
+                        action=action.action,
+                        status="skipped",
+                        message="Policy rejected a duplicate completed tool call.",
+                    )
+                    for action in state.artifact_action_plan.actions
+                ]
+                state.artifact_action_history.append(
+                    ArtifactActionIteration(
+                        iteration=state.artifact_action_plan.iteration,
+                        plan=state.artifact_action_plan,
+                        results=state.artifact_action_results,
+                    )
+                )
+            elif harness_result.stop_rejections:
+                # The legacy adapter still exposes one action-history record
+                # when a planner returns an empty continuation or a stop that
+                # the gate rejects. Dynamic Runtime callers receive the
+                # structured rejection directly and do not use this bridge.
+                state.artifact_action_results = [
+                    ArtifactActionResult(
+                        action_id=action.action_id,
+                        artifact_id=action.artifact_id,
+                        action=action.action,
+                        status="skipped",
+                        message=(
+                            "Agent action was rejected by the runtime guard: "
+                            + "; ".join(harness_result.stop_rejections[-3:])
+                        ),
+                    )
+                    for action in state.artifact_action_plan.actions
+                ]
+                state.artifact_action_history.append(
+                    ArtifactActionIteration(
+                        iteration=state.artifact_action_plan.iteration,
+                        plan=state.artifact_action_plan,
+                        results=state.artifact_action_results,
+                    )
+                )
+
+        state.agent_trace = harness_result.trace
+        state.runtime_iteration = max(state.runtime_iteration, iteration + 1)
+        if harness_result.status == "completed":
+            state.runtime_status = "completed"
+            state.runtime_stop_reason = harness_result.stop_reason
+        elif harness_result.terminal:
+            state.runtime_status = "partial"
+            state.runtime_stop_reason = harness_result.stop_reason
+        else:
+            state.runtime_status = "running"
+            state.runtime_stop_reason = None
+
+    def _build_artifact_harness(
+        self,
+        state: AgentState,
+        executor: ArtifactActionExecutor,
+        *,
+        monitor: AgentMonitor | None = None,
+        enable_policy_retries: bool = True,
+    ) -> AgentHarness:
+        """Build one reusable artifact decision session for a task."""
+        # Rebuild on every session, including resume. Downloaded artifacts
+        # may have gained a local path or a detectable file type since the
+        # previous checkpoint was written.
+        self._refresh_catalog(state, "artifact_action_planning_input")
+        self._refresh_coverage(state, "artifact_action_planning_input")
+
+        action_by_id: dict[str, Any] = {}
+        legacy_results: list[ArtifactActionResult] = []
+
+        def decide(observation: AgentObservation, context: AgentState) -> AgentDecision:
+            legacy_results.clear()
+            context.artifact_action_results = []
+            plan = self.llm_nodes.plan_artifact_actions(
+                context.research_question,
+                context.source_catalog,
+                dynamic_plan=context.dynamic_extraction_plan,
+                quality_report=context.quality_report,
+                coverage_report=context.coverage_report,
+                processing_log=context.processing_log,
+                connector_failures=[
+                    item
+                    for item in context.connector_status
+                    if item.get("status") in {"failed", "error"}
+                ],
+                iteration=observation.iteration,
+                observation_json=observation.model_dump_json(),
+                allow_workflow_stage_actions=True,
+            )
+            context.artifact_action_plan = plan
+            action_by_id.clear()
+            action_by_id.update({action.action_id: action for action in plan.actions})
+            self._persist_artifact_assessments(context)
+            action_counts: dict[str, int] = {}
+            for action in plan.actions:
+                action_counts[action.action] = action_counts.get(action.action, 0) + 1
+            context.processing_log.append(
+                "Qwen Artifact Action Planner completed: "
+                f"iteration={plan.iteration}, should_continue={plan.should_continue}, "
+                f"actions={len(plan.actions)}, action_counts={action_counts}."
+            )
+            if plan.actions and plan.actions[0].action == "stop":
+                return AgentDecision(
+                    decision="stop",
+                    reason=plan.stop_reason or plan.actions[0].reason,
+                    stop_reason=plan.stop_reason,
+                )
+            if not plan.should_continue and not plan.actions:
+                return AgentDecision(
+                    decision="stop",
+                    reason=plan.stop_reason or "The planner requested stop.",
+                    stop_reason=plan.stop_reason,
+                )
+            return AgentDecision(
+                decision="continue",
+                reason="Execute the planner-selected evidence actions.",
+                tool_calls=[_tool_call_from_action(action) for action in plan.actions],
+                expected_evidence=[
+                    evidence
+                    for action in plan.actions
+                    for evidence in action.expected_fields
+                ],
+            )
+
+        def apply_result(result: ToolResult, context: AgentState) -> None:
+            action = action_by_id.get(result.call_id)
+            if action is not None:
+                legacy_results.append(_artifact_result_from_tool_result(action, result))
+
+        def after_iteration(_turn: int, _results: list[ToolResult], context: AgentState) -> None:
+            context.artifact_action_results = list(legacy_results)
+            if context.artifact_action_plan is not None:
+                context.artifact_action_history.append(
+                    ArtifactActionIteration(
+                        iteration=context.artifact_action_plan.iteration,
+                        plan=context.artifact_action_plan,
+                        results=context.artifact_action_results,
+                    )
+                )
+            result_counts: dict[str, int] = {}
+            for result in context.artifact_action_results:
+                result_counts[result.status] = result_counts.get(result.status, 0) + 1
+            context.processing_log.append(
+                "Artifact action execution completed: "
+                f"results={len(context.artifact_action_results)}, statuses={result_counts}."
+            )
+
+        def trace_callback(event: dict[str, Any], context: AgentState | None) -> None:
+            if monitor is None:
+                return
+            observed_state = context or state
+            snapshot = _state_snapshot(observed_state)
+            snapshot["runtime_event"] = event
+            event_type = str(event.get("event_type") or "agent_trace")
+            status = str(event.get("status") or "observed")
+            tool_name = str(event.get("tool_name") or "")
+            message = event_type.replace("_", " ")
+            if tool_name:
+                message += f": {tool_name}"
+            monitor.emit("agent", "agent_runtime", status, message, snapshot)
+
+        harness = AgentHarness(
+            executor.tool_registry,
+            decide,
+            runtime=executor.tool_runtime,
+            result_applier=apply_result,
+            after_iteration=after_iteration,
+            trace_callback=trace_callback,
+            checkpoint_callback=self._save_checkpoint_state,
+            policy_retry_limit=_agent_policy_retry_limit() if enable_policy_retries else 0,
+        )
+        harness.trace.restore(state.agent_trace)
+        return harness
+
+    @staticmethod
+    def _execute_shared_agent_harness_iteration(
+        state: AgentState,
+        *,
+        harness: AgentHarness,
+        iteration: int,
+    ) -> None:
+        """Run one turn while retaining the same runtime across all turns."""
+        harness_result = harness.run(state, max_iterations=1, start_iteration=iteration)
+        state.agent_trace = harness_result.trace
+        state.runtime_iteration = max(state.runtime_iteration, iteration + 1)
+        if harness_result.status == "completed":
+            state.runtime_status = "completed"
+            state.runtime_stop_reason = harness_result.stop_reason
+        else:
+            state.runtime_status = "running"
+            state.runtime_stop_reason = None
 
     def _run_search_more_followup(
         self,
@@ -910,7 +1563,7 @@ class SciDataAgent:
         )
         merged, added = merge_sources(state.source_discovery_plan.candidate_sources, discovered_sources)
         state.source_discovery_plan.candidate_sources = merged
-        state.connector_status = list(status.get("connector_status", []))
+        state.connector_status.extend(status.get("connector_status", []))
         state.source_discovery_plan.notes.append(f"Multi-source search status: {status}.")
         for connector_status in state.connector_status[:40]:
             state.source_discovery_plan.notes.append(f"Connector status: {connector_status}.")
@@ -1374,17 +2027,49 @@ class SciDataAgent:
                 return None, None, 0, (
                     f"Chart classification failed for {asset.label or asset.figure_id} "
                     f"({asset.source_file} p{asset.page}): {exc}"
-                )
+                ), None
             if not classification.get("contains_data"):
-                return None, None, 1, None
+                return None, None, 1, None, None
             try:
                 extraction = self.llm_nodes.extract_chart_data(asset, classification["chart_type"])
             except Exception as exc:
                 return None, None, 0, (
                     f"Chart extraction failed for {asset.label or asset.figure_id} "
                     f"({asset.source_file} p{asset.page}): {exc}"
+                ), None
+            validation = validate_chart_extraction(extraction, asset)
+            if not validation.needs_review:
+                return extraction, validation, 0, None, None
+            try:
+                second_extraction = self.llm_nodes.recheck_chart_data(
+                    asset,
+                    classification["chart_type"],
+                    extraction,
+                    validation,
                 )
-            return extraction, validate_chart_extraction(extraction, asset), 0, None
+                second_validation = validate_chart_extraction(second_extraction, asset)
+                correction = compare_chart_extractions(
+                    extraction,
+                    validation,
+                    second_extraction,
+                    second_validation,
+                )
+                if correction.selected_pass == "second":
+                    return second_extraction, second_validation, 0, None, correction
+                return extraction, validation, 0, None, correction
+            except Exception as exc:
+                correction = ChartCorrectionResult(
+                    figure_id=extraction.figure_id,
+                    first_extraction=extraction,
+                    first_validation=validation,
+                    decision="second_pass_failed",
+                    decision_reason=[f"二次 VL 复查失败，保留初次结果：{exc}"],
+                    needs_review=True,
+                )
+                return extraction, validation, 0, (
+                    f"Chart recheck failed for {asset.label or asset.figure_id} "
+                    f"({asset.source_file} p{asset.page}): {exc}"
+                ), correction
 
         chart_workers = _worker_count(
             max_workers,
@@ -1417,10 +2102,13 @@ class SciDataAgent:
 
         extractions = []
         validations = []
+        corrections = []
         skipped_non_data = 0
-        for extraction, validation, skipped, warning in chart_results:
+        for extraction, validation, skipped, warning, correction in chart_results:
             if warning:
                 state.processing_log.append(warning)
+            if correction is not None:
+                corrections.append(correction)
             if extraction is not None and validation is not None:
                 extractions.append(extraction)
                 validations.append(validation)
@@ -1428,12 +2116,15 @@ class SciDataAgent:
 
         state.chart_extractions.extend(extractions)
         state.chart_validations.extend(validations)
+        state.chart_corrections.extend(corrections)
         needs_review = sum(1 for validation in validations if validation.needs_review)
+        accepted_second = sum(1 for correction in corrections if correction.selected_pass == "second")
         state.processing_log.append(
             "Figure chart extraction completed: "
             f"pdfs={len(pdf_files)}, figures_detected={len(assets)}, "
             f"non_data_figures_skipped={skipped_non_data}, charts_extracted={len(extractions)}, "
-            f"charts_needs_review={needs_review}, vl_model={self.llm_client.vl_model}."
+            f"charts_needs_review={needs_review}, charts_rechecked={len(corrections)}, "
+            f"second_pass_accepted={accepted_second}, vl_model={self.llm_client.vl_model}."
         )
 
     def _interpret_sections(self, state: AgentState) -> None:
@@ -1812,12 +2503,26 @@ class SciDataAgent:
             figures=state.parsed_sources.figure_assets,
             chart_extractions=state.chart_extractions,
             chart_validations=state.chart_validations,
+            chart_corrections=state.chart_corrections,
             cross_modal_checks=state.cross_modal_checks,
             field_schema=FIELD_SCHEMA,
             sources=state.sources,
             processing_log=state.processing_log,
             quality_report=state.quality_report,
             coverage_report=state.coverage_report,
+            runtime_iteration=state.runtime_iteration,
+            runtime_iteration_budget=state.runtime_iteration_budget,
+            runtime_status=state.runtime_status,
+            runtime_phase=state.runtime_phase,
+            runtime_stop_reason=state.runtime_stop_reason,
+            runtime_no_progress_streak=state.runtime_no_progress_streak,
+            runtime_no_progress_limit=state.runtime_no_progress_limit,
+            runtime_last_progress_iteration=state.runtime_last_progress_iteration,
+            runtime_requires_source_discovery=state.runtime_requires_source_discovery,
+            agent_decision_history=state.agent_decision_history,
+            tool_result_history=state.tool_result_history,
+            stop_rejections=state.stop_rejections,
+            agent_trace=state.agent_trace,
             export_files=state.export_files,
         )
 
@@ -1874,11 +2579,28 @@ def _state_snapshot(state: AgentState) -> dict[str, Any]:
         "dynamic_records_count": len(state.dynamic_records),
         "clean_dynamic_records_count": len(state.clean_dynamic_records),
         "needs_review_records_count": len(state.needs_review_records),
+        "evidence_traces_count": len(state.evidence_traces),
         "source_summaries_count": len(state.sources),
         "source_insights_count": len(state.source_insights),
         **source_catalog_summary(state.source_catalog),
         "artifact_action_results_count": len(state.artifact_action_results),
         "artifact_action_iterations_count": len(state.artifact_action_history),
+        "runtime": {
+            "iteration": state.runtime_iteration,
+            "iteration_budget": state.runtime_iteration_budget,
+            "status": state.runtime_status,
+            "phase": state.runtime_phase,
+            "stop_reason": state.runtime_stop_reason,
+            "no_progress_streak": state.runtime_no_progress_streak,
+            "no_progress_limit": state.runtime_no_progress_limit,
+            "last_progress_iteration": state.runtime_last_progress_iteration,
+            "decision_count": len(state.agent_decision_history),
+            "tool_result_count": len(state.tool_result_history),
+            "trace_count": len(state.agent_trace),
+            "recent_decisions": state.agent_decision_history[-3:],
+            "recent_tool_results": state.tool_result_history[-3:],
+            "stop_rejections": state.stop_rejections[-3:],
+        },
         "processing_log_tail": state.processing_log[-5:],
         "coverage_report": state.coverage_report.model_dump(mode="json"),
     }
@@ -2152,6 +2874,157 @@ def _unlimited_or_positive(value: int | None) -> int | None:
     return int(value)
 
 
+def _resolve_bool_option(value: bool | None, *, env_name: str, default: bool) -> bool:
+    if value is not None:
+        return bool(value)
+    raw = os.getenv(env_name)
+    if raw is None:
+        return default
+    return raw.strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _agent_iteration_budget(value: int | None) -> int:
+    if value is None:
+        try:
+            value = int(os.getenv("SCIDATA_AGENT_MAX_ITERATIONS", "24"))
+        except (TypeError, ValueError):
+            value = 24
+    return max(1, min(int(value), 100))
+
+
+def _agent_no_progress_limit() -> int:
+    try:
+        value = int(os.getenv("SCIDATA_AGENT_NO_PROGRESS_LIMIT", "4"))
+    except (TypeError, ValueError):
+        value = 4
+    return max(1, min(value, 20))
+
+
+def _agent_policy_retry_limit() -> int:
+    try:
+        value = int(os.getenv("SCIDATA_AGENT_POLICY_RETRY_LIMIT", "2"))
+    except (TypeError, ValueError):
+        value = 2
+    return max(0, min(value, 5))
+
+
+def _runtime_phase(state: AgentState) -> str:
+    """Expose the current scientific stage without taking decisions from LLM."""
+    if state.runtime_status == "legacy_pipeline":
+        return "legacy_pipeline"
+    if state.runtime_status == "completed":
+        return "completed"
+    if state.runtime_status in {"partial", "failed"}:
+        return state.runtime_status
+    if state.task_plan is None:
+        return "planning"
+    if state.dynamic_extraction_plan is None:
+        return "schema"
+    if state.runtime_requires_source_discovery and state.source_discovery_plan is None:
+        return "source_discovery"
+    search_attempted = any(
+        isinstance(item, dict)
+        and item.get("tool_name") in {"search_sources", "search_more"}
+        and item.get("status") in {"completed", "partial"}
+        for item in state.tool_result_history
+    )
+    if state.runtime_requires_source_discovery and not search_attempted:
+        return "search"
+    parsed = state.parsed_sources
+    has_content = bool(parsed.text_blocks or parsed.section_blocks or parsed.tables or parsed.figure_assets)
+    if not has_content and (state.source_catalog or state.files):
+        return "materialization" if state.source_catalog else "parsing"
+    if not has_content:
+        return "materialization"
+    if not (state.candidate_records or state.dynamic_records or state.final_records):
+        return "extraction"
+    if state.coverage_report.decision != "allow_stop":
+        return "validation"
+    return "extraction"
+
+
+def _scientific_progress_signature(state: AgentState) -> tuple[Any, ...]:
+    """Return only evidence-producing state used by the no-progress gate."""
+    artifacts = [artifact for entry in state.source_catalog for artifact in entry.artifacts]
+
+    def counts(values: list[Any], attribute: str) -> tuple[tuple[str, int], ...]:
+        result: dict[str, int] = {}
+        for value in values:
+            key = str(getattr(value, attribute, "unknown"))
+            result[key] = result.get(key, 0) + 1
+        return tuple(sorted(result.items()))
+
+    connector_statuses = tuple(sorted(
+        (
+            str(item.get("connector") or item.get("connector_name") or "unknown"),
+            str(item.get("status") or "unknown"),
+            int(item.get("added_sources_count") or 0),
+        )
+        for item in state.connector_status
+        if isinstance(item, dict)
+    ))
+    coverage = state.coverage_report
+    discovered_identity = tuple(
+        sorted(
+            (
+                source.source_id,
+                source.title,
+                str(source.url or ""),
+            )
+            for source in (
+                state.source_discovery_plan.candidate_sources
+                if state.source_discovery_plan
+                else []
+            )
+        )
+    )
+    catalog_identity = tuple(
+        sorted((entry.source_id, entry.title, str(entry.url or "")) for entry in state.source_catalog)
+    )
+    artifact_identity = tuple(
+        sorted(
+            (artifact.artifact_id, str(artifact.name or ""), str(artifact.local_path or ""))
+            for artifact in artifacts
+        )
+    )
+    return (
+        state.task_plan is not None,
+        state.dynamic_extraction_plan is not None,
+        state.source_discovery_plan is not None,
+        state.multi_source_search_plan is not None,
+        len(state.source_discovery_plan.candidate_sources) if state.source_discovery_plan else 0,
+        discovered_identity,
+        len(state.source_catalog),
+        catalog_identity,
+        len(artifacts),
+        artifact_identity,
+        counts(state.source_catalog, "status"),
+        counts(artifacts, "status"),
+        connector_statuses,
+        sum(1 for artifact in artifacts if artifact.local_path),
+        len(state.parsed_sources.text_blocks),
+        len(state.parsed_sources.heading_candidates),
+        len(state.parsed_sources.section_blocks),
+        len(state.parsed_sources.tables),
+        len(state.parsed_sources.figure_assets),
+        len(state.chart_extractions),
+        len(state.chart_validations),
+        len(state.chart_corrections),
+        len(state.cross_modal_checks),
+        len(state.candidate_records),
+        len(state.final_records),
+        len(state.dynamic_records),
+        len(state.clean_dynamic_records),
+        len(state.needs_review_records),
+        len(state.evidence_traces),
+        len(state.source_insights),
+        coverage.decision,
+        round(coverage.coverage_score, 6),
+        len(coverage.gaps),
+        tuple(sorted(coverage.missing_requirements)),
+    )
+
+
 def _selected_block_count(total_blocks: int, max_blocks: int | None) -> int:
     if max_blocks is None or max_blocks <= 0:
         return total_blocks
@@ -2309,6 +3182,19 @@ def _records_for_llm_validation(records: list[ScientificRecord]) -> list[Scienti
 def _result_snapshot(result: AgentResult) -> dict[str, Any]:
     return {
         "status": result.status,
+        "runtime": {
+            "iteration": result.runtime_iteration,
+            "iteration_budget": result.runtime_iteration_budget,
+            "status": result.runtime_status,
+            "phase": result.runtime_phase,
+            "stop_reason": result.runtime_stop_reason,
+            "no_progress_streak": result.runtime_no_progress_streak,
+            "no_progress_limit": result.runtime_no_progress_limit,
+            "last_progress_iteration": result.runtime_last_progress_iteration,
+            "decision_count": len(result.agent_decision_history),
+            "tool_result_count": len(result.tool_result_history),
+            "trace_count": len(result.agent_trace),
+        },
         "summary": result.summary.model_dump(mode="json"),
         "export_files": result.export_files.model_dump(mode="json", by_alias=True),
         "quality_report": {

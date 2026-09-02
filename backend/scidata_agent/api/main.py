@@ -375,6 +375,9 @@ def _public_task_response(
         "error": task.get("error"),
         "uploads": _sanitize_public_value(task.get("uploads", []), task_id, manager=manager),
         "event": _sanitize_public_value(task.get("event"), task_id, manager=manager),
+        "runtime": _sanitize_public_value(task.get("runtime"), task_id, manager=manager),
+        "coverage": _sanitize_public_value(task.get("coverage"), task_id, manager=manager),
+        "source_status": _sanitize_public_value(task.get("source_status"), task_id, manager=manager),
         "result": result,
         "summary": summary,
         "quality_report": quality_report,
@@ -490,6 +493,8 @@ if FastAPI is not None:
         max_text_extraction_workers: int | None = Form(None, ge=1, le=16),
         max_table_extraction_workers: int | None = Form(None, ge=1, le=16),
         reuse_dynamic_records_for_metrics: bool = Form(True),
+        enable_dynamic_runtime: bool = Form(True),
+        max_agent_iterations: int | None = Form(None, ge=1, le=100),
     ) -> dict[str, Any]:
         if not TASK_MANAGER.can_accept():
             raise HTTPException(
@@ -517,6 +522,8 @@ if FastAPI is not None:
                     "max_text_extraction_workers": max_text_extraction_workers,
                     "max_table_extraction_workers": max_table_extraction_workers,
                     "reuse_dynamic_records_for_metrics": reuse_dynamic_records_for_metrics,
+                    "enable_dynamic_runtime": enable_dynamic_runtime,
+                    "max_agent_iterations": max_agent_iterations,
                 },
                 auto_fetch_arxiv=enable_live_search,
                 file_metadata=file_metadata,
@@ -586,8 +593,7 @@ if FastAPI is not None:
     ) -> dict[str, Any]:
         _task_or_404(task_id)
         events = TASK_MANAGER.get_events(task_id, tail=tail, include_data=include_data)
-        events["events"] = _sanitize_public_value(events["events"], task_id, manager=TASK_MANAGER)
-        return events
+        return _sanitize_public_value(events, task_id, manager=TASK_MANAGER)
 
     @app.post("/api/tasks/{task_id}/reviews/{record_id}", response_model=ReviewDecision)
     def review_record(task_id: str, record_id: str, request: ReviewRequest) -> dict[str, Any]:
