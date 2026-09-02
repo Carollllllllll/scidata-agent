@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import sys
 
+import pytest
+
 from scidata_agent import cli
 
 
 class _FakeResult:
     def model_dump(self, **kwargs):
         return {"status": "partial"}
+
+
+class _FailedResult:
+    status = "failed"
+
+    def model_dump(self, **kwargs):
+        return {"status": self.status}
 
 
 class _FakeAgent:
@@ -73,3 +82,39 @@ def test_cli_can_explicitly_select_legacy_runtime(monkeypatch, capsys) -> None:
 
     assert _FakeAgent.last_run["enable_dynamic_runtime"] is False
     capsys.readouterr()
+
+
+def test_cli_forwards_discovery_only_mode(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(cli, "SciDataAgent", _FakeAgent)
+    monkeypatch.setattr(cli, "load_dotenv", lambda: None)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["scidata-agent", "--question", "Discover sources.", "--discover-only"],
+    )
+
+    cli.main()
+
+    assert _FakeAgent.last_run["files"] == []
+    assert _FakeAgent.last_run["discovery_only"] is True
+    capsys.readouterr()
+
+
+def test_cli_returns_nonzero_for_failed_agent_result(monkeypatch, capsys) -> None:
+    class _FailedAgent(_FakeAgent):
+        def run(self, question, files, **kwargs):
+            return _FailedResult()
+
+    monkeypatch.setattr(cli, "SciDataAgent", _FailedAgent)
+    monkeypatch.setattr(cli, "load_dotenv", lambda: None)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["scidata-agent", "--question", "A failing task."],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 1
+    assert '"status": "failed"' in capsys.readouterr().out

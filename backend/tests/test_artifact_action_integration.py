@@ -515,6 +515,29 @@ def test_dynamic_runtime_repeats_decision_turns_until_safety_budget(tmp_path: Pa
     assert any("task plan" in reason for reason in result.stop_rejections)
 
 
+def test_discovery_only_runs_planning_and_search_with_dynamic_runtime_enabled(tmp_path: Path) -> None:
+    result = SciDataAgent(
+        output_dir=tmp_path / "outputs",
+        llm_client=IntegrationQwenClient(),
+        require_llm=True,
+        monitor_console=False,
+        monitor_enabled=False,
+    ).run(
+        "Discover candidate sources for a scientific data task.",
+        files=[],
+        auto_fetch_arxiv=False,
+        discovery_only=True,
+        enable_dynamic_runtime=True,
+    )
+
+    assert result.status == "completed"
+    assert result.task_plan is not None
+    assert result.dynamic_extraction_plan is not None
+    assert result.source_discovery_plan is not None
+    assert any("source discovery only" in line for line in result.processing_log)
+    assert result.summary.files_processed == 0
+
+
 def test_dynamic_runtime_resumes_from_tool_checkpoint_without_reexecution(tmp_path: Path) -> None:
     csv_path = tmp_path / "resume_input.csv"
     csv_path.write_text("metric,value\nrmse,0.8\n", encoding="utf-8")

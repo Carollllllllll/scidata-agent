@@ -348,7 +348,11 @@ class SciDataAgent:
 
         try:
             self._run_step(monitor, "ensure_llm_ready", state, self._ensure_llm_ready)
-            if dynamic_runtime_enabled:
+            # Discovery-only jobs still need the planning and connector stages
+            # to produce a useful source plan. Dynamic ODA is reserved for the
+            # content-bearing workflow; otherwise ``--discover-only`` would
+            # export an empty plan when the CLI default enables ODA.
+            if dynamic_runtime_enabled and not discovery_only:
                 state.processing_log.append(
                     "Dynamic runtime owns task planning, schema planning, source discovery, "
                     "and multi-source search; initialization is deferred to Agent decisions."
@@ -360,10 +364,10 @@ class SciDataAgent:
             # Uploaded files seed the analysis; they must not disable connector
             # search.  Search and download are separate controls so discovery-
             # only tasks can query live providers without fetching artifacts.
-            if live_search_enabled and not dynamic_runtime_enabled:
+            if live_search_enabled and (not dynamic_runtime_enabled or discovery_only):
                 self._run_step(monitor, "multi_source_search_planning", state, self._plan_multi_source_search)
                 self._run_step(monitor, "multi_source_search", state, self._execute_multi_source_search)
-                if not dynamic_runtime_enabled:
+                if not dynamic_runtime_enabled or discovery_only:
                     self._run_step(
                         monitor,
                         "source_selection",

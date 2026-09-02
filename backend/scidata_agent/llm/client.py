@@ -427,6 +427,14 @@ class QwenBailianClient:
         if not isinstance(exc, LLMProviderError):
             return False
         detail = exc.detail.lower()
+        # A 401/403 account-level failure is not specific to the selected
+        # model. In particular, DashScope reports an exhausted free/paid
+        # account quota as HTTP 403 (``insufficient_quota``). Rotating through
+        # every model in that case only repeats the same doomed request and
+        # makes a task look hung. Keep failover for 429 quota/rate-limit
+        # responses, which can still be model- or window-specific.
+        if _is_account_level_provider_error(exc):
+            return False
         transient_or_quota_terms = (
             "quota",
             "rate limit",
@@ -489,6 +497,31 @@ def _as_llm_error(prefix: str, exc: Exception) -> LLMCallError:
     if isinstance(exc, LLMCallError):
         return exc
     return LLMCallError(f"{prefix} call failed: {exc}")
+
+
+def _is_account_level_provider_error(exc: Exception) -> bool:
+    """Return whether a provider response cannot be fixed by changing models."""
+
+    if not isinstance(exc, LLMProviderError):
+        return False
+    if exc.status == 401:
+        return True
+    if exc.status != 403:
+        return False
+    detail = exc.detail.casefold()
+    return any(
+        term in detail
+        for term in (
+            "insufficient_quota",
+            "quota exhausted",
+            "free quota",
+            "add funds",
+            "invalid api key",
+            "api key is invalid",
+            "authentication",
+            "unauthorized",
+        )
+    )
 
 
 def parse_json_from_text(text: str) -> Any:

@@ -41,7 +41,11 @@ from scidata_agent.agent.schemas import (
     TaskPlan,
     TextBlock,
 )
-from scidata_agent.llm.client import LLMCallError, QwenBailianClient
+from scidata_agent.llm.client import (
+    LLMCallError,
+    QwenBailianClient,
+    _is_account_level_provider_error,
+)
 from scidata_agent.llm.structured_output import normalize_payload_for_model
 from scidata_agent.llm.prompts import (
     ARXIV_SEARCH_PLANNER_SYSTEM,
@@ -255,17 +259,27 @@ class QwenAgentNodes:
                     f"LLM node is not configured: node={node}, error={exc}"
                 ) from exc
         last_exc: Exception | None = None
+        attempts_made = 0
         for attempt in range(1, attempts + 1):
+            attempts_made = attempt
             try:
                 return self.client.generate_json(node, system_prompt, user_prompt, temperature=temperature)
             except Exception as exc:
                 last_exc = exc
                 warning = f"LLM call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
                 self._append_node_warning(warning)
+                # Authentication and account-level authorization/quota errors
+                # cannot be repaired by repeating the same logical node call.
+                # Let the caller's explicit fallback policy handle them
+                # immediately instead of adding another identical request.
+                if _is_account_level_provider_error(exc):
+                    break
                 if attempt < attempts:
                     self._emit_retry_event(node, "text", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
-        raise LLMCallError(f"LLM node failed after {attempts} attempts: node={node}, error={last_exc}") from last_exc
+        raise LLMCallError(
+            f"LLM node failed after {attempts_made} attempt(s): node={node}, error={last_exc}"
+        ) from last_exc
 
     def plan_task(self, research_question: str) -> TaskPlan:
         try:
@@ -1007,7 +1021,9 @@ class QwenAgentNodes:
     ) -> Any:
         attempts = _node_retry_attempts(attempts)
         last_exc: Exception | None = None
+        attempts_made = 0
         for attempt in range(1, attempts + 1):
+            attempts_made = attempt
             try:
                 return self.client.generate_vision_json(
                     node, system_prompt, user_prompt, image_paths, temperature=temperature
@@ -1016,10 +1032,14 @@ class QwenAgentNodes:
                 last_exc = exc
                 warning = f"VL call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
                 self._append_node_warning(warning)
+                if _is_account_level_provider_error(exc):
+                    break
                 if attempt < attempts:
                     self._emit_retry_event(node, "vl", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
-        raise LLMCallError(f"VL node failed after {attempts} attempts: node={node}, error={last_exc}") from last_exc
+        raise LLMCallError(
+            f"VL node failed after {attempts_made} attempt(s): node={node}, error={last_exc}"
+        ) from last_exc
 
     def _emit_retry_event(
         self,

@@ -7,6 +7,7 @@ from threading import Barrier
 import pytest
 
 from scidata_agent.llm.client import LLMCallError, LLMProviderError, QwenBailianClient
+from scidata_agent.llm.nodes import QwenAgentNodes
 
 
 class _Response:
@@ -219,6 +220,55 @@ def test_prompt_limit_400_does_not_disable_or_switch_models():
 
     assert client._should_failover(LLMProviderError(400, "maximum token limit exceeded")) is False
     assert client._should_failover(LLMProviderError(503, "temporary unavailable")) is True
+
+
+def test_account_level_auth_and_quota_errors_do_not_failover():
+    client = QwenBailianClient(api_key="test", models=("text-one", "text-two"))
+
+    assert client._should_failover(LLMProviderError(401, "invalid api key")) is False
+    assert client._should_failover(
+        LLMProviderError(403, "insufficient_quota: free quota exhausted")
+    ) is False
+
+
+def test_http_403_quota_error_does_not_rotate_the_model_pool():
+    calls: list[str] = []
+
+    def fake_urlopen(request, timeout):
+        calls.append(json.loads(request.data.decode("utf-8"))["model"])
+        return _Response(
+            b'{"error":{"code":"insufficient_quota","message":"free quota exhausted"}}',
+            status_code=403,
+        )
+
+    client = QwenBailianClient(
+        api_key="test",
+        models=("text-one", "text-two"),
+        http_client=_HttpClient(fake_urlopen),
+    )
+    with pytest.raises(LLMProviderError, match="insufficient_quota"):
+        client.generate_text("test_node", "system", "user")
+
+    assert calls == ["text-one"]
+
+
+def test_llm_node_does_not_retry_account_level_provider_errors():
+    class _QuotaClient:
+        configured = True
+
+        def __init__(self):
+            self.calls = 0
+
+        def generate_json(self, *args, **kwargs):
+            self.calls += 1
+            raise LLMProviderError(403, "insufficient_quota: free quota exhausted")
+
+    client = _QuotaClient()
+    nodes = QwenAgentNodes(client)
+    with pytest.raises(LLMCallError, match="insufficient_quota"):
+        nodes._generate_json_with_retries("test_node", "system", "user")
+
+    assert client.calls == 1
 
 
 def test_transient_failure_does_not_permanently_exhaust_pool():

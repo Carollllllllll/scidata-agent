@@ -41,6 +41,11 @@ $env:QWEN_VL_MODEL="qwen3-vl-30b-a3b-thinking"   # 图表/图像数据提取用�
 但所有 `VITE_*` 值都会进入浏览器包，公开部署必须改用登录网关或 HttpOnly 会话，
 不能把该构建变量当作服务端秘密。
 
+如果任务日志出现 `HTTP 403`、`insufficient_quota` 或 `Free quota exhausted`，说明
+DashScope 账户配额或计费状态不可用，不是本地依赖或服务启动故障。客户端会对这类账户级
+错误快速失败，不再逐个轮询整个模型池；请更换有可用额度的 key、为账户充值，或在本地
+测试时显式使用 `--allow-rule-fallback --legacy-runtime`。
+
 ## 命令行使用
 
 进入后端目录：
@@ -73,6 +78,7 @@ python -m scidata_agent.cli `
 ```powershell
 python -m scidata_agent.cli `
   --allow-rule-fallback `
+  --legacy-runtime `
   --question "本地测试：抽取 PDF 和 CSV 中的科研指标。" `
   --files ../examples/perovskite_metrics.csv ../examples/demo_scientific_paper.pdf `
   --output-dir ../outputs

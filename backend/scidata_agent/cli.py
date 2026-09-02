@@ -135,6 +135,7 @@ def main() -> None:
         files,
         max_pdf_pages=args.max_pdf_pages,
         auto_fetch_arxiv=not args.no_arxiv_download,
+        discovery_only=args.discover_only,
         max_arxiv_papers=args.max_pdf_downloads if args.max_pdf_downloads is not None else args.max_arxiv_papers,
         max_dynamic_text_blocks=args.max_dynamic_text_blocks,
         max_record_text_blocks=args.max_record_text_blocks,
@@ -148,6 +149,8 @@ def main() -> None:
         resume=args.resume,
     )
     print(json.dumps(result.model_dump(mode="json", by_alias=True), ensure_ascii=False, indent=2))
+    if getattr(result, "status", None) == "failed":
+        raise SystemExit(1)
 
 
 def _configure_stdio_utf8() -> None:
