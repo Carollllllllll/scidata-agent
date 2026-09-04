@@ -137,7 +137,7 @@ def test_vision_request_disables_thinking_for_non_streaming_call(tmp_path):
     assert "stream" not in captured
 
 
-def test_timeout_is_not_silently_converted_to_quota_failover():
+def test_timeout_fails_over_to_the_next_configured_model():
     calls: list[str] = []
 
     def fake_urlopen(request, timeout):
@@ -152,9 +152,12 @@ def test_timeout_is_not_silently_converted_to_quota_failover():
     with pytest.raises(LLMCallError, match="simulated network timeout"):
         client.generate_text("test_node", "system", "user")
 
-    assert calls == ["text-one"]
-    assert client.model == "text-one"
-    assert not client.model_events
+    assert calls == ["text-one", "text-two"]
+    assert client.model == "text-two"
+    assert [event["event"] for event in client.model_events] == [
+        "model_switched",
+        "model_pool_exhausted",
+    ]
 
 
 def test_explicit_model_pool_and_empty_key_override_environment(monkeypatch):

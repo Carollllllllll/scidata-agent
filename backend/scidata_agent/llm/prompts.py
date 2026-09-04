@@ -101,6 +101,9 @@ Already discovered candidate context (one bounded batch; it may be incomplete):
 Dynamic search recovery strategy (may be empty for initial discovery):
 {search_strategy_json}
 
+Required field groups (one initial search must cover every group):
+{field_groups_json}
+
 Search-planning batch: {batch_label}
 
 Create a broad multi-source survey search plan.
@@ -118,7 +121,9 @@ Return JSON:
       "purpose": "why this search is needed for the user's goal",
       "max_results": 100,
       "must_have": ["required concepts or filters"],
-      "nice_to_have": ["optional useful concepts"]
+      "nice_to_have": ["optional useful concepts"],
+      "field_group_id": "stable group_id from Required field groups",
+      "target_fields": ["fields covered by this request"]
     }}
   ],
   "selection_criteria": ["how to prioritize returned sources"],
@@ -141,6 +146,10 @@ Planning requirements:
     avoid_connectors, source_types, query_focus, revised_queries, and
     failure_reason. Change the search strategy instead of repeating a failed
     connector/query pair.
+13. Every required field group must be covered by at least one request. Reuse
+    one request for related fields when appropriate, but never omit a group.
+14. Preserve the provided field_group_id exactly and list the fields covered
+    by each request in target_fields.
 """
 
 
@@ -288,7 +297,7 @@ Planning rules:
 3. Use parse_pdf_sections when section-aware reading is needed; use parse_pdf_text when plain text evidence is sufficient.
 4. Use parse_table for CSV/TSV/XLSX or a detected table artifact, parse_figure for image/chart evidence, parse_html for HTML, and read_readme/read_file_manifest for repositories and file listings.
 5. Use read_metadata before expensive parsing when the artifact has not been inspected and metadata can determine its value.
-6. Use download_artifact before parsing a remote artifact with no local_path. Do not download an artifact merely because it exists; select it for the research goal first.
+6. Use download_artifact only for a remote file artifact that has a URL (pdf, csv, tsv, xlsx, supplementary_pdf, image, etc.) and no local_path. For landing_page or file_manifest artifacts, use read_metadata or read_file_manifest instead. Never call download_artifact on an artifact that has neither url nor local_path. Do not download an artifact merely because it exists; select it for the research goal first.
 7. Use search_more when important information needs or source types are missing; explain what is missing in purpose and reason.
    For recovery, put a JSON strategy in parameters when useful:
    {{"connector_names": ["openalex", "crossref"], "avoid_connectors": ["arxiv"],
@@ -319,6 +328,11 @@ Planning rules:
 19. If live search is not enabled or no connector search plan is needed, do not
     force plan_multi_source_search or search_sources; use uploaded/local
     artifacts and the evidence gaps to choose the next useful action.
+20. When choosing artifacts to download or search, prefer artifacts whose
+    provider/connector is usable. The observation lists each connector with
+    usable=true/false and its failure reason; avoid selecting download sources
+    from connectors marked usable=false, and prefer read_metadata for
+    connectors that only return metadata rather than full-text files.
 """
 
 
@@ -364,6 +378,9 @@ Return only a JSON object. Do not include explanatory text outside JSON."""
 
 DYNAMIC_PLANNER_USER = """User research request:
 {research_question}
+
+Task-plan fields that must be assigned to retrieval groups:
+{task_plan_json}
 
 Design a dynamic extraction plan for this task.
 
@@ -411,9 +428,12 @@ Planning requirements:
 4. Every dynamic table must include fields that help answer the user's question.
 5. Every extracted record will automatically include source_file, source_type, page, evidence_text, confidence, and warnings, so do not repeat those as ordinary fields unless the task explicitly needs them.
 6. Important but often-missing information should still appear as optional fields with null allowed.
-7. Prefer 3 to 8 dynamic tables and 4 to 12 fields per table.
-8. Use snake_case for table and field names.
-9. Include quality rules that require evidence and forbid hallucinated values.
+7. Treat each dynamic table as one coherent retrieval field group. Assign every
+   task-plan scientific field to exactly one group; omit only operational
+   provenance fields that are added automatically.
+8. Prefer 3 to 8 dynamic tables and 2 to 8 closely related fields per table.
+9. Use snake_case for table and field names.
+10. Include quality rules that require evidence and forbid hallucinated values.
 """
 
 

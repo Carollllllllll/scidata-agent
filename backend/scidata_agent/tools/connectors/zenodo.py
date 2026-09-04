@@ -14,7 +14,10 @@ class ZenodoConnector(BaseConnector):
     supported_source_types = ("dataset", "open_database", "supplementary_material", "table", "image")
 
     def search(self, request: SourceSearchRequest) -> list[DiscoveredSource]:
-        payload = fetch_json(ZENODO_RECORDS_URL, params={"q": request.query, "size": request.max_results})
+        # Zenodo permits at most 25 records per anonymous Records API request.
+        # The connector does not attach a token, so clamp planner-provided limits.
+        page_size = max(1, min(int(request.max_results), 25))
+        payload = fetch_json(ZENODO_RECORDS_URL, params={"q": request.query, "size": page_size})
         hits = payload.get("hits") if isinstance(payload.get("hits"), dict) else {}
         return [zenodo_record_to_source(item, request) for item in hits.get("hits", []) if isinstance(item, dict)]
 

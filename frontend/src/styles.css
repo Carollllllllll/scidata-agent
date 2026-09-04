@@ -169,6 +169,7 @@ img { display: block; max-width: 100%; }
 .advanced-toggle svg:last-child { transition: transform .2s; }
 .advanced-toggle svg.rotate { transform: rotate(90deg); }
 .advanced-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 9px; padding: 13px; background: rgba(9,15,39,.35); border-radius: 11px; }
+.advanced-help { grid-column: 1 / -1; margin: 0 0 3px; color: #9aa7cc; font-size: 12px; line-height: 1.5; }
 .checkbox-field { grid-column: 1 / -1; min-height: 48px; display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; color: #d8def3; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.075); border-radius: 9px; cursor: pointer; }
 .checkbox-field input { width: 17px; height: 17px; flex: 0 0 auto; margin: 2px 0 0; accent-color: #7590f6; }
 .checkbox-field input:disabled + span { opacity: .5; }
@@ -562,6 +563,11 @@ img { display: block; max-width: 100%; }
 .coverage-requirement-list > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: #f8f9fc; border-radius: 8px; color: #56617a; font-size: 12px; }
 .coverage-audit-reasons p { display: flex; gap: 6px; margin: 7px 0 0; color: #69748b; font-size: 12px; line-height: 1.45; }
 .coverage-audit-actions span { display: block; margin-top: 6px; color: #5369c2; font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.field-group-coverage-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin-top: 8px; }
+.field-group-coverage-list article { padding: 10px 12px; border: 1px solid var(--soft-line); border-radius: 8px; background: #f8f9fc; }
+.field-group-coverage-list article > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.field-group-coverage-list p { margin: 7px 0 0; color: #69748b; font-size: 12px; }
+.field-group-coverage-list article > small { display: block; margin-top: 5px; color: #9a6a30; line-height: 1.4; }
 .coverage-gap-block { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--soft-line); }
 .coverage-gap-heading, .coverage-gap-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .coverage-gap-heading small { color: #969dad; font-size: 11px; }

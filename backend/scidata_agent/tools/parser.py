@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import math
 import os
 import re
@@ -37,7 +38,7 @@ from scidata_agent.agent.schemas import (
 )
 
 
-SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".tsv", ".xlsx", ".xls"}
+SUPPORTED_EXTENSIONS = {".pdf", ".csv", ".tsv", ".dat", ".xlsx", ".xls", ".html", ".htm"}
 _UNSET = object()
 DEFAULT_PDF_PARSE_MAX_WORKERS = 2
 
@@ -141,7 +142,7 @@ def _parse_one_file(
                         f"PDF layout close failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
                     )
         return pdf_blocks, heading_candidates, tables, title, table_status, warnings
-    if suffix in {".csv", ".tsv"}:
+    if suffix in {".csv", ".tsv", ".dat"}:
         try:
             return [], [], [parse_csv(uploaded)], None, None, []
         except Exception as exc:
@@ -155,7 +156,32 @@ def _parse_one_file(
             return [], [], [], None, None, [
                 f"Workbook parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
             ]
+    if suffix in {".html", ".htm"}:
+        try:
+            text = _html_to_text(uploaded.path.read_text(encoding="utf-8", errors="ignore"))
+            return [
+                TextBlock(
+                    source_file=uploaded.filename,
+                    source_path=str(uploaded.path),
+                    source_type=SourceType.UNKNOWN,
+                    page=None,
+                    text=text[:200000],
+                    chunk_id=f"{uploaded.path.stem}_html",
+                )
+            ], [], [], None, None, []
+        except Exception as exc:
+            return [], [], [], None, None, [
+                f"HTML parsing failed for {uploaded.filename}: {type(exc).__name__}: {exc}"
+            ]
     return [], [], [], None, None, []
+
+
+def _html_to_text(value: str) -> str:
+    """Conservatively turn a materialized landing page into text evidence."""
+
+    value = re.sub(r"<(script|style|noscript)\b[^>]*>.*?</\1>", " ", value, flags=re.IGNORECASE | re.DOTALL)
+    value = re.sub(r"<[^>]+>", " ", value)
+    return re.sub(r"\s+", " ", html.unescape(value)).strip()
 
 
 def _parse_failure(
@@ -835,11 +861,17 @@ def _table_fingerprint(table: TableBlock) -> str:
 
 
 def parse_csv(uploaded: UploadedFile) -> TableBlock:
-    separator = "\t" if uploaded.path.suffix.lower() == ".tsv" else ","
+    suffix = uploaded.path.suffix.lower()
+    separator = "\t" if suffix == ".tsv" else r"\s+" if suffix == ".dat" else ","
+    kwargs: dict[str, Any] = {"sep": separator}
+    if suffix == ".dat":
+        # Astronomy survey releases conventionally use whitespace columns and
+        # comment-prefixed metadata before the header row.
+        kwargs.update({"comment": "#", "engine": "python"})
     last_error: Exception | None = None
     for encoding in ("utf-8-sig", "gb18030"):
         try:
-            dataframe = pd.read_csv(uploaded.path, sep=separator, encoding=encoding)
+            dataframe = pd.read_csv(uploaded.path, encoding=encoding, **kwargs)
             break
         except UnicodeDecodeError as exc:
             last_error = exc

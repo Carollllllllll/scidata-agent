@@ -259,9 +259,25 @@ export interface CoverageItem {
   name: string;
   priority: "high" | "medium" | "low";
   status: "covered" | "partial" | "missing" | "unavailable";
+  coverage_score?: number;
   evidence_count: number;
   evidence_types: string[];
   reason?: string | null;
+}
+
+export interface FieldGroupCoverage {
+  group_id: string;
+  label: string;
+  fields: string[];
+  required_fields: string[];
+  missing_fields: string[];
+  coverage_score: number;
+  evidence_count: number;
+  source_count: number;
+  initial_search_completed: boolean;
+  search_more_count: number;
+  search_more_limit: number;
+  status: "pending" | "sufficient" | "insufficient" | "exhausted";
 }
 
 export interface CoverageGap {
@@ -285,6 +301,7 @@ export interface CoverageReport {
   required_evidence_types: string[];
   covered_evidence_types: string[];
   unprocessed_relevant_artifacts: string[];
+  field_groups?: FieldGroupCoverage[];
   reasons: string[];
   recommended_actions: string[];
 }
@@ -389,6 +406,10 @@ export interface AgentResult {
   runtime_no_progress_limit?: number;
   runtime_last_progress_iteration?: number | null;
   runtime_requires_source_discovery?: boolean;
+  runtime_search_more_count?: number;
+  runtime_search_more_limit?: number;
+  runtime_group_initial_searches?: string[];
+  runtime_group_search_more_counts?: Record<string, number>;
   agent_decision_history?: AgentDecision[];
   tool_result_history?: ToolResult[];
   stop_rejections?: string[];
@@ -483,6 +504,10 @@ export interface AgentRuntimeSnapshot {
   stop_reason?: string | null;
   no_progress_streak?: number;
   no_progress_limit?: number;
+  search_more_count?: number;
+  search_more_limit?: number;
+  group_initial_searches?: string[];
+  group_search_more_counts?: Record<string, number>;
   last_progress_iteration?: number | null;
   decision_count?: number;
   tool_result_count?: number;
@@ -514,6 +539,7 @@ export interface LiveCoverageSnapshot {
   required_evidence_types?: string[];
   covered_evidence_types?: string[];
   unprocessed_relevant_artifacts_count?: number;
+  field_groups?: FieldGroupCoverage[];
   reasons?: string[];
   recommended_actions?: string[];
 }

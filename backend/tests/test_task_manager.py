@@ -180,6 +180,12 @@ def test_reconciliation_preserves_live_owner_and_fails_orphan_only(tmp_path) -> 
         manager.shutdown()
 
 
+def test_pid_probe_treats_windows_style_system_error_as_dead(monkeypatch) -> None:
+    monkeypatch.setattr(os, "kill", lambda pid, signal: (_ for _ in ()).throw(SystemError("invalid handle")))
+
+    assert task_manager_module._pid_is_alive(987654) is False
+
+
 def test_task_manager_lists_tasks_and_resolves_scoped_assets(tmp_path) -> None:
     output_dir = tmp_path / "outputs"
     state_dir = tmp_path / "tasks"

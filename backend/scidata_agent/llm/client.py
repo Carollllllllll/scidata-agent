@@ -425,7 +425,22 @@ class QwenBailianClient:
     @staticmethod
     def _should_failover(exc: Exception) -> bool:
         if not isinstance(exc, LLMProviderError):
-            return False
+            # httpx timeout/connect failures are normalized to LLMCallError by
+            # _post_json. They are model-endpoint failures, not schema errors,
+            # so the next configured model should get a chance immediately.
+            if not isinstance(exc, LLMCallError):
+                return False
+            detail = str(exc).casefold()
+            return any(term in detail for term in (
+                "timeout",
+                "timed out",
+                "connecterror",
+                "connection error",
+                "connection reset",
+                "network error",
+                "temporarily unavailable",
+                "remote protocol error",
+            ))
         detail = exc.detail.lower()
         transient_or_quota_terms = (
             "quota",

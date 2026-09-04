@@ -5,7 +5,25 @@ import re
 from pathlib import Path
 from typing import Any
 
-from scidata_agent.agent.scidata_agent import SciDataAgent
+from scidata_agent.agent.scidata_agent import (
+    SciDataAgent,
+    _agent_iteration_budget,
+    _evidence_search_boundary_reached,
+    _field_group_work_complete,
+    _required_action_parameters,
+)
+from scidata_agent.agent.schemas import (
+    AgentState,
+    CoverageReport,
+    DynamicExtractionPlan,
+    DynamicFieldSpec,
+    DynamicTableSpec,
+    FieldGroupCoverage,
+    MultiSourceSearchPlan,
+    SourceDiscoveryPlan,
+    SourceSelectionPlan,
+    TaskPlan,
+)
 from scidata_agent.llm.client import QwenBailianClient
 
 
@@ -319,6 +337,80 @@ class ResumableWorkflowQwenClient(IntegrationQwenClient):
         return super().generate_json(node, system_prompt, user_prompt, temperature=temperature)
 
 
+def test_dynamic_runtime_schedules_search_more_when_known_evidence_is_exhausted(
+    tmp_path: Path,
+) -> None:
+    """Incomplete coverage must take the bounded search branch, not emit an empty continue."""
+    state = AgentState(
+        research_question="Compare material performance evidence.",
+        files=[],
+        output_dir=tmp_path / "outputs",
+        task_plan=TaskPlan(research_goal="Compare material performance evidence."),
+        dynamic_extraction_plan=DynamicExtractionPlan(
+            research_goal="Compare material performance evidence.",
+            dynamic_tables=[
+                DynamicTableSpec(
+                    table_name="stability",
+                    fields=[DynamicFieldSpec(name="lifetime", required=True)],
+                )
+            ],
+        ),
+        source_discovery_plan=SourceDiscoveryPlan(
+            research_goal="Compare material performance evidence."
+        ),
+        multi_source_search_plan=MultiSourceSearchPlan(
+            research_goal="Compare material performance evidence."
+        ),
+        source_selection_plan=SourceSelectionPlan(
+            research_goal="Compare material performance evidence."
+        ),
+        runtime_requires_source_discovery=True,
+        runtime_search_more_count=1,
+        runtime_search_more_limit=2,
+        runtime_group_initial_searches=["stability"],
+        runtime_group_search_more_counts={"stability": 1},
+        tool_result_history=[
+            {"tool_name": "search_sources", "status": "completed", "workflow_revision": 0},
+            {"tool_name": "triage_sources", "status": "completed", "workflow_revision": 0},
+        ],
+        coverage_report=CoverageReport(
+            decision="continue",
+            missing_requirements=["stability"],
+            recommended_actions=["search_more"],
+            unprocessed_relevant_artifacts=[],
+            field_groups=[
+                FieldGroupCoverage(
+                    group_id="stability",
+                    label="stability",
+                    fields=["lifetime"],
+                    required_fields=["lifetime"],
+                    missing_fields=["lifetime"],
+                    initial_search_completed=True,
+                    search_more_count=1,
+                    search_more_limit=2,
+                    status="insufficient",
+                )
+            ],
+        ),
+    )
+
+    assert SciDataAgent._required_dynamic_workflow_actions(state) == ["search_more"]
+    assert _required_action_parameters(state, "search_more")["field_group_id"] == "stability"
+
+    state.runtime_search_more_count = 2
+    state.runtime_group_search_more_counts["stability"] = 2
+    state.coverage_report.field_groups[0].search_more_count = 2
+    state.coverage_report.field_groups[0].status = "exhausted"
+
+    assert SciDataAgent._required_dynamic_workflow_actions(state) == ["stop"]
+    assert _field_group_work_complete(state) is True
+    assert _evidence_search_boundary_reached(state) is True
+
+    state.coverage_report.decision = "allow_stop"
+
+    assert _evidence_search_boundary_reached(state) is True
+
+
 def test_main_agent_runs_bounded_artifact_planner_and_exports_results(tmp_path: Path) -> None:
     agent = SciDataAgent(
         output_dir=tmp_path / "outputs",
@@ -386,10 +478,11 @@ def test_main_agent_does_not_duplicate_csv_after_artifact_action(tmp_path: Path)
     assert result.status == "partial"
     assert result.coverage_report.decision == "continue"
     assert result.coverage_report.missing_requirements == ["value"]
-    assert result.artifact_action_results[0].action == "parse_csv"
-    assert result.artifact_action_results[0].status == "skipped"
+    # The first pass parsed the CSV.  The follow-up preflight now removes the
+    # duplicate before execution instead of manufacturing another skipped call.
+    assert result.artifact_action_results == []
     assert result.artifact_action_history[0].results[0].status == "completed"
-    assert result.artifact_action_history[1].results[0].status == "skipped"
+    assert result.artifact_action_history[1].results == []
     assert result.summary.tables_processed == 1
     assert len(result.source_catalog) == 1
 
@@ -416,17 +509,17 @@ def test_dynamic_runtime_executes_workflow_tool_for_uploaded_content(tmp_path: P
 
     assert [
         item.plan.actions[0].action for item in result.artifact_action_history
-    ] == ["plan_task", "plan_dynamic_schema", "parse_content"]
+    ] == ["plan_task", "plan_dynamic_schema", "parse_source_content"]
     assert result.artifact_action_results[0].status == "completed"
     assert any(
         event.get("event_type") == "tool_completed"
-        and event.get("tool_name") == "parse_content"
+        and event.get("tool_name") == "parse_source_content"
         for event in result.agent_trace
     )
-    assert result.tool_result_history[-1]["tool_name"] == "parse_content"
+    assert result.tool_result_history[-1]["tool_name"] == "parse_source_content"
 
 
-def test_dynamic_runtime_does_not_implicitly_run_content_pipeline_after_download(
+def test_dynamic_runtime_parses_an_existing_local_file_without_redownloading(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -457,9 +550,9 @@ def test_dynamic_runtime_does_not_implicitly_run_content_pipeline_after_download
     assert [item["tool_name"] for item in result.tool_result_history] == [
         "plan_task",
         "plan_dynamic_schema",
-        "download_artifact",
+        "parse_source_content",
     ]
-    assert result.summary.tables_processed == 0
+    assert result.summary.tables_processed == 1
 
 
 def test_dynamic_runtime_can_select_granular_content_stages(tmp_path: Path) -> None:
@@ -481,11 +574,20 @@ def test_dynamic_runtime_can_select_granular_content_stages(tmp_path: Path) -> N
         max_agent_iterations=len(client.actions),
     )
 
+    expected_required_stages = [
+        "plan_task",
+        "plan_dynamic_schema",
+        "parse_source_content",
+        "extract_figures",
+        "interpret_sections",
+        "extract_dynamic_records",
+        "extract_records",
+    ]
     assert [
         item.plan.actions[0].action for item in result.artifact_action_history
-    ] == client.actions
-    assert [item["tool_name"] for item in result.tool_result_history] == client.actions
-    assert all(action != "parse_content" for action in client.actions)
+        if item.plan.actions
+    ][:len(expected_required_stages)] == expected_required_stages
+    assert [item["tool_name"] for item in result.tool_result_history] == expected_required_stages
     assert result.runtime_status == "partial"
 
 
@@ -512,7 +614,10 @@ def test_dynamic_runtime_repeats_decision_turns_until_safety_budget(tmp_path: Pa
     assert len(result.agent_decision_history) == 2
     assert len([event for event in result.agent_trace if event["event_type"] == "agent_decision"]) == 2
     assert "safety budget" in (result.runtime_stop_reason or "")
-    assert any("task plan" in reason for reason in result.stop_rejections)
+    assert [item["tool_name"] for item in result.tool_result_history] == [
+        "plan_task",
+        "plan_dynamic_schema",
+    ]
 
 
 def test_dynamic_runtime_resumes_from_tool_checkpoint_without_reexecution(tmp_path: Path) -> None:
@@ -543,7 +648,7 @@ def test_dynamic_runtime_resumes_from_tool_checkpoint_without_reexecution(tmp_pa
     assert [item["tool_name"] for item in first.tool_result_history] == [
         "plan_task",
         "plan_dynamic_schema",
-        "parse_content",
+        "parse_source_content",
     ]
     checkpoint = output_dir / "resume_dynamic_test" / "agent_checkpoint.json"
     assert checkpoint.exists()
@@ -561,12 +666,25 @@ def test_dynamic_runtime_resumes_from_tool_checkpoint_without_reexecution(tmp_pa
     )
 
     assert second.status == "partial"
-    # The configured budget is task-global. A resume cannot silently grant a
-    # fresh batch of turns after the original three were consumed.
-    assert second.runtime_iteration == 3
-    assert len(second.tool_result_history) == 3
-    assert client.artifact_planner_calls == 3
+    # A user-requested resume receives a fresh bounded attempt while retaining
+    # monotonic iteration numbers and completed-tool idempotency.
+    assert second.runtime_iteration == 6
+    assert [item["tool_name"] for item in second.tool_result_history] == [
+        "plan_task",
+        "plan_dynamic_schema",
+        "parse_source_content",
+        "extract_figures",
+        "interpret_sections",
+        "extract_dynamic_records",
+    ]
+    assert client.artifact_planner_calls == 0
     assert any("Resuming from checkpoint" in line for line in second.processing_log)
+
+
+def test_dynamic_runtime_defaults_to_one_hundred_iterations(monkeypatch) -> None:
+    monkeypatch.delenv("SCIDATA_AGENT_MAX_ITERATIONS", raising=False)
+
+    assert _agent_iteration_budget(None) == 100
 
 
 def test_main_agent_preserves_bounded_artifact_action_iterations(tmp_path: Path) -> None:

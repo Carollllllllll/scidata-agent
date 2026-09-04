@@ -156,11 +156,85 @@ def refresh_source_catalog(state: AgentState) -> list[SourceCatalogEntry]:
     """Rebuild the shared catalog from the latest agent state.
 
     The catalog is intentionally derived from state rather than incrementally
-    mutated. This keeps status transitions deterministic when a connector,
-    downloader, or parser updates an existing source in place.
+    mutated. Preserve terminal artifact status from the preceding derived
+    catalog, however: metadata inspection is an action result in its own
+    right, and the source metadata does not carry that state. Without this
+    merge, every refresh turns an inspected landing page back into
+    ``metadata_read`` and the planner can schedule it indefinitely.
     """
-    state.source_catalog = build_source_catalog(state)
+    previous = {
+        _catalog_artifact_identity(artifact): artifact
+        for entry in state.source_catalog
+        for artifact in entry.artifacts
+    }
+    catalog = build_source_catalog(state)
+    for entry in catalog:
+        for artifact in entry.artifacts:
+            prior = previous.get(_catalog_artifact_identity(artifact))
+            if prior is None:
+                continue
+            if prior.local_path and not artifact.local_path:
+                prior_path = Path(prior.local_path)
+                if prior_path.is_file():
+                    artifact.local_path = str(prior_path)
+                    artifact.name = prior.name or artifact.name
+                    artifact.size_bytes = prior.size_bytes or artifact.size_bytes
+                    artifact.content_type = prior.content_type or artifact.content_type
+                    artifact.artifact_type = prior.artifact_type
+            # Parsed, skipped, and failed are artifact terminal states.  A
+            # metadata/catalog refresh must not silently turn them back into a
+            # retryable downloaded/planned row.
+            if prior.status in {"parsed", "skipped", "failed"}:
+                artifact.status = prior.status
+                artifact.parser = prior.parser or artifact.parser
+                artifact.failure_reason = prior.failure_reason or artifact.failure_reason
+            artifact.completed_operations = list(dict.fromkeys(
+                [*artifact.completed_operations, *prior.completed_operations]
+            ))
+            if _artifact_status_rank(prior.status) > _artifact_status_rank(artifact.status):
+                artifact.status = prior.status
+                artifact.parser = artifact.parser or prior.parser
+                artifact.failure_reason = artifact.failure_reason or prior.failure_reason
+            artifact.artifact_id = _stable_artifact_id(
+                artifact.source_id,
+                artifact.artifact_type,
+                artifact.url,
+                None if artifact.url else artifact.local_path,
+            )
+        _refresh_entry_status(entry)
+    state.source_catalog = catalog
     return state.source_catalog
+
+
+def _catalog_artifact_identity(artifact: SourceArtifact) -> tuple[str, str, str, str]:
+    """Return an identity that survives type detection and materialization."""
+
+    if artifact.url:
+        return (artifact.source_id, "url", str(artifact.url), "")
+    if artifact.local_path:
+        return (artifact.source_id, "local", _normalise_path(artifact.local_path), "")
+    return (
+        artifact.source_id,
+        "named",
+        artifact.artifact_type,
+        str(artifact.name or ""),
+    )
+
+
+def _artifact_status_rank(status: str) -> int:
+    """Rank only durable successful states; failures must remain observable."""
+
+    return {"inspected": 1, "downloaded": 2, "parsed": 3}.get(status, 0)
+
+
+def _refresh_entry_status(entry: SourceCatalogEntry) -> None:
+    """Keep the source row consistent with its most mature artifact state."""
+
+    statuses = {artifact.status for artifact in entry.artifacts}
+    for status in ("parsed", "downloaded", "inspected"):
+        if status in statuses:
+            entry.status = status
+            return
 
 
 def source_catalog_summary(catalog: list[SourceCatalogEntry]) -> dict[str, Any]:
@@ -267,16 +341,26 @@ def _build_artifacts(
         artifact.source_cluster_id = source_cluster_id
         artifact.provider = artifact.provider or provider
         artifact.name = artifact.name or _artifact_name_from_value(artifact.local_path or artifact.url)
+        unsupported = _unsupported_download_metadata(artifact.url, metadata)
+        if unsupported is not None:
+            artifact.status = "skipped"
+            artifact.parser = str(unsupported.get("parser") or "unsupported_format")
+            artifact.failure_reason = str(
+                unsupported.get("failure_reason") or "unsupported materialized format"
+            )
         if artifact.size_bytes is None and artifact.local_path:
             try:
                 artifact.size_bytes = Path(artifact.local_path).stat().st_size
             except (OSError, ValueError):
                 pass
+        # A remote artifact must keep one ID before and after it is downloaded.
+        # Including local_path here creates a new catalog identity after every
+        # materialization, which makes completed downloads appear pending again.
         artifact.artifact_id = _stable_artifact_id(
             artifact.source_id,
             artifact.artifact_type,
             artifact.url,
-            artifact.local_path,
+            None if artifact.url else artifact.local_path,
         )
         assessments = metadata.get("artifact_relevance_assessments")
         if isinstance(assessments, dict):
@@ -338,6 +422,10 @@ def _build_artifacts(
         if artifact.local_path
     }
     for path in _metadata_paths(metadata):
+        # A per-URL download mapping is handled below with the concrete file
+        # entry. Do not create an untyped duplicate from its generic path.
+        if _normalise_path(path) in _mapped_downloaded_paths(metadata):
+            continue
         # A public PDF URL plus its downloaded_path describes one artifact.
         if _normalise_path(path) in existing_local_paths:
             continue
@@ -360,20 +448,31 @@ def _build_artifacts(
         for item in files:
             if isinstance(item, dict):
                 url = _first_text(item.get("url") or item.get("download_url"))
-                name = _first_text(item.get("name") or item.get("filename"))
-                add(
-                    SourceArtifact(
-                        source_id=source_id,
-                        source_cluster_id=source_cluster_id,
-                        provider=_first_text(item.get("provider")) or provider,
-                        name=name,
-                        size_bytes=_item_size_bytes(item),
-                        artifact_type=_artifact_type(name or url, source_type),
-                        url=url,
-                        status="skipped" if source_status == "skipped" else "planned",
-                        metadata={key: value for key, value in item.items() if key not in {"url", "download_url"}},
-                    )
+                # Provider APIs commonly expose a stable file key while the
+                # transfer endpoint ends in a generic segment such as
+                # ``/content``. The key, not the endpoint suffix, determines
+                # whether this is CSV, README, PDF, etc.
+                name = _first_text(
+                    item.get("name") or item.get("filename") or item.get("key")
                 )
+                local_path = _match_local_path(url, metadata, known_files)
+                artifact = _artifact_for_path(
+                    source_id=source_id,
+                    source_cluster_id=source_cluster_id,
+                    provider=_first_text(item.get("provider")) or provider,
+                    url=url,
+                    local_path=local_path,
+                    source_type=source_type,
+                    source_status=source_status,
+                    parsed_paths=parsed_paths,
+                    artifact_name=name,
+                )
+                artifact.size_bytes = _item_size_bytes(item) or artifact.size_bytes
+                artifact.metadata = {
+                    key: value for key, value in item.items()
+                    if key not in {"url", "download_url"}
+                }
+                add(artifact)
             elif item:
                 add(
                     SourceArtifact(
@@ -442,6 +541,7 @@ def _artifact_for_path(
     source_type: str,
     source_status: str,
     parsed_paths: set[str],
+    artifact_name: str | None = None,
 ) -> SourceArtifact:
     if source_status == "skipped":
         status = "skipped"
@@ -457,8 +557,8 @@ def _artifact_for_path(
         source_id=source_id,
         source_cluster_id=source_cluster_id,
         provider=provider,
-        name=_artifact_name_from_value(local_path or url),
-        artifact_type=_artifact_type(local_path or url, source_type),
+        name=artifact_name or _artifact_name_from_value(local_path or url),
+        artifact_type=_artifact_type(local_path or artifact_name or url, source_type),
         url=url,
         local_path=local_path,
         status=status,
@@ -565,6 +665,29 @@ def _unique_texts(values: list[str | None]) -> list[str]:
     return list(dict.fromkeys(value for value in values if value))
 
 
+def _mapped_downloaded_paths(metadata: dict[str, Any]) -> set[str]:
+    """Return local paths already bound to a specific remote artifact URL."""
+
+    mappings = metadata.get("downloaded_artifacts")
+    if not isinstance(mappings, dict):
+        return set()
+    return {
+        _normalise_path(path)
+        for path in mappings.values()
+        if path not in (None, "")
+    }
+
+
+def _unsupported_download_metadata(url: str | None, metadata: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the terminal skip marker written by multi-source ingestion."""
+
+    entries = metadata.get("unsupported_downloads")
+    if not url or not isinstance(entries, dict):
+        return None
+    item = entries.get(url)
+    return item if isinstance(item, dict) else None
+
+
 def _match_local_path(url: str | None, metadata: dict[str, Any], known_files: list[Path]) -> str | None:
     downloaded_artifacts = metadata.get("downloaded_artifacts")
     if url and isinstance(downloaded_artifacts, dict):
@@ -591,6 +714,8 @@ def _artifact_type(value: str | None, source_type: str) -> str:
         return "supplementary_pdf" if source_type == "supplementary_material" or any(token in lowered for token in ("supplement", "supp_", "appendix")) else "pdf"
     if suffix in {".csv", ".tsv", ".xlsx", ".xls", ".json", ".xml"}:
         return suffix.lstrip(".")
+    if suffix == ".dat":
+        return "csv"
     if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
         return "image"
     if suffix in {".zip", ".tar", ".gz", ".tgz"}:

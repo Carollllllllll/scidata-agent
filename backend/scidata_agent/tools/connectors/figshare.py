@@ -36,10 +36,11 @@ class FigshareConnector(BaseConnector):
 
 def _fetch_figshare_search(request: SourceSearchRequest) -> Any:
     params = {"search_for": request.query, "page_size": request.max_results}
-    try:
-        return fetch_json(FIGSHARE_ARTICLES_URL, params=params)
-    except Exception:
-        return fetch_json(FIGSHARE_SEARCH_URL, params=params)
+    return fetch_json(
+        FIGSHARE_SEARCH_URL,
+        method="POST",
+        json_body=params,
+    )
 
 
 def figshare_article_to_source(item: dict[str, Any], request: SourceSearchRequest) -> DiscoveredSource:

@@ -117,12 +117,17 @@ class SourceArtifact(BaseModel):
         "selected",
         "planned",
         "metadata_read",
+        "inspected",
         "downloaded",
         "parsed",
         "failed",
         "skipped",
     ] = "discovered"
     parser: str | None = None
+    # Parsing is multi-modal: reading PDF text must not make table/figure
+    # extraction look complete.  Keep the coarse status for API compatibility,
+    # and record each successful operation independently.
+    completed_operations: list[str] = Field(default_factory=list)
     failure_reason: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -213,6 +218,7 @@ class SourceCatalogEntry(BaseModel):
         "discovered",
         "selected",
         "metadata_read",
+        "inspected",
         "downloaded",
         "parsed",
         "failed",
@@ -377,6 +383,12 @@ class SourceSearchRequest(BaseModel):
     max_results: int = 100
     must_have: list[str] = Field(default_factory=list)
     nice_to_have: list[str] = Field(default_factory=list)
+    # Stable links from retrieval work back to the LLM-authored dynamic table
+    # that owns the requested fields.  These fields let the runtime guarantee
+    # one initial search and a bounded number of supplemental searches per
+    # field group without reinterpreting query text on every turn.
+    field_group_id: str | None = None
+    target_fields: list[str] = Field(default_factory=list)
 
     @field_validator("query")
     @classmethod
@@ -725,6 +737,12 @@ class ParsedSources(BaseModel):
     heading_candidates: list[HeadingCandidate] = Field(default_factory=list)
     section_plan: SectionPlan | None = None
     section_blocks: list[SectionBlock] = Field(default_factory=list)
+    # Stable per-source input fingerprints make section interpretation
+    # incremental and allow a changed source to be safely reprocessed.
+    section_source_fingerprints: dict[str, str] = Field(default_factory=dict)
+    # Figure extraction follows the same per-PDF incremental contract so a
+    # later source does not make older figures count against the cap again.
+    figure_source_fingerprints: dict[str, str] = Field(default_factory=dict)
     tables: list[TableBlock] = Field(default_factory=list)
     figure_assets: list[FigureAsset] = Field(default_factory=list)
     parser_warnings: list[str] = Field(default_factory=list)
@@ -898,6 +916,34 @@ class CoverageItem(BaseModel):
     evidence_count: int = 0
     evidence_types: list[str] = Field(default_factory=list)
     reason: str | None = None
+    coverage_score: float = 0.0
+
+    @field_validator("coverage_score")
+    @classmethod
+    def clamp_item_coverage_score(cls, value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+
+class FieldGroupCoverage(BaseModel):
+    """Coverage and bounded retrieval status for one dynamic-table field group."""
+
+    group_id: str
+    label: str
+    fields: list[str] = Field(default_factory=list)
+    required_fields: list[str] = Field(default_factory=list)
+    missing_fields: list[str] = Field(default_factory=list)
+    coverage_score: float = 0.0
+    evidence_count: int = 0
+    source_count: int = 0
+    initial_search_completed: bool = False
+    search_more_count: int = 0
+    search_more_limit: int = 2
+    status: Literal["pending", "sufficient", "insufficient", "exhausted"] = "pending"
+
+    @field_validator("coverage_score")
+    @classmethod
+    def clamp_group_coverage_score(cls, value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
 
 
 class CoverageGap(BaseModel):
@@ -925,6 +971,7 @@ class CoverageReport(BaseModel):
     required_evidence_types: list[str] = Field(default_factory=list)
     covered_evidence_types: list[str] = Field(default_factory=list)
     unprocessed_relevant_artifacts: list[str] = Field(default_factory=list)
+    field_groups: list[FieldGroupCoverage] = Field(default_factory=list)
     reasons: list[str] = Field(default_factory=list)
     recommended_actions: list[str] = Field(default_factory=list)
 
@@ -1043,6 +1090,13 @@ class AgentResult(BaseModel):
     runtime_no_progress_limit: int = 4
     runtime_last_progress_iteration: int | None = None
     runtime_requires_source_discovery: bool = False
+    workflow_revision: int = 0
+    runtime_search_more_count: int = 0
+    runtime_search_more_limit: int = 2
+    runtime_group_initial_searches: list[str] = Field(default_factory=list)
+    runtime_group_search_more_counts: dict[str, int] = Field(default_factory=dict)
+    runtime_auto_download_sources: bool = True
+    runtime_stage_fingerprints: dict[str, str] = Field(default_factory=dict)
     agent_decision_history: list[dict[str, Any]] = Field(default_factory=list)
     tool_result_history: list[dict[str, Any]] = Field(default_factory=list)
     stop_rejections: list[str] = Field(default_factory=list)
@@ -1092,6 +1146,21 @@ class AgentState(BaseModel):
     runtime_no_progress_limit: int = 4
     runtime_last_progress_iteration: int | None = None
     runtime_requires_source_discovery: bool = False
+    # A successful search_more starts a new evidence revision.  Completed tool
+    # calls from older revisions remain auditable but may be executed again for
+    # the newly discovered sources.
+    workflow_revision: int = 0
+    runtime_search_more_count: int = 0
+    runtime_search_more_limit: int = 2
+    # Initial retrieval and supplemental-search attempts are tracked by the
+    # stable dynamic-table group id.  The legacy aggregate counter remains for
+    # audit/UI compatibility but no longer limits unrelated groups.
+    runtime_group_initial_searches: list[str] = Field(default_factory=list)
+    runtime_group_search_more_counts: dict[str, int] = Field(default_factory=dict)
+    runtime_auto_download_sources: bool = True
+    # Records which evidence batch each derived-data stage has consumed.  A
+    # changed batch reopens the whole extraction/normalization/validation chain.
+    runtime_stage_fingerprints: dict[str, str] = Field(default_factory=dict)
     agent_decision_history: list[dict[str, Any]] = Field(default_factory=list)
     tool_result_history: list[dict[str, Any]] = Field(default_factory=list)
     stop_rejections: list[str] = Field(default_factory=list)

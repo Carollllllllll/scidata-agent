@@ -200,11 +200,12 @@ export function TaskComposer() {
           </button>
           {showAdvanced && (
             <div className="advanced-grid">
-              <NumberField label="每篇 PDF 页数（0=全部）" value={maxPdfPages} min={0} max={1000000} onChange={setMaxPdfPages} />
-              <NumberField label="自动获取资源数（0=全部）" value={maxAutoResources} min={0} max={1000000} onChange={setMaxAutoResources} />
-              <NumberField label="动态文本块（0=全部）" value={maxDynamicTextBlocks} min={0} max={1000000} onChange={setMaxDynamicTextBlocks} />
-              <NumberField label="指标文本块（0=全部）" value={maxRecordTextBlocks} min={0} max={1000000} onChange={setMaxRecordTextBlocks} />
-              <NumberField label="每篇图表数（0=全部）" value={maxFiguresPerPdf} min={0} max={1000000} onChange={setMaxFiguresPerPdf} />
+              <p className="advanced-help">以下数值都是处理上限，不是最终结果条数；多篇 PDF 或新增来源会分别处理。</p>
+              <NumberField label="单篇 PDF 最多解析页数（0=全部）" value={maxPdfPages} min={0} max={1000000} onChange={setMaxPdfPages} />
+              <NumberField label="每轮最多自动获取资源（0=全部）" value={maxAutoResources} min={0} max={1000000} onChange={setMaxAutoResources} />
+              <NumberField label="每轮动态抽取文本块上限（0=全部）" value={maxDynamicTextBlocks} min={0} max={1000000} onChange={setMaxDynamicTextBlocks} />
+              <NumberField label="每轮指标抽取文本块上限（0=全部）" value={maxRecordTextBlocks} min={0} max={1000000} onChange={setMaxRecordTextBlocks} />
+              <NumberField label="单篇 PDF 最多处理图表数（0=全部）" value={maxFiguresPerPdf} min={0} max={1000000} onChange={setMaxFiguresPerPdf} />
               <label className="checkbox-field">
                 <input
                   type="checkbox"

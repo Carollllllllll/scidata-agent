@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import http.client
+import os
 import socket
 import ssl
 from collections.abc import Iterable
@@ -9,6 +10,8 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.request import Request
+
+import certifi
 
 
 class UnsafeUrlError(ValueError):
@@ -146,7 +149,7 @@ class _PinnedHTTPConnection(http.client.HTTPConnection):
 
 class _PinnedHTTPSConnection(http.client.HTTPSConnection):
     def __init__(self, host: str, connect_host: str, port: int, timeout: int):
-        super().__init__(host, port=port, timeout=timeout, context=ssl.create_default_context())
+        super().__init__(host, port=port, timeout=timeout, context=_trusted_ssl_context())
         self._connect_host = connect_host
 
     def connect(self) -> None:
@@ -160,6 +163,13 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
             self._tunnel()
             server_hostname = self._tunnel_host
         self.sock = self._context.wrap_socket(self.sock, server_hostname=server_hostname)
+
+
+def _trusted_ssl_context() -> ssl.SSLContext:
+    """Use an explicit CA bundle while preserving normal certificate validation."""
+
+    cafile = os.getenv("SSL_CERT_FILE") or certifi.where()
+    return ssl.create_default_context(cafile=cafile)
 
 
 class _PinnedResponse:

@@ -106,7 +106,52 @@ def test_source_selection_batches_large_candidate_pool(tmp_path: Path, monkeypat
 
     assert calls == [40, 40, 5]
     assert len(state.source_selection_plan.decisions) == 85
-    assert "selection_batches=3" in state.processing_log[-1]
+    assert "selection_batches=3/3" in state.processing_log[-1]
+
+
+def test_source_selection_hard_caps_large_candidate_pool(tmp_path: Path, monkeypatch) -> None:
+    candidates = [
+        DiscoveredSource(
+            title=f"candidate-{index}",
+            source_type="paper_metadata",
+            url=f"https://example.org/{index}",
+            metadata={"provider": "openalex"},
+        )
+        for index in range(160)
+    ]
+    state = AgentState(
+        research_question="Bounded source selection test.",
+        files=[],
+        output_dir=tmp_path,
+        source_discovery_plan=SourceDiscoveryPlan(
+            research_goal="Bounded source selection test.",
+            candidate_sources=candidates,
+        ),
+    )
+    calls: list[int] = []
+
+    class BoundedSelector:
+        def select_sources(self, research_question, source_discovery_plan, **kwargs):
+            calls.append(len(source_discovery_plan.candidate_sources))
+            return SourceSelectionPlan(research_goal=research_question)
+
+    agent = SciDataAgent(
+        output_dir=tmp_path / "outputs",
+        llm_client=MockQwenClient(),
+        require_llm=True,
+        monitor_console=False,
+        monitor_enabled=False,
+    )
+    agent.llm_nodes = BoundedSelector()
+    monkeypatch.setenv("SCIDATA_SOURCE_SELECTION_BATCH_SIZE", "40")
+    monkeypatch.setenv("SCIDATA_SOURCE_SELECTION_CANDIDATE_LIMIT", "999")
+    monkeypatch.setenv("SCIDATA_SOURCE_SELECTION_MAX_BATCHES", "999")
+
+    agent._select_sources(state, max_auto_resources=None)
+
+    assert calls == [40, 40, 20]
+    assert "candidate_sources=100/100" in state.processing_log[-1]
+    assert "selection_batches=3/3" in state.processing_log[-1]
 
 
 class MockQwenClient(QwenBailianClient):

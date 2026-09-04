@@ -239,22 +239,22 @@ export function TaskWorkspace() {
 
 function TaskProgressCard({ task, events }: { task: TaskResponse; events?: TaskEvent[] }) {
   const eventStatus = typeof task.event?.status === "string" ? task.event.status : null;
-  const computedPercent = overallProgressPercent(
+  const coverageScore =
+    task.coverage?.coverage_score
+    ?? task.coverage_report?.coverage_score
+    ?? task.result?.coverage_report?.coverage_score
+    ?? null;
+  const percent = overallProgressPercent(
     task.status,
     events,
     task.current_step,
     task.progress,
     eventStatus,
+    coverageScore,
   );
-  const stableProgress = useRef({ taskId: task.task_id, percent: computedPercent });
-  if (stableProgress.current.taskId !== task.task_id) {
-    stableProgress.current = { taskId: task.task_id, percent: computedPercent };
-  } else if (task.status === "cancelled") {
-    stableProgress.current.percent = 0;
-  } else {
-    stableProgress.current.percent = Math.max(stableProgress.current.percent, computedPercent);
-  }
-  const percent = task.status === "completed" || task.status === "partial" ? 100 : stableProgress.current.percent;
+  const progressLabel = task.status === "partial" && coverageScore != null
+    ? "需求覆盖率"
+    : "工作流进度";
   const milestones = [
     { start: 0, end: 12, label: "规划" },
     { start: 12, end: 58, label: "来源" },
@@ -265,11 +265,11 @@ function TaskProgressCard({ task, events }: { task: TaskResponse; events?: TaskE
 
   return (
     <div className="progress-card">
-      <div className="progress-card-top"><span>总体进度</span><strong>{percent}%</strong></div>
+      <div className="progress-card-top"><span>{progressLabel}</span><strong>{percent}%</strong></div>
       <div className="progress-track"><span style={{ width: `${percent}%` }} /></div>
       <div className="milestone-row">
         {milestones.map((milestone) => {
-          const done = task.status === "completed" || task.status === "partial" || percent >= milestone.end;
+          const done = task.status === "completed" || percent >= milestone.end;
           const active = task.status === "running" && percent >= milestone.start && percent < milestone.end;
           return <span key={milestone.label} className={done ? "done" : active ? "active" : ""}><i>{done ? <Icon name="check" size={11} /> : null}</i>{milestone.label}</span>;
         })}

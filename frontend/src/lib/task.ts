@@ -54,6 +54,7 @@ export const STAGE_LABELS: Record<string, string> = {
   quality_validation_before_artifact_followup: "阶段性质量校验",
   export: "生成导出文件",
   completed: "任务完成",
+  partial: "部分完成",
   failed: "任务失败",
   cancelled: "任务已取消",
 };
@@ -109,7 +110,7 @@ export function progressPercent(
   progress?: TaskProgress | null,
   stageStatus?: string | null,
 ): number {
-  if (status === "completed" || status === "partial") return 100;
+  if (status === "completed") return 100;
   if (status === "cancelled") return 0;
   const bounds = stage ? STAGE_PROGRESS_BOUNDS[stage] : undefined;
   if (!bounds) {
@@ -136,22 +137,28 @@ export function overallProgressPercent(
   stage?: string | null,
   progress?: TaskProgress | null,
   stageStatus?: string | null,
+  coverageScore?: number | null,
 ): number {
-  if (status === "completed" || status === "partial") return 100;
+  if (status === "completed") return 100;
   if (status === "cancelled") return 0;
+  if (status === "partial" && coverageScore != null && Number.isFinite(coverageScore)) {
+    return Math.max(0, Math.min(99, Math.round(coverageScore * 100)));
+  }
 
-  let highest = status === "running" ? 2 : 1;
-  for (const event of events ?? []) {
+  // Dynamic runs may return to source discovery after parsing or validation.
+  // Prefer the current recognized stage instead of freezing the historical
+  // maximum, otherwise a reopened search appears already completed.
+  if (stage && STAGE_PROGRESS_BOUNDS[stage]) {
+    return progressPercent(status, stage, progress, stageStatus);
+  }
+  for (const event of [...(events ?? [])].reverse()) {
     const bounds = event.step ? STAGE_PROGRESS_BOUNDS[event.step] : undefined;
     if (!bounds) continue;
     const eventProgress = taskProgressFromEvent(event);
-    highest = Math.max(
-      highest,
-      boundedStageProgress(bounds, event.status, eventProgress),
-    );
+    return boundedStageProgress(bounds, event.status, eventProgress);
   }
 
-  return Math.max(highest, progressPercent(status, stage, progress, stageStatus));
+  return progressPercent(status, stage, progress, stageStatus);
 }
 
 function taskProgressFromEvent(event: TaskEvent): TaskProgress | null {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import html
 import inspect
 import json
@@ -26,6 +27,10 @@ from scidata_agent.agent.tool_registry import build_artifact_tool_registry
 from scidata_agent.agent.tool_runtime import ToolRuntime
 from scidata_agent.llm.nodes import QwenAgentNodes
 from scidata_agent.tools.connectors.registry import execute_multi_source_search, merge_sources
+
+
+SEARCH_MORE_CANDIDATE_LIMIT = 100
+SEARCH_MORE_MAX_PLANNING_BATCHES = 3
 
 
 class ArtifactActionExecutor:
@@ -58,7 +63,14 @@ class ArtifactActionExecutor:
         results: list[ArtifactActionResult] = []
         for action in plan.actions:
             tool_result = self.tool_runtime.execute(
-                _tool_call_from_action(action),
+                _tool_call_from_action(
+                    action,
+                    workflow_revision=state.workflow_revision,
+                    parsed_content_fingerprint=workflow_stage_fingerprint(
+                        state,
+                        action.action,
+                    ),
+                ),
                 context=state,
                 options={
                     "max_pdf_pages": max_pdf_pages,
@@ -90,7 +102,11 @@ class ArtifactActionExecutor:
             max_pdf_pages=options.get("max_pdf_pages"),
             max_figures_per_action=int(options.get("max_figures_per_action", 6)),
         )
-        return _tool_result_from_action_result(legacy_result, call)
+        tool_result = _tool_result_from_action_result(legacy_result, call)
+        # search_more may advance the state revision while it executes.  Store
+        # the result in the revision whose downstream work it created.
+        tool_result.workflow_revision = max(0, int(state.workflow_revision))
+        return tool_result
 
     def execute_action(
         self,
@@ -112,18 +128,10 @@ class ArtifactActionExecutor:
         if artifact is None:
             return self._failed(action, f"Artifact not found: {action.artifact_id!r}")
 
-        if action.action in {
-            "parse_pdf_text",
-            "parse_pdf_sections",
-            "parse_table",
-            "parse_csv",
-            "parse_figure",
-            "parse_html",
-            "read_readme",
-        } and artifact.status == "parsed":
+        if action.action in artifact.completed_operations:
             return self._skipped(
                 action,
-                "Artifact content was already parsed; duplicate parsing was skipped.",
+                f"Artifact operation {action.action!r} was already completed; duplicate work was skipped.",
             )
 
         effective_type = _effective_artifact_type(artifact)
@@ -195,15 +203,68 @@ class ArtifactActionExecutor:
             return self._failed(action, "search_more requires an LLM node to create a new search plan.")
         if state.source_discovery_plan is None:
             return self._failed(action, "search_more requires an existing source discovery plan.")
+        search_strategy = _normalize_search_strategy(action.parameters)
+        field_group_id = str(search_strategy.get("field_group_id") or "").strip().casefold()
+        initial_group_search = bool(search_strategy.get("initial_group_search"))
+        limit = int(getattr(state, "runtime_search_more_limit", 2))
+        count = (
+            int(state.runtime_group_search_more_counts.get(field_group_id, 0))
+            if field_group_id
+            else int(getattr(state, "runtime_search_more_count", 0))
+        )
+        if not initial_group_search and count >= limit:
+            return self._skipped(
+                action,
+                "search_more limit exhausted; supplemental search was not executed "
+                f"(field_group={field_group_id or 'legacy_global'}, limit={limit}).",
+            )
+        # Count attempts, including failed connector/planning attempts, so a
+        # permanently unavailable search cannot consume the runtime forever.
+        if initial_group_search and field_group_id:
+            state.runtime_group_initial_searches = sorted(
+                set(state.runtime_group_initial_searches).union({field_group_id})
+            )
+            state.processing_log.append(
+                f"Initial retrieval attempt for field_group={field_group_id}."
+            )
+        else:
+            state.runtime_search_more_count = int(state.runtime_search_more_count) + 1
+            if field_group_id:
+                state.runtime_group_search_more_counts[field_group_id] = count + 1
+            state.processing_log.append(
+                "search_more attempt "
+                f"{count + 1}/{limit} for field_group={field_group_id or 'legacy_global'}."
+            )
 
         try:
-            candidates = list(state.source_discovery_plan.candidate_sources)
-            search_strategy = _normalize_search_strategy(action.parameters)
+            # Supplemental search is intentionally a focused recovery action,
+            # not a second full-catalog planning pass.  Bound both the input
+            # candidates and LLM planning batches so one weak field group
+            # cannot stall a task by re-planning thousands of sources.
+            candidate_limit = min(
+                _positive_env_int(
+                    "SCIDATA_SEARCH_MORE_CANDIDATE_LIMIT",
+                    SEARCH_MORE_CANDIDATE_LIMIT,
+                ),
+                SEARCH_MORE_CANDIDATE_LIMIT,
+            )
+            max_batches = min(
+                _positive_env_int(
+                    "SCIDATA_SEARCH_MORE_MAX_PLANNING_BATCHES",
+                    SEARCH_MORE_MAX_PLANNING_BATCHES,
+                ),
+                SEARCH_MORE_MAX_PLANNING_BATCHES,
+            )
+            candidates = list(state.source_discovery_plan.candidate_sources)[:candidate_limit]
             batch_size = _positive_env_int("SCIDATA_SEARCH_MORE_BATCH_SIZE", 40)
-            batches = [
+            batches = ([
                 candidates[start : start + batch_size]
                 for start in range(0, len(candidates), batch_size)
-            ] or [[]]
+            ][:max_batches] or [[]])
+            state.processing_log.append(
+                "search_more planning scope: "
+                f"candidates={len(candidates)}/{candidate_limit}, batches={len(batches)}/{max_batches}."
+            )
             plans = []
             planning_errors: list[str] = []
             for index, batch in enumerate(batches, start=1):
@@ -258,6 +319,13 @@ class ArtifactActionExecutor:
                 found,
             )
             state.source_discovery_plan.candidate_sources = merged
+            if added > 0:
+                # Downstream selection/triage/extraction must see the enlarged
+                # source set.  Keep old results in history, but move subsequent
+                # calls into a fresh idempotency namespace.
+                state.workflow_revision += 1
+                state.source_selection_plan = None
+                state.source_triage_decisions = []
             state.connector_status.extend(status.get("connector_status", []))
             state.source_discovery_plan.notes.append(
                 f"Artifact search_more status: {status}."
@@ -285,6 +353,7 @@ class ArtifactActionExecutor:
                 search_requests=len(plan.search_requests),
                 new_sources=added,
                 failed_requests=int(status.get("failed", 0)),
+                planning_candidates=len(candidates),
                 planning_batches=len(batches),
                 failed_planning_batches=len(planning_errors),
             )
@@ -337,6 +406,7 @@ class ArtifactActionExecutor:
         state.parsed_sources.text_blocks.extend(blocks)
         artifact.status = "parsed"
         artifact.parser = "pdf_text"
+        _mark_operation_completed(artifact, action.action)
         return self._result(
             action,
             "completed",
@@ -350,7 +420,10 @@ class ArtifactActionExecutor:
         state: AgentState,
         artifact: SourceArtifact,
     ) -> ArtifactActionResult:
-        from scidata_agent.tools.source_ingestion import download_source_artifact
+        from scidata_agent.tools.source_ingestion import (
+            download_source_artifact,
+            unsupported_materialized_format_reason,
+        )
 
         target_dir = state.output_dir / state.task_id / "downloads" / "artifacts"
         raw_limit = action.parameters.get("max_bytes")
@@ -376,11 +449,43 @@ class ArtifactActionExecutor:
             if artifact.url:
                 downloads[artifact.url] = str(path)
 
+        unsupported_reason = unsupported_materialized_format_reason(
+            path,
+            artifact.artifact_type,
+        )
+        if unsupported_reason:
+            artifact.status = "skipped"
+            artifact.parser = "unsupported_format"
+            artifact.failure_reason = unsupported_reason
+            return self._result(
+                action,
+                "skipped",
+                f"Downloaded artifact was skipped: {unsupported_reason}.",
+                bytes=artifact.size_bytes or 0,
+                files_delta=0,
+            )
+
+        files_delta = 0
+        resolved_path = path.expanduser().resolve()
+        if not any(
+            uploaded.path.expanduser().resolve() == resolved_path
+            for uploaded in state.files
+        ):
+            state.files.append(
+                UploadedFile(
+                    filename=resolved_path.name,
+                    path=resolved_path,
+                    content_type=artifact.content_type,
+                )
+            )
+            files_delta = 1
+
         return self._result(
             action,
             "completed",
             f"Downloaded artifact {artifact.name or artifact.artifact_id}.",
             bytes=artifact.size_bytes or 0,
+            files_delta=files_delta,
         )
 
     def _parse_pdf_sections(
@@ -405,6 +510,7 @@ class ArtifactActionExecutor:
         state.parsed_sources.section_blocks.extend(section_blocks)
         artifact.status = "parsed"
         artifact.parser = "pdf_sections"
+        _mark_operation_completed(artifact, action.action)
         return self._result(
             action,
             "completed",
@@ -436,6 +542,7 @@ class ArtifactActionExecutor:
         state.parsed_sources.tables.extend(tables)
         artifact.status = "parsed"
         artifact.parser = "table_parser"
+        _mark_operation_completed(artifact, action.action)
         return self._result(action, "completed", f"Parsed {len(tables)} table(s) from {uploaded.filename}.", tables=len(tables))
 
     def _parse_csv(self, action: ArtifactAction, state: AgentState, artifact: SourceArtifact) -> ArtifactActionResult:
@@ -446,6 +553,7 @@ class ArtifactActionExecutor:
         state.parsed_sources.tables.append(table)
         artifact.status = "parsed"
         artifact.parser = "csv_parser"
+        _mark_operation_completed(artifact, action.action)
         return self._result(action, "completed", f"Parsed CSV/TSV table from {uploaded.filename}.", tables=1, rows=len(table.rows))
 
     def _parse_figure(
@@ -495,6 +603,7 @@ class ArtifactActionExecutor:
             state.chart_extractions.append(chart)
             state.chart_validations.append(validate_chart_extraction(chart, figure))
             extracted += 1
+        _mark_operation_completed(artifact, action.action)
         return self._result(
             action,
             "completed",
@@ -522,6 +631,7 @@ class ArtifactActionExecutor:
         state.parsed_sources.text_blocks.append(block)
         artifact.status = "parsed"
         artifact.parser = "text_parser"
+        _mark_operation_completed(artifact, action.action)
         return self._result(action, "completed", f"Read text artifact {uploaded.filename}.", text_blocks=1, characters=len(block.text))
 
     def _read_file_manifest(
@@ -530,6 +640,39 @@ class ArtifactActionExecutor:
         entry = self._find_source_entry(artifact.source_id, state)
         manifest = artifact.metadata or (entry.metadata if entry else {})
         content = json.dumps(manifest, ensure_ascii=False, indent=2)
+        local_text: str | None = None
+        parsed_html = False
+        if artifact.local_path:
+            uploaded = _uploaded_file(artifact)
+            local_text = uploaded.path.read_text(encoding="utf-8", errors="ignore")[:200000]
+            looks_like_html = (
+                uploaded.path.suffix.lower() in {".html", ".htm"}
+                or artifact.content_type == "text/html"
+                or local_text.lstrip().lower().startswith(("<!doctype html", "<html"))
+            )
+            if looks_like_html:
+                local_text = _html_to_text(local_text)
+                artifact.artifact_type = "html"
+                artifact.status = "parsed"
+                artifact.parser = "html_manifest_reader"
+                parsed_html = True
+                state.parsed_sources.text_blocks.append(
+                    TextBlock(
+                        source_file=uploaded.filename,
+                        source_path=str(uploaded.path),
+                        source_type=SourceType.UNKNOWN,
+                        page=None,
+                        text=local_text,
+                        chunk_id=f"{artifact.artifact_id}_manifest_html",
+                    )
+                )
+            else:
+                artifact.status = "inspected"
+                artifact.parser = "file_manifest_reader"
+            content = f"Local file manifest: {uploaded.filename}\n\n{local_text}"
+        else:
+            artifact.status = "inspected"
+            artifact.parser = "metadata_manifest_reader"
         if entry:
             state.source_insights.append(
                 SourceInsight(
@@ -543,7 +686,14 @@ class ArtifactActionExecutor:
                     confidence=entry.relevance_score,
                 )
             )
-        return self._result(action, "completed", "Read file manifest metadata.", manifest_items=len(manifest))
+        _mark_operation_completed(artifact, action.action)
+        return self._result(
+            action,
+            "completed",
+            "Read local file manifest." if local_text is not None else "Read file manifest metadata.",
+            manifest_items=len(manifest),
+            text_blocks=1 if parsed_html else 0,
+        )
 
     def _read_metadata(
         self, action: ArtifactAction, state: AgentState, artifact: SourceArtifact
@@ -565,6 +715,9 @@ class ArtifactActionExecutor:
                     confidence=entry.relevance_score,
                 )
             )
+        artifact.status = "inspected"
+        artifact.parser = "metadata_inspection"
+        _mark_operation_completed(artifact, action.action)
         return self._result(action, "completed", "Read catalog metadata without downloading.", metadata_fields=len(metadata))
 
     def _find_artifact(self, artifact_id: str | None, state: AgentState) -> SourceArtifact | None:
@@ -616,19 +769,39 @@ class ArtifactActionExecutor:
         return result
 
 
-def _tool_call_from_action(action: ArtifactAction) -> ToolCall:
+def _tool_call_from_action(
+    action: ArtifactAction,
+    *,
+    workflow_revision: int = 0,
+    parsed_content_fingerprint: str | None = None,
+) -> ToolCall:
+    parameters = dict(action.parameters)
+    # Every derived-data stage is tied to the evidence batch it consumed.  This
+    # preserves idempotency inside one batch while reopening the complete chain
+    # when parsed evidence or the high-relevance work set changes.
+    if action.action in {
+        "extract_figures",
+        "interpret_sections",
+        "extract_dynamic_records",
+        "extract_records",
+        "normalize_records",
+        "track_provenance",
+        "validate_quality",
+    } and parsed_content_fingerprint:
+        parameters["_extraction_batch_fingerprint"] = parsed_content_fingerprint
     return ToolCall(
         call_id=action.action_id,
         tool_name=action.action,
         arguments={
             "artifact_id": action.artifact_id,
-            "parameters": dict(action.parameters),
+            "parameters": parameters,
         },
         purpose=action.purpose,
         reason=action.reason,
         priority=action.priority,
         gap_ids=list(action.gap_ids),
         expected_evidence=list(action.expected_fields),
+        workflow_revision=max(0, int(workflow_revision)),
     )
 
 
@@ -668,8 +841,162 @@ def _tool_result_from_action_result(
         data=data,
         warnings=list(result.warnings),
         errors=errors,
+        workflow_revision=max(0, int(call.workflow_revision)),
         idempotency_key=call.effective_idempotency_key(),
     )
+
+
+def parsed_content_fingerprint(state: AgentState) -> str:
+    """Return a stable token for the effective extraction batch.
+
+    The high-relevance artifact IDs are included because relevance is assigned
+    incrementally by the artifact planner.  A previously parsed artifact that
+    later crosses the relevance threshold must therefore reopen extraction even
+    when its text itself has not changed.
+    """
+    parsed = getattr(state, "parsed_sources", None)
+    source_blocks = effective_extraction_blocks(state)
+    high_relevance_artifacts = sorted(
+        artifact.artifact_id
+        for entry in getattr(state, "source_catalog", [])
+        for artifact in entry.artifacts
+        if artifact.relevance_score is not None and artifact.relevance_score >= 3.0
+    )
+    payload = {
+        "source_blocks": [
+            block.model_dump(mode="json")
+            for block in source_blocks
+        ],
+        "tables": [
+            table.model_dump(mode="json")
+            for table in getattr(parsed, "tables", [])
+        ],
+        "figure_assets": [
+            figure.model_dump(mode="json")
+            for figure in getattr(parsed, "figure_assets", [])
+        ],
+        "chart_extractions": [
+            chart.model_dump(mode="json")
+            for chart in getattr(state, "chart_extractions", [])
+        ],
+        "high_relevance_artifacts": high_relevance_artifacts,
+    }
+    encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def source_content_fingerprint(state: AgentState) -> str:
+    """Return a stable token for figure/section preprocessing inputs.
+
+    Figure assets and section blocks are outputs of preprocessing, so they are
+    intentionally excluded. Including them would invalidate the stage that
+    created them and schedule the same work forever.
+    """
+    parsed = getattr(state, "parsed_sources", None)
+    high_relevance_artifacts = sorted(
+        artifact.artifact_id
+        for entry in getattr(state, "source_catalog", [])
+        for artifact in entry.artifacts
+        if artifact.relevance_score is not None and artifact.relevance_score >= 3.0
+    )
+    payload = {
+        "files": [
+            {
+                "filename": uploaded.filename,
+                "path": str(uploaded.path),
+                "content_type": uploaded.content_type,
+            }
+            for uploaded in getattr(state, "files", [])
+        ],
+        "text_blocks": [
+            block.model_dump(mode="json")
+            for block in getattr(parsed, "text_blocks", [])
+        ],
+        "tables": [
+            table.model_dump(mode="json")
+            for table in getattr(parsed, "tables", [])
+        ],
+        "high_relevance_artifacts": high_relevance_artifacts,
+    }
+    encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def workflow_stage_fingerprint(state: AgentState, action: str) -> str:
+    """Select the correct idempotency scope for one workflow stage."""
+    if action in {"extract_figures", "interpret_sections"}:
+        return source_content_fingerprint(state)
+    return parsed_content_fingerprint(state)
+
+
+def effective_extraction_blocks(state: AgentState) -> list[Any]:
+    """Use section blocks where available and raw text for uncovered files.
+
+    A global ``section_blocks or text_blocks`` choice drops newly parsed text
+    whenever older files already have section blocks.  Combining by source file
+    keeps the richer representation without omitting the new batch.
+    """
+    parsed = getattr(state, "parsed_sources", None)
+    section_blocks = list(getattr(parsed, "section_blocks", []))
+    text_blocks = list(getattr(parsed, "text_blocks", []))
+    if not section_blocks:
+        return text_blocks
+    section_sources = {_block_source_key(block) for block in section_blocks}
+    return section_blocks + [
+        block for block in text_blocks
+        if _block_source_key(block) not in section_sources
+    ]
+
+
+def next_required_derived_stage(
+    state: AgentState,
+    *,
+    unprocessed_relevant_artifacts: list[str] | None = None,
+) -> str | None:
+    """Return the next mandatory content stage for the current evidence batch."""
+    processed = getattr(state, "runtime_stage_fingerprints", {})
+    has_content = bool(effective_extraction_blocks(state) or state.parsed_sources.tables)
+    pending_artifacts = (
+        state.coverage_report.unprocessed_relevant_artifacts
+        if unprocessed_relevant_artifacts is None
+        else unprocessed_relevant_artifacts
+    )
+    high_relevance_batch_ready = not pending_artifacts
+    if not has_content:
+        return None
+
+    source_fingerprint = source_content_fingerprint(state)
+    for stage in ("extract_figures", "interpret_sections"):
+        if processed.get(stage) != source_fingerprint:
+            return stage
+
+    fingerprint = parsed_content_fingerprint(state)
+    if (
+        state.dynamic_extraction_plan is not None
+        and high_relevance_batch_ready
+        and processed.get("extract_dynamic_records") != fingerprint
+    ):
+        return "extract_dynamic_records"
+    ordered_dependencies = (
+        ("extract_dynamic_records", "extract_records"),
+        ("extract_records", "normalize_records"),
+        ("normalize_records", "track_provenance"),
+        ("track_provenance", "validate_quality"),
+    )
+    for prerequisite, stage in ordered_dependencies:
+        if processed.get(prerequisite) == fingerprint and processed.get(stage) != fingerprint:
+            return stage
+    return None
+
+
+def _block_source_key(block: Any) -> str:
+    value = getattr(block, "source_path", None) or getattr(block, "source_file", None) or ""
+    return str(value).replace("\\", "/").casefold()
+
+
+def _mark_operation_completed(artifact: SourceArtifact, operation: str) -> None:
+    if operation not in artifact.completed_operations:
+        artifact.completed_operations.append(operation)
 
 
 def _artifact_result_from_tool_result(
@@ -791,6 +1118,22 @@ def _normalize_search_strategy(parameters: dict[str, Any] | None) -> dict[str, A
         value = raw.get(key)
         if isinstance(value, str) and value.strip():
             strategy[key] = value.strip()
+    group_id = raw.get("field_group_id")
+    if isinstance(group_id, str) and group_id.strip():
+        strategy["field_group_id"] = group_id.strip().casefold()
+    target_fields = raw.get("target_fields")
+    if isinstance(target_fields, str):
+        target_fields = [target_fields]
+    if isinstance(target_fields, list):
+        cleaned_fields = [
+            str(field).strip()
+            for field in target_fields
+            if str(field).strip()
+        ]
+        if cleaned_fields:
+            strategy["target_fields"] = list(dict.fromkeys(cleaned_fields))
+    if raw.get("initial_group_search") is True:
+        strategy["initial_group_search"] = True
     revised = raw.get("revised_queries")
     if isinstance(revised, dict):
         normalized: dict[str, list[str]] = {}
@@ -832,6 +1175,18 @@ def _apply_search_strategy(plan: Any, strategy: dict[str, Any]) -> Any:
             )
         else:
             requests.append(request)
+    field_group_id = str(strategy.get("field_group_id") or "").strip().casefold()
+    target_fields = list(strategy.get("target_fields") or [])
+    if field_group_id:
+        requests = [
+            request.model_copy(
+                update={
+                    "field_group_id": field_group_id,
+                    "target_fields": target_fields or request.target_fields,
+                }
+            )
+            for request in requests
+        ]
     return plan.model_copy(update={"search_requests": _dedupe_search_requests(requests)})
 
 

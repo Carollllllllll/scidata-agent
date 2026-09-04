@@ -123,16 +123,26 @@ def fetch_json(
     headers: dict[str, str] | None = None,
     retries: int = 2,
     retry_sleep_seconds: float = 1.0,
+    *,
+    method: str = "GET",
+    json_body: dict[str, Any] | list[Any] | None = None,
 ) -> Any:
+    normalized_method = method.upper()
     query = urlencode({key: value for key, value in (params or {}).items() if value is not None}, doseq=True)
-    full_url = f"{url}?{query}" if query else url
+    full_url = f"{url}?{query}" if query and normalized_method == "GET" else url
+    request_body = json.dumps(json_body).encode("utf-8") if json_body is not None else None
+    request_headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json",
+        **(headers or {}),
+    }
+    if request_body is not None:
+        request_headers.setdefault("Content-Type", "application/json")
     request = Request(
         full_url,
-        headers={
-            "User-Agent": USER_AGENT,
-            "Accept": "application/json",
-            **(headers or {}),
-        },
+        data=request_body,
+        headers=request_headers,
+        method=normalized_method,
     )
     attempts = max(1, retries + 1)
     last_exc: Exception | None = None

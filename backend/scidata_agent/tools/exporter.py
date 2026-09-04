@@ -8,10 +8,18 @@ import pandas as pd
 
 from scidata_agent.agent.schemas import AgentState, ExportFiles, DynamicRecord
 from scidata_agent.tools.evidence import build_evidence_traces, evidence_trace_rows
-from scidata_agent.tools.source_catalog import build_source_catalog, source_catalog_rows, source_catalog_summary
+from scidata_agent.tools.source_catalog import refresh_source_catalog, source_catalog_rows, source_catalog_summary
 
 
 CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _export_status(state: AgentState) -> str:
+    """Return the terminal status when a legacy caller omits it explicitly."""
+
+    if state.runtime_status in {"partial", "failed"}:
+        return state.runtime_status
+    return "completed"
 
 
 def _sanitize_csv_value(value):
@@ -28,11 +36,18 @@ def _write_csv(data, path: Path) -> None:
     frame.to_csv(path, index=False, encoding="utf-8-sig")
 
 
-def export_results(state: AgentState) -> ExportFiles:
+def export_results(
+    state: AgentState,
+    *,
+    final_status: str | None = None,
+) -> ExportFiles:
     task_dir = state.output_dir / state.task_id
     task_dir.mkdir(parents=True, exist_ok=True)
 
-    state.source_catalog = build_source_catalog(state)
+    # Preserve artifact states such as inspected/downloaded/parsed across the
+    # final export. Rebuilding directly would erase action outcomes from the
+    # catalog snapshot that users and resumed tasks rely on.
+    refresh_source_catalog(state)
     state.evidence_traces = build_evidence_traces(state)
     catalog_rows = source_catalog_rows(state.source_catalog)
     catalog_summary = source_catalog_summary(state.source_catalog)
@@ -101,7 +116,7 @@ def export_results(state: AgentState) -> ExportFiles:
     needs_review_dicts = [record.model_dump(mode="json") for record in state.needs_review_records]
     json_payload = {
         "task_id": state.task_id,
-        "status": "completed",
+        "status": final_status or _export_status(state),
         "research_question": state.research_question,
         "summary": summary_payload,
         "task_plan": state.task_plan.model_dump(mode="json") if state.task_plan else None,

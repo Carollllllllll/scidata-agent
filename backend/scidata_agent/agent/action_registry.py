@@ -70,9 +70,11 @@ ACTION_CAPABILITIES: dict[str, ActionCapability] = {
     ),
     "download_artifact": ActionCapability(
         action="download_artifact",
-        description="Download one selected remote artifact into the task workspace.",
+        description=(
+            "Download one selected remote artifact into the task workspace, including "
+            "a selected landing page when it is the only available content-bearing source."
+        ),
         artifact_types=frozenset({
-            "landing_page",
             "pdf",
             "html",
             "csv",
@@ -84,8 +86,8 @@ ACTION_CAPABILITIES: dict[str, ActionCapability] = {
             "code_archive",
             "supplementary_pdf",
             "image",
-            "file_manifest",
             "unknown",
+            "landing_page",
         }),
     ),
     "parse_pdf_text": ActionCapability(
@@ -120,7 +122,7 @@ ACTION_CAPABILITIES: dict[str, ActionCapability] = {
     ),
     "parse_csv": ActionCapability(
         action="parse_csv",
-        description="Read a CSV or TSV artifact as a structured table.",
+        description="Read a CSV, TSV, or whitespace-delimited .dat artifact as a structured table.",
         artifact_types=frozenset({"csv", "tsv"}),
         requires_local_path=True,
     ),

@@ -4,7 +4,17 @@ from pathlib import Path
 
 import pytest
 
-from scidata_agent.agent.action_executor import ArtifactActionExecutor, _apply_search_strategy, _normalize_search_strategy
+from scidata_agent.agent.action_executor import (
+    ArtifactActionExecutor,
+    _apply_search_strategy,
+    _normalize_search_strategy,
+    _tool_call_from_action,
+    effective_extraction_blocks,
+    next_required_derived_stage,
+    parsed_content_fingerprint,
+    source_content_fingerprint,
+)
+from scidata_agent.agent.action_preflight import preflight_artifact_action_plan
 from scidata_agent.agent.action_registry import artifact_type_supported, list_action_capabilities
 from scidata_agent.agent.schemas import (
     AgentState,
@@ -12,12 +22,16 @@ from scidata_agent.agent.schemas import (
     ArtifactActionPlan,
     ArtifactActionResult,
     DiscoveredSource,
+    DynamicExtractionPlan,
     MultiSourceSearchPlan,
     SourceDiscoveryPlan,
     SourceSearchRequest,
     SourceArtifact,
     SourceCatalogEntry,
     ScientificRecord,
+    SectionBlock,
+    TaskPlan,
+    TextBlock,
 )
 from scidata_agent.tools import source_ingestion
 
@@ -347,6 +361,227 @@ def test_search_more_runs_a_new_llm_planned_search(monkeypatch: pytest.MonkeyPat
     assert len(state.source_discovery_plan.candidate_sources) == 1
 
 
+def test_search_more_respects_the_per_task_limit(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[],
+    )
+    state.runtime_search_more_count = 2
+    state.runtime_search_more_limit = 2
+
+    result = ArtifactActionExecutor(SearchMorePlanner()).execute_action(
+        action("search_more", artifact_id=None),
+        state,
+    )
+
+    assert result.status == "skipped"
+    assert "limit exhausted" in result.message
+    assert state.runtime_search_more_count == 2
+
+
+def test_dynamic_extraction_idempotency_changes_when_parsed_content_changes(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    extraction = action("extract_dynamic_records", artifact_id=None)
+    first = _tool_call_from_action(
+        extraction,
+        parsed_content_fingerprint=parsed_content_fingerprint(state),
+    )
+    state.parsed_sources.text_blocks.append(
+        TextBlock(
+            source_file="paper.pdf",
+            source_path="paper.pdf",
+            source_type="pdf_text",
+            page=1,
+            text="SN 2011fe peak magnitude -19.3",
+            chunk_id="chunk-1",
+        )
+    )
+    second = _tool_call_from_action(
+        extraction,
+        parsed_content_fingerprint=parsed_content_fingerprint(state),
+    )
+
+    assert first.effective_idempotency_key() != second.effective_idempotency_key()
+
+
+def test_extraction_batch_changes_when_parsed_artifact_becomes_high_relevance(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.parsed_sources.text_blocks.append(
+        TextBlock(
+            source_file="results.csv",
+            source_path=str(tmp_path / "results.csv"),
+            source_type="csv",
+            text="model-a RMSE 1.2",
+            chunk_id="chunk-results",
+        )
+    )
+    first = parsed_content_fingerprint(state)
+
+    state.source_catalog[0].artifacts[0].relevance_score = 3.0
+
+    assert parsed_content_fingerprint(state) != first
+
+
+@pytest.mark.parametrize(
+    "stage",
+    [
+        "extract_figures",
+        "interpret_sections",
+        "extract_dynamic_records",
+        "extract_records",
+        "normalize_records",
+        "track_provenance",
+        "validate_quality",
+    ],
+)
+def test_every_derived_stage_is_scoped_to_the_extraction_batch(
+    stage: str,
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    selected = action(stage, artifact_id=None)
+    first = _tool_call_from_action(selected, parsed_content_fingerprint="batch-a")
+    second = _tool_call_from_action(selected, parsed_content_fingerprint="batch-b")
+
+    assert first.effective_idempotency_key() != second.effective_idempotency_key()
+
+
+def test_effective_extraction_blocks_keep_raw_text_for_sources_without_sections(
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    state.parsed_sources.section_blocks.append(
+        SectionBlock(
+            source_file="paper-a.pdf",
+            source_path="paper-a.pdf",
+            text="section-aware A",
+            chunk_id="section-a",
+        )
+    )
+    state.parsed_sources.text_blocks.extend(
+        [
+            TextBlock(
+                source_file="paper-a.pdf",
+                source_path="paper-a.pdf",
+                text="raw duplicate A",
+                chunk_id="raw-a",
+            ),
+            TextBlock(
+                source_file="paper-b.pdf",
+                source_path="paper-b.pdf",
+                text="new raw B",
+                chunk_id="raw-b",
+            ),
+        ]
+    )
+
+    blocks = effective_extraction_blocks(state)
+
+    assert [block.chunk_id for block in blocks] == ["section-a", "raw-b"]
+
+
+def test_preflight_removes_search_more_after_limit_is_exhausted(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.runtime_search_more_count = 2
+    state.runtime_search_more_limit = 2
+    plan = ArtifactActionPlan(
+        research_goal=state.research_question,
+        iteration=3,
+        actions=[action("search_more", artifact_id=None)],
+    )
+
+    dropped = preflight_artifact_action_plan(plan, state)
+
+    assert not plan.actions
+    assert dropped and "limit is exhausted" in dropped[0]
+
+
+def test_new_extraction_batch_reopens_the_complete_derived_stage_chain(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.source_catalog[0].artifacts[0].status = "parsed"
+    state.task_plan = TaskPlan(research_goal=state.research_question)
+    state.dynamic_extraction_plan = DynamicExtractionPlan(research_goal=state.research_question)
+    state.parsed_sources.text_blocks.append(
+        TextBlock(
+            source_file="results.csv",
+            source_path=str(tmp_path / "results.csv"),
+            source_type="csv",
+            text="model-a RMSE 1.2",
+            chunk_id="chunk-results",
+        )
+    )
+    source_fingerprint = source_content_fingerprint(state)
+    fingerprint = parsed_content_fingerprint(state)
+
+    expected_stages = [
+        "extract_figures",
+        "interpret_sections",
+        "extract_dynamic_records",
+        "extract_records",
+        "normalize_records",
+        "track_provenance",
+        "validate_quality",
+    ]
+    for stage in expected_stages:
+        assert next_required_derived_stage(state) == stage
+        state.runtime_stage_fingerprints[stage] = (
+            source_fingerprint
+            if stage in {"extract_figures", "interpret_sections"}
+            else fingerprint
+        )
+
+    assert next_required_derived_stage(state) is None
+
+    state.source_catalog[0].artifacts[0].relevance_score = 3.0
+
+    assert next_required_derived_stage(state) == "extract_figures"
+
+
+def test_figure_and_section_stages_use_stable_preprocessing_fingerprint(tmp_path: Path) -> None:
+    state = make_state(tmp_path)
+    state.source_catalog[0].artifacts[0].status = "parsed"
+    state.parsed_sources.text_blocks.append(
+        TextBlock(
+            source_file="paper.pdf",
+            source_path="paper.pdf",
+            text="Results and discussion",
+            chunk_id="raw-paper",
+        )
+    )
+    fingerprint = source_content_fingerprint(state)
+
+    state.runtime_stage_fingerprints["extract_figures"] = fingerprint
+    state.parsed_sources.section_blocks.append(
+        SectionBlock(
+            source_file="paper.pdf",
+            source_path="paper.pdf",
+            text="Results and discussion",
+            chunk_id="section-paper",
+        )
+    )
+
+    assert source_content_fingerprint(state) == fingerprint
+    assert next_required_derived_stage(state) == "interpret_sections"
+
+
+def test_preprocessing_runs_for_available_content_while_an_artifact_is_pending(
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    state.parsed_sources.text_blocks.append(
+        TextBlock(
+            source_file="available.pdf",
+            source_path="available.pdf",
+            text="Available evidence",
+            chunk_id="available",
+        )
+    )
+    state.coverage_report.unprocessed_relevant_artifacts = ["artifact-pending"]
+
+    assert next_required_derived_stage(state) == "extract_figures"
+
+
 def test_search_more_propagates_partial_connector_status(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     state = make_state(tmp_path)
     state.source_discovery_plan = SourceDiscoveryPlan(
@@ -439,6 +674,64 @@ def test_search_more_uses_bounded_batches(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert calls == [(40, 40, "batch 1/3"), (40, 40, "batch 2/3"), (5, 40, "batch 3/3")]
     assert result.output_counts["planning_batches"] == 3
     assert result.output_counts["failed_planning_batches"] == 0
+
+
+def test_search_more_caps_large_catalog_before_batch_planning(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    state = make_state(tmp_path)
+    state.source_discovery_plan = SourceDiscoveryPlan(
+        research_goal=state.research_question,
+        candidate_sources=[
+            DiscoveredSource(
+                title=f"Candidate {index}",
+                source_type="paper_metadata",
+                url=f"https://example.org/{index}",
+                metadata={"provider": "crossref"},
+            )
+            for index in range(160)
+        ],
+    )
+    calls: list[tuple[int, int, str]] = []
+
+    class BoundedPlanner:
+        def plan_multi_source_search(
+            self,
+            research_question: str,
+            source_discovery_plan: SourceDiscoveryPlan,
+            *,
+            candidate_context_limit: int = 40,
+            batch_label: str = "single batch",
+        ) -> MultiSourceSearchPlan:
+            calls.append((len(source_discovery_plan.candidate_sources), candidate_context_limit, batch_label))
+            return MultiSourceSearchPlan(
+                research_goal=research_question,
+                search_requests=[
+                    SourceSearchRequest(
+                        connector_name="crossref",
+                        source_type="paper_metadata",
+                        query=f"query {batch_label}",
+                    )
+                ],
+            )
+
+    monkeypatch.setenv("SCIDATA_SEARCH_MORE_BATCH_SIZE", "40")
+    monkeypatch.setenv("SCIDATA_SEARCH_MORE_CANDIDATE_LIMIT", "999")
+    monkeypatch.setenv("SCIDATA_SEARCH_MORE_MAX_PLANNING_BATCHES", "999")
+    monkeypatch.setattr(
+        "scidata_agent.agent.action_executor.execute_multi_source_search",
+        lambda plan: ([], {"status": "completed", "searched": 0, "failed": 0, "connector_status": []}),
+    )
+
+    result = ArtifactActionExecutor(BoundedPlanner()).execute_action(
+        action("search_more", artifact_id=None), state
+    )
+
+    assert result.status == "completed"
+    assert calls == [(40, 40, "batch 1/3"), (40, 40, "batch 2/3"), (20, 40, "batch 3/3")]
+    assert result.output_counts["planning_candidates"] == 100
+    assert result.output_counts["planning_batches"] == 3
 
 
 def test_search_more_supports_legacy_two_argument_planner(

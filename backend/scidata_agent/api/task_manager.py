@@ -917,6 +917,8 @@ def _compact_runtime_snapshot(value: Any) -> dict[str, Any]:
             "stop_reason",
             "no_progress_streak",
             "no_progress_limit",
+            "search_more_count",
+            "search_more_limit",
             "last_progress_iteration",
             "decision_count",
             "tool_result_count",
@@ -927,6 +929,22 @@ def _compact_runtime_snapshot(value: Any) -> dict[str, Any]:
     for key in ("stop_reason",):
         if key in snapshot:
             snapshot[key] = _public_text(snapshot[key])
+    raw_initial_groups = value.get("group_initial_searches", [])
+    snapshot["group_initial_searches"] = (
+        [_public_text(item) for item in raw_initial_groups[:24]]
+        if isinstance(raw_initial_groups, list)
+        else []
+    )
+    raw_group_counts = value.get("group_search_more_counts", {})
+    snapshot["group_search_more_counts"] = (
+        {
+            _public_text(key): max(0, int(count))
+            for key, count in list(raw_group_counts.items())[:24]
+            if isinstance(count, (int, float))
+        }
+        if isinstance(raw_group_counts, dict)
+        else {}
+    )
     snapshot["recent_decisions"] = decisions
     snapshot["recent_tool_results"] = results
     raw_rejections = value.get("stop_rejections", [])
@@ -958,6 +976,10 @@ def _snapshot_from_result_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "stop_reason": payload.get("runtime_stop_reason"),
         "no_progress_streak": payload.get("runtime_no_progress_streak", 0),
         "no_progress_limit": payload.get("runtime_no_progress_limit", 4),
+        "search_more_count": payload.get("runtime_search_more_count", 0),
+        "search_more_limit": payload.get("runtime_search_more_limit", 2),
+        "group_initial_searches": payload.get("runtime_group_initial_searches", []),
+        "group_search_more_counts": payload.get("runtime_group_search_more_counts", {}),
         "last_progress_iteration": payload.get("runtime_last_progress_iteration"),
         "decision_count": len(decisions),
         "tool_result_count": len(tool_results),
@@ -1019,6 +1041,30 @@ def _compact_coverage_snapshot(value: Any) -> dict[str, Any]:
         )
         if key in value
     }
+    raw_groups = value.get("field_groups", [])
+    if isinstance(raw_groups, list):
+        snapshot["field_groups"] = [
+            {
+                key: group[key]
+                for key in (
+                    "group_id",
+                    "label",
+                    "fields",
+                    "required_fields",
+                    "missing_fields",
+                    "coverage_score",
+                    "evidence_count",
+                    "source_count",
+                    "initial_search_completed",
+                    "search_more_count",
+                    "search_more_limit",
+                    "status",
+                )
+                if key in group
+            }
+            for group in raw_groups[:24]
+            if isinstance(group, dict)
+        ]
     for key in ("required_evidence_types", "covered_evidence_types", "reasons", "recommended_actions"):
         if isinstance(value.get(key), list):
             snapshot[key] = [_public_text(item) for item in value[key][:12]]
@@ -1094,7 +1140,11 @@ def _pid_is_alive(value: Any) -> bool:
         return False
     except PermissionError:
         return True
-    except OSError:
+    # On Windows, ``os.kill(pid, 0)`` can surface an invalid-handle failure as
+    # ``SystemError`` rather than a regular ``OSError`` for a stale PID.  Task
+    # reconciliation runs during API startup, so treat either form as a dead
+    # process instead of preventing the server from starting.
+    except (OSError, SystemError):
         return False
     return True
 

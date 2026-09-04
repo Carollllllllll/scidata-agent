@@ -10,6 +10,7 @@ from scidata_agent.agent.policy import AgentPolicy
 from scidata_agent.agent.schemas import (
     AgentState,
     CoverageReport,
+    CoverageGap,
     DiscoveredSource,
     DynamicExtractionPlan,
     MultiSourceSearchPlan,
@@ -45,6 +46,34 @@ def test_dynamic_stop_gate_requires_initialization_contract(tmp_path) -> None:
     assert result.allowed is False
     assert any("task plan" in reason for reason in result.reasons)
     assert any("dynamic extraction schema" in reason for reason in result.reasons)
+
+
+def test_stop_gate_does_not_block_on_unavailable_gap(tmp_path) -> None:
+    state = make_state(tmp_path)
+    state.runtime_status = "running"
+    state.task_plan = {"research_goal": state.research_question}
+    state.dynamic_extraction_plan = DynamicExtractionPlan(
+        research_goal=state.research_question,
+    )
+    state.coverage_report = CoverageReport(
+        decision="allow_stop",
+        gaps=[
+            CoverageGap(
+                gap_id="unavailable-paper",
+                requirement_name="Required paper",
+                priority="high",
+                status="unavailable",
+                reason="No usable source remains.",
+            )
+        ],
+    )
+
+    result = StopGate().evaluate(
+        AgentDecision(decision="stop", reason="All actionable work is complete."),
+        state,
+    )
+
+    assert result.allowed is True
 
 
 def test_policy_rejects_content_action_before_its_prerequisites(tmp_path) -> None:
@@ -226,7 +255,7 @@ def test_policy_allows_source_processing_after_partial_search(tmp_path) -> None:
         SourceCatalogEntry(
             source_id="source-1",
             title="Paper",
-            artifacts=[SourceArtifact(artifact_id="artifact-1", source_id="source-1", artifact_type="pdf")],
+            artifacts=[SourceArtifact(artifact_id="artifact-1", source_id="source-1", artifact_type="pdf", url="https://example.com/paper.pdf")],
         )
     ]
     state.multi_source_search_plan = MultiSourceSearchPlan(research_goal=state.research_question)

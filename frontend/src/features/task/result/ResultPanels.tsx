@@ -544,6 +544,7 @@ export function CoverageAuditPanel({ report }: { report: CoverageReport }) {
   const allowedToStop = report.decision === "allow_stop";
   const missing = report.missing_requirements ?? [];
   const gaps = report.gaps ?? [];
+  const fieldGroups = report.field_groups ?? [];
   return (
     <section className="panel-card coverage-audit-panel">
       <div className="panel-heading wide">
@@ -562,6 +563,18 @@ export function CoverageAuditPanel({ report }: { report: CoverageReport }) {
         <span><small>未处理高相关资料</small><strong>{report.unprocessed_relevant_artifacts?.length ?? 0}</strong></span>
       </div>
       {missing.length > 0 && <div className="coverage-audit-block"><small>待补齐字段</small><div className="coverage-chip-list">{missing.map((item) => <QualityBadge key={item} tone="warning">{humanize(item)}</QualityBadge>)}</div></div>}
+      {fieldGroups.length > 0 && <div className="coverage-audit-block">
+        <small>字段组检索状态</small>
+        <div className="field-group-coverage-list">{fieldGroups.map((group) => {
+          const tone = group.status === "sufficient" ? "success" : group.status === "exhausted" ? "neutral" : "warning";
+          const statusLabel = group.status === "sufficient" ? "已达标" : group.status === "exhausted" ? "已完成（达到检索上限）" : group.status === "pending" ? "待首次检索" : "待补充检索";
+          return <article key={group.group_id}>
+            <div><strong>{humanize(group.label)}</strong><QualityBadge tone={tone}>{statusLabel}</QualityBadge></div>
+            <p>覆盖 {Math.round((group.coverage_score ?? 0) * 100)}% · {group.source_count ?? 0} 个有效来源 · 补充检索 {group.search_more_count ?? 0}/{group.search_more_limit ?? 2}</p>
+            {group.missing_fields?.length > 0 && <small>仍缺：{group.missing_fields.map(humanize).join("、")}</small>}
+          </article>;
+        })}</div>
+      </div>}
       {gaps.length > 0 && <div className="coverage-gap-block">
         <div className="coverage-gap-heading"><small>EVIDENCE GAPS</small><QualityBadge tone="warning">{gaps.length} gaps</QualityBadge></div>
         <div className="coverage-gap-list">{gaps.map((gap) => <article key={gap.gap_id} className={`coverage-gap coverage-gap-${gap.priority}`}>

@@ -1,4 +1,5 @@
 pydantic==2.12.5
+certifi>=2024.2.2
 pandas==2.2.1
 pypdf==6.16.1
 pdfplumber==0.11.10

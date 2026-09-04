@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable
@@ -11,7 +14,12 @@ from scidata_agent.agent.action_executor import (
     ArtifactActionExecutor,
     _artifact_result_from_tool_result,
     _tool_call_from_action,
+    effective_extraction_blocks,
+    next_required_derived_stage,
+    parsed_content_fingerprint,
+    workflow_stage_fingerprint,
 )
+from scidata_agent.agent.action_preflight import preflight_artifact_action_plan
 from scidata_agent.agent.checkpoint import AgentCheckpointStore, build_run_fingerprint
 from scidata_agent.agent.decision import AgentDecision
 from scidata_agent.agent.harness import AgentHarness
@@ -23,9 +31,13 @@ from scidata_agent.agent.schemas import (
     AgentState,
     AgentSummary,
     ArxivSearchPlan,
+    ArtifactAction,
+    ArtifactActionPlan,
     ArtifactActionIteration,
     ArtifactActionResult,
     ChartCorrectionResult,
+    DynamicFieldSpec,
+    DynamicTableSpec,
     QualityIssue,
     ReviewQueueItem,
     ScientificRecord,
@@ -35,7 +47,7 @@ from scidata_agent.agent.schemas import (
 )
 from scidata_agent.agent.tool_protocol import ToolResult
 from scidata_agent.llm.client import LLMConfigurationError, QwenBailianClient
-from scidata_agent.llm.nodes import QwenAgentNodes
+from scidata_agent.llm.nodes import QwenAgentNodes, merge_section_plans
 from scidata_agent.tools.chart_locator import locate_figures
 from scidata_agent.tools.chart_validator import compare_chart_extractions, validate_chart_extraction
 from scidata_agent.tools.coverage import build_coverage_report
@@ -85,6 +97,12 @@ CATALOG_REFRESH_STEPS = frozenset(
     }
 )
 LOGGER = logging.getLogger(__name__)
+
+# Source selection is the execution point used by both the initial discovery
+# pass and a supplemental ``search_more`` pass.  Keep the model context bounded
+# even when a connector returns thousands of catalogue candidates.
+SOURCE_SELECTION_CANDIDATE_LIMIT = 100
+SOURCE_SELECTION_MAX_BATCHES = 3
 
 
 class AgentCancellationRequested(RuntimeError):
@@ -279,6 +297,8 @@ class SciDataAgent:
         # previous short safety budget.
         state.runtime_iteration_budget = agent_iteration_budget
         state.runtime_no_progress_limit = _agent_no_progress_limit()
+        state.runtime_search_more_limit = _agent_search_more_limit()
+        state.runtime_auto_download_sources = bool(auto_download_sources)
         state.runtime_phase = _runtime_phase(state)
         monitor = AgentMonitor(
             task_id=state.task_id,
@@ -516,7 +536,11 @@ class SciDataAgent:
                         f"Artifact action loop reached configured cap={artifact_action_iterations}."
                     )
             self._run_step(monitor, "quality_validation", state, self._quality_check)
+            # Quality validation mutates field coverage, so the final stop
+            # decision must be based on a report rebuilt from that new state.
+            self._refresh_coverage(state, "quality_validation")
             self._append_llm_trace(state, start_index=trace_start_index)
+            evidence_boundary_completed = _evidence_search_boundary_reached(state)
             dynamic_runtime_incomplete = (
                 dynamic_runtime_enabled
                 and state.runtime_status != "completed"
@@ -526,7 +550,10 @@ class SciDataAgent:
                 if not discovery_only
                 and (
                     dynamic_runtime_incomplete
-                    or state.coverage_report.decision != "allow_stop"
+                    or (
+                        state.coverage_report.decision != "allow_stop"
+                        and not evidence_boundary_completed
+                    )
                 )
                 else "completed"
             )
@@ -534,7 +561,7 @@ class SciDataAgent:
                 state.processing_log.append(
                     "Agent task produced partial results: coverage remains incomplete after all configured action iterations."
                 )
-            self._run_step(monitor, "export", state, self._export)
+            self._run_step(monitor, "export", state, self._export, final_status=final_status)
             result = self._build_result(state, status=final_status)
             monitor.task(
                 final_status,
@@ -729,11 +756,20 @@ class SciDataAgent:
             state.processing_log.append(
                 f"Agent runtime restored {restored_tools} completed tool result(s) from checkpoint."
             )
-        harness = self._build_artifact_harness(state, executor, monitor=monitor)
-        # The iteration argument is persisted in the checkpoint, so the
-        # safety budget must be task-global. Resuming a task consumes only
-        # the turns that remain instead of granting a fresh batch.
-        remaining_iterations = max(0, int(max_iterations) - start_iteration)
+        harness = self._build_artifact_harness(
+            state,
+            executor,
+            monitor=monitor,
+            enforce_required_workflow=True,
+        )
+        # An explicit resume is a new execution attempt.  Preserve monotonic
+        # iteration numbers for auditability, but grant the configured budget
+        # again; otherwise a checkpoint saved at the old cap can never move.
+        remaining_iterations = (
+            max(0, int(max_iterations))
+            if self._resume_enabled
+            else max(0, int(max_iterations) - start_iteration)
+        )
         for offset in range(remaining_iterations):
             iteration = start_iteration + offset
             if state.runtime_status in {"completed", "partial", "failed"}:
@@ -750,6 +786,21 @@ class SciDataAgent:
             )
             self._refresh_catalog(state, "artifact_action_execution")
             self._refresh_coverage(state, "artifact_action_execution")
+            if self._materialization_actions_need_source_parse(state.artifact_action_results):
+                self._run_step(
+                    monitor,
+                    f"agent_runtime_ingest_parse_{iteration}",
+                    state,
+                    self._parse,
+                    max_pdf_pages=max_pdf_pages,
+                    max_workers=max_pdf_parse_workers,
+                )
+                self._refresh_catalog(state, f"agent_runtime_ingest_parse_{iteration}")
+                self._refresh_coverage(state, f"agent_runtime_ingest_parse_{iteration}")
+                state.processing_log.append(
+                    "Dynamic runtime parsed newly materialized local files before the next "
+                    "Agent decision."
+                )
             has_search_more = any(
                 result.action == "search_more" and result.status == "completed"
                 for result in state.artifact_action_results
@@ -760,17 +811,16 @@ class SciDataAgent:
                 # run the old fixed follow-up chain here.
                 self._refresh_catalog(state, "artifact_search_more")
                 self._refresh_coverage(state, "artifact_search_more")
-            # Content work is itself part of the dynamic tool vocabulary. A
-            # download or artifact parser result must be observed by the next
-            # decision instead of silently triggering the legacy all-in-one
-            # pipeline here. This keeps the chosen parser, TATR/VL path, and
-            # extraction scope visible in the Agent trace and checkpoint.
+            # Direct artifact work remains visible to the next Agent decision.
+            # Newly ingested source files are the exception: they have already
+            # crossed an explicit download boundary and are parsed above so they
+            # cannot remain in cache while unrelated artifact actions repeat.
             if self._artifact_actions_need_content_refresh(state.artifact_action_results):
                 self._refresh_catalog(state, f"agent_runtime_content_ready_{iteration}")
                 self._refresh_coverage(state, f"agent_runtime_content_ready_{iteration}")
                 state.processing_log.append(
                     "Dynamic runtime observed new content; the next Agent decision "
-                    "must select the appropriate parsing or extraction tool."
+                    "must select the appropriate remaining parsing or extraction tool."
                 )
             after_progress = _scientific_progress_signature(state)
             if after_progress != before_progress:
@@ -779,23 +829,88 @@ class SciDataAgent:
             else:
                 state.runtime_no_progress_streak += 1
             state.runtime_phase = _runtime_phase(state)
-            if state.runtime_no_progress_streak >= state.runtime_no_progress_limit:
-                state.runtime_status = "partial"
+            if state.runtime_status == "running" and _field_group_work_complete(state):
+                coverage_percent = round(state.coverage_report.coverage_score * 100, 1)
+                exhausted = [
+                    group.label
+                    for group in state.coverage_report.field_groups
+                    if group.status == "exhausted"
+                ]
+                state.runtime_status = "completed"
+                state.runtime_phase = "completed"
                 state.runtime_stop_reason = (
-                    "Agent stopped after "
-                    f"{state.runtime_no_progress_streak} consecutive turns without "
-                    "new scientific evidence or processing progress."
+                    "All field groups completed their bounded retrieval and processing workflow. "
+                    f"Coverage reached {coverage_percent}%."
+                    + (
+                        " Search budget exhausted for: " + ", ".join(exhausted[:8]) + "."
+                        if exhausted
+                        else ""
+                    )
                 )
-                state.runtime_phase = "partial"
                 state.agent_trace.append({
-                    "event_type": "agent_no_progress_stop",
+                    "event_type": "agent_field_groups_completed",
                     "iteration": iteration,
-                    "status": "partial",
+                    "status": "completed",
                     "payload": {
-                        "no_progress_streak": state.runtime_no_progress_streak,
-                        "no_progress_limit": state.runtime_no_progress_limit,
+                        "coverage_score": state.coverage_report.coverage_score,
+                        "field_groups": [
+                            group.model_dump(mode="json")
+                            for group in state.coverage_report.field_groups
+                        ],
                     },
                 })
+                state.processing_log.append(state.runtime_stop_reason)
+                self._save_checkpoint_state(state)
+                break
+            if state.runtime_no_progress_streak >= state.runtime_no_progress_limit:
+                if _evidence_search_boundary_reached(state):
+                    coverage_percent = round(state.coverage_report.coverage_score * 100, 1)
+                    missing = state.coverage_report.missing_requirements
+                    missing_note = (
+                        " Unresolved requirements: " + ", ".join(missing[:8]) + "."
+                        if missing
+                        else ""
+                    )
+                    state.runtime_status = "completed"
+                    state.runtime_stop_reason = (
+                        "Agent completed within the bounded evidence-search budget. "
+                        f"Coverage reached {coverage_percent}%."
+                        + missing_note
+                    )
+                    state.runtime_phase = "completed"
+                    state.agent_trace.append({
+                        "event_type": "agent_evidence_boundary_complete",
+                        "iteration": iteration,
+                        "status": "completed",
+                        "payload": {
+                            "coverage_score": state.coverage_report.coverage_score,
+                            "missing_requirements": missing,
+                            "search_more_count": state.runtime_search_more_count,
+                            "search_more_limit": state.runtime_search_more_limit,
+                            "group_search_more_counts": dict(
+                                state.runtime_group_search_more_counts
+                            ),
+                            "no_progress_streak": state.runtime_no_progress_streak,
+                            "no_progress_limit": state.runtime_no_progress_limit,
+                        },
+                    })
+                else:
+                    state.runtime_status = "partial"
+                    state.runtime_stop_reason = (
+                        "Agent stopped after "
+                        f"{state.runtime_no_progress_streak} consecutive turns without "
+                        "new scientific evidence or processing progress."
+                    )
+                    state.runtime_phase = "partial"
+                    state.agent_trace.append({
+                        "event_type": "agent_no_progress_stop",
+                        "iteration": iteration,
+                        "status": "partial",
+                        "payload": {
+                            "no_progress_streak": state.runtime_no_progress_streak,
+                            "no_progress_limit": state.runtime_no_progress_limit,
+                        },
+                    })
                 state.processing_log.append(state.runtime_stop_reason)
                 self._save_checkpoint_state(state)
                 break
@@ -840,6 +955,7 @@ class SciDataAgent:
             action: Any,
             state: AgentState,
         ) -> ArtifactActionResult:
+            before_files = len(state.files)
             before_sources = len(state.source_catalog)
             before_artifacts = sum(len(entry.artifacts) for entry in state.source_catalog)
             before_text = len(state.parsed_sources.text_blocks)
@@ -983,6 +1099,20 @@ class SciDataAgent:
                     error=f"Unsupported dynamic workflow action: {action.action!r}",
                 )
 
+            if action.action in {
+                "extract_figures",
+                "interpret_sections",
+                "extract_dynamic_records",
+                "extract_records",
+                "normalize_records",
+                "track_provenance",
+                "validate_quality",
+            }:
+                state.runtime_stage_fingerprints[action.action] = workflow_stage_fingerprint(
+                    state,
+                    action.action,
+                )
+
             after_sources = len(state.source_catalog)
             after_artifacts = sum(len(entry.artifacts) for entry in state.source_catalog)
             new_connector_status = state.connector_status[connector_status_start:]
@@ -1007,6 +1137,7 @@ class SciDataAgent:
                     else f"Dynamic workflow tool {action.action} completed."
                 ),
                 output_counts={
+                    "files_delta": max(0, len(state.files) - before_files),
                     "source_catalog_delta": max(0, after_sources - before_sources),
                     "artifact_delta": max(0, after_artifacts - before_artifacts),
                     "text_blocks_delta": max(0, len(state.parsed_sources.text_blocks) - before_text),
@@ -1106,6 +1237,7 @@ class SciDataAgent:
         *,
         monitor: AgentMonitor | None = None,
         enable_policy_retries: bool = True,
+        enforce_required_workflow: bool = False,
     ) -> AgentHarness:
         """Build one reusable artifact decision session for a task."""
         # Rebuild on every session, including resume. Downloaded artifacts
@@ -1120,22 +1252,62 @@ class SciDataAgent:
         def decide(observation: AgentObservation, context: AgentState) -> AgentDecision:
             legacy_results.clear()
             context.artifact_action_results = []
-            plan = self.llm_nodes.plan_artifact_actions(
-                context.research_question,
-                context.source_catalog,
-                dynamic_plan=context.dynamic_extraction_plan,
-                quality_report=context.quality_report,
-                coverage_report=context.coverage_report,
-                processing_log=context.processing_log,
-                connector_failures=[
-                    item
-                    for item in context.connector_status
-                    if item.get("status") in {"failed", "error"}
-                ],
-                iteration=observation.iteration,
-                observation_json=observation.model_dump_json(),
-                allow_workflow_stage_actions=True,
+            required_actions = (
+                self._required_dynamic_workflow_actions(context)
+                if enforce_required_workflow
+                else []
             )
+            if required_actions:
+                plan = ArtifactActionPlan(
+                    research_goal=context.research_question,
+                    iteration=observation.iteration,
+                    actions=[
+                        ArtifactAction(
+                            action_id=f"runtime_{action}_{observation.iteration}",
+                            action=action,  # type: ignore[arg-type]
+                            purpose="Advance the required source-evidence workflow stage.",
+                            reason=(
+                                "The runtime advances source selection, triage, and ingestion "
+                                "in order before accepting further artifact-level actions."
+                            ),
+                            priority="high",
+                            parameters=_required_action_parameters(context, action),
+                        )
+                        for action in required_actions
+                    ],
+                    notes=[
+                        "Runtime-directed workflow stage: " + ", ".join(required_actions)
+                    ],
+                )
+                context.processing_log.append(
+                    "Dynamic runtime scheduled required workflow action(s): "
+                    + ", ".join(required_actions)
+                    + "."
+                )
+            else:
+                plan = self.llm_nodes.plan_artifact_actions(
+                    context.research_question,
+                    context.source_catalog,
+                    dynamic_plan=context.dynamic_extraction_plan,
+                    quality_report=context.quality_report,
+                    coverage_report=context.coverage_report,
+                    processing_log=context.processing_log,
+                    connector_failures=[
+                        item
+                        for item in context.connector_status
+                        if item.get("status") in {"failed", "error"}
+                    ],
+                    iteration=observation.iteration,
+                    observation_json=observation.model_dump_json(),
+                    allow_workflow_stage_actions=True,
+                )
+            dropped_actions = preflight_artifact_action_plan(plan, context)
+            if dropped_actions:
+                context.processing_log.append(
+                    "Runtime preflight removed impossible artifact actions: "
+                    + "; ".join(dropped_actions[:4])
+                    + "."
+                )
             context.artifact_action_plan = plan
             action_by_id.clear()
             action_by_id.update({action.action_id: action for action in plan.actions})
@@ -1163,7 +1335,17 @@ class SciDataAgent:
             return AgentDecision(
                 decision="continue",
                 reason="Execute the planner-selected evidence actions.",
-                tool_calls=[_tool_call_from_action(action) for action in plan.actions],
+                tool_calls=[
+                    _tool_call_from_action(
+                        action,
+                        workflow_revision=context.workflow_revision,
+                        parsed_content_fingerprint=workflow_stage_fingerprint(
+                            context,
+                            action.action,
+                        ),
+                    )
+                    for action in plan.actions
+                ],
                 expected_evidence=[
                     evidence
                     for action in plan.actions
@@ -1234,6 +1416,11 @@ class SciDataAgent:
         state.runtime_iteration = max(state.runtime_iteration, iteration + 1)
         if harness_result.status == "completed":
             state.runtime_status = "completed"
+            state.runtime_stop_reason = harness_result.stop_reason
+        elif harness_result.terminal:
+            # Do not erase a terminal stop-gate/policy outcome by turning it
+            # back into running; the outer loop must stop or recover explicitly.
+            state.runtime_status = "partial"
             state.runtime_stop_reason = harness_result.stop_reason
         else:
             state.runtime_status = "running"
@@ -1364,6 +1551,8 @@ class SciDataAgent:
     def _artifact_actions_need_content_refresh(results: list[Any]) -> bool:
         content_actions = {
             "download_artifact",
+            "ingest_sources",
+            "ingest_arxiv_pdfs",
             "parse_pdf_text",
             "parse_pdf_sections",
             "parse_table",
@@ -1372,6 +1561,110 @@ class SciDataAgent:
         }
         return any(
             result.status == "completed" and result.action in content_actions
+            for result in results
+        )
+
+    @staticmethod
+    def _required_dynamic_workflow_actions(state: AgentState) -> list[str]:
+        """Return the next mandatory transition before free-form planning resumes."""
+
+        if state.task_plan is None:
+            return ["plan_task"]
+        if state.dynamic_extraction_plan is None:
+            return ["plan_dynamic_schema"]
+        if state.runtime_requires_source_discovery and state.source_discovery_plan is None:
+            return ["discover_sources"]
+        # Uploaded/local evidence still follows the deterministic content
+        # stages below, but connector-only source stages are unnecessary.
+        completed = {
+            str(item.get("tool_name"))
+            for item in state.tool_result_history
+            if isinstance(item, dict)
+            and item.get("status") in {"completed", "partial", "skipped"}
+            and int(item.get("workflow_revision") or 0) == state.workflow_revision
+        }
+        search_completed = bool(completed & {"search_sources", "search_more"})
+        if state.runtime_requires_source_discovery:
+            if state.multi_source_search_plan is None:
+                return ["plan_multi_source_search"]
+            if not search_completed:
+                return ["search_sources"]
+            if state.source_selection_plan is None:
+                return ["select_sources"]
+            if "triage_sources" not in completed:
+                return ["triage_sources"]
+        ingestible = [
+            decision
+            for decision in state.source_triage_decisions
+            if decision.should_ingest
+        ]
+        providers = {
+            str(decision.provider or "").strip().casefold()
+            for decision in ingestible
+        }
+        actions: list[str] = []
+        if (
+            state.runtime_auto_download_sources
+            and any(provider != "arxiv" for provider in providers)
+            and "ingest_sources" not in completed
+        ):
+            actions.append("ingest_sources")
+        if (
+            state.runtime_auto_download_sources
+            and "arxiv" in providers
+            and "ingest_arxiv_pdfs" not in completed
+        ):
+            actions.append("ingest_arxiv_pdfs")
+        if actions:
+            return actions
+
+        # Source ingestion may already have produced text blocks directly, so
+        # parse only when files exist without any parser output. Figure/chart
+        # extraction, section interpretation, record extraction, metric
+        # conversion, and validation then become mandatory per-batch stages
+        # rather than optional planner guesses.
+        if state.files and "parse_source_content" not in completed:
+            return ["parse_source_content"]
+        # Finish materializing/parsing the currently known high-relevance batch
+        # before running its global extraction.  Failed/skipped artifacts are
+        # terminal and are not reported as unprocessed by coverage.
+        derived_stage = next_required_derived_stage(state)
+        if derived_stage:
+            return [derived_stage]
+
+        # Once the known batch is fully processed, target the weakest field
+        # group.  Each group owns an independent bounded search_more budget.
+        if _next_field_group_search(state) is not None:
+            return ["search_more"]
+        if _field_group_work_complete(state):
+            return ["stop"]
+        return []
+
+    @staticmethod
+    def _materialization_actions_need_source_parse(results: list[Any]) -> bool:
+        """Detect newly local files that must not wait on planner choice."""
+
+        materialization_actions = {
+            "download_artifact",
+            "ingest_sources",
+            "ingest_arxiv_pdfs",
+        }
+        return any(
+            result.status == "completed"
+            and result.action in materialization_actions
+            and int((getattr(result, "output_counts", {}) or {}).get("files_delta") or 0) > 0
+            for result in results
+        )
+
+    @staticmethod
+    def _ingestion_actions_need_source_parse(results: list[Any]) -> bool:
+        """Compatibility alias for callers that only care about source ingestion."""
+
+        ingestion_actions = {"ingest_sources", "ingest_arxiv_pdfs"}
+        return any(
+            result.status == "completed"
+            and result.action in ingestion_actions
+            and int((getattr(result, "output_counts", {}) or {}).get("files_delta") or 0) > 0
             for result in results
         )
 
@@ -1393,6 +1686,13 @@ class SciDataAgent:
             ],
             iteration=iteration,
         )
+        dropped_actions = preflight_artifact_action_plan(state.artifact_action_plan, state)
+        if dropped_actions:
+            state.processing_log.append(
+                "Runtime preflight removed impossible artifact actions: "
+                + "; ".join(dropped_actions[:4])
+                + "."
+            )
         action_counts: dict[str, int] = {}
         for action in state.artifact_action_plan.actions:
             action_counts[action.action] = action_counts.get(action.action, 0) + 1
@@ -1482,6 +1782,7 @@ class SciDataAgent:
             state.research_question,
             task_plan=state.task_plan,
         )
+        _ensure_dynamic_plan_field_coverage(state)
         table_names = [table.table_name for table in state.dynamic_extraction_plan.dynamic_tables]
         state.processing_log.append(
             f"Qwen Dynamic Schema Planner completed: domain={state.dynamic_extraction_plan.domain}, "
@@ -1535,6 +1836,7 @@ class SciDataAgent:
         state.multi_source_search_plan = self.llm_nodes.plan_multi_source_search(
             state.research_question,
             state.source_discovery_plan,
+            field_groups=_field_search_groups(state),
         )
         state.arxiv_search_plan = _arxiv_plan_from_multi_source_plan(state)
         connectors = sorted(
@@ -1560,6 +1862,14 @@ class SciDataAgent:
         discovered_sources, status = execute_multi_source_search(
             state.multi_source_search_plan,
             cache_dir=state.output_dir / "_cache" / "source_search",
+        )
+        attempted_groups = {
+            str(request.field_group_id).strip().casefold()
+            for request in state.multi_source_search_plan.search_requests
+            if request.field_group_id
+        }
+        state.runtime_group_initial_searches = sorted(
+            set(state.runtime_group_initial_searches).union(attempted_groups)
         )
         merged, added = merge_sources(state.source_discovery_plan.candidate_sources, discovered_sources)
         state.source_discovery_plan.candidate_sources = merged
@@ -1594,12 +1904,29 @@ class SciDataAgent:
         if not state.source_discovery_plan.candidate_sources:
             state.processing_log.append("Source selection skipped: no candidate sources are available.")
             return
-        candidates = list(state.source_discovery_plan.candidate_sources)
+        candidate_limit = min(
+            _positive_env_int(
+                "SCIDATA_SOURCE_SELECTION_CANDIDATE_LIMIT",
+                SOURCE_SELECTION_CANDIDATE_LIMIT,
+            ),
+            SOURCE_SELECTION_CANDIDATE_LIMIT,
+        )
+        max_batches = min(
+            _positive_env_int(
+                "SCIDATA_SOURCE_SELECTION_MAX_BATCHES",
+                SOURCE_SELECTION_MAX_BATCHES,
+            ),
+            SOURCE_SELECTION_MAX_BATCHES,
+        )
+        candidates = list(state.source_discovery_plan.candidate_sources)[:candidate_limit]
         batch_size = _positive_env_int("SCIDATA_SOURCE_SELECTION_BATCH_SIZE", 40)
-        batches = [
-            candidates[start : start + batch_size]
-            for start in range(0, len(candidates), batch_size)
-        ] or [[]]
+        batches = (
+            [
+                candidates[start : start + batch_size]
+                for start in range(0, len(candidates), batch_size)
+            ][:max_batches]
+            or [[]]
+        )
         plans: list[SourceSelectionPlan] = []
         selection_errors: list[str] = []
         for index, batch in enumerate(batches, start=1):
@@ -1637,9 +1964,9 @@ class SciDataAgent:
             priority_counts[decision.priority] = priority_counts.get(decision.priority, 0) + 1
         state.processing_log.append(
             "Qwen Source Selector completed: "
-            f"candidate_sources={len(state.source_discovery_plan.candidate_sources)}, "
+            f"candidate_sources={len(candidates)}/{candidate_limit}, "
             f"decisions={len(state.source_selection_plan.decisions)}, "
-            f"selection_batches={len(batches)}, "
+            f"selection_batches={len(batches)}/{max_batches}, "
             f"failed_selection_batches={len(selection_errors)}, "
             f"max_auto_resources={max_auto_resources}, "
             f"decision_counts={decision_counts}, "
@@ -1944,6 +2271,21 @@ class SciDataAgent:
                 existing_table_keys.add(_table_key(table))
 
         state.parsed_sources.file_titles.update(parsed.file_titles)
+        parsed_paths = {
+            _normalise_local_path(block.source_path)
+            for block in state.parsed_sources.text_blocks
+        }
+        parsed_paths.update(
+            _normalise_local_path(table.source_path)
+            for table in state.parsed_sources.tables
+        )
+        for entry in state.source_catalog:
+            for artifact in entry.artifacts:
+                if not artifact.local_path:
+                    continue
+                if _normalise_local_path(artifact.local_path) in parsed_paths:
+                    artifact.status = "parsed"
+                    artifact.parser = artifact.parser or "shared_source_parser"
         for warning in parsed.parser_warnings:
             if warning not in state.parsed_sources.parser_warnings:
                 state.parsed_sources.parser_warnings.append(warning)
@@ -1971,15 +2313,21 @@ class SciDataAgent:
         needs_review for the human-in-the-loop pass.
         """
         processed_figure_paths = _completed_artifact_paths(state, {"parse_figure"})
+        pdf_files_by_path: dict[str, UploadedFile] = {}
+        for uploaded in state.files:
+            source_path = _normalise_local_path(uploaded.path)
+            if uploaded.path.suffix.lower() != ".pdf" or source_path in processed_figure_paths:
+                continue
+            pdf_files_by_path.setdefault(source_path, uploaded)
         pdf_files = [
             uploaded
-            for uploaded in state.files
-            if uploaded.path.suffix.lower() == ".pdf"
-            and _normalise_local_path(uploaded.path) not in processed_figure_paths
+            for source_path, uploaded in pdf_files_by_path.items()
+            if state.parsed_sources.figure_source_fingerprints.get(source_path)
+            != _figure_source_fingerprint(uploaded, max_figures_per_pdf)
         ]
         if not pdf_files:
             state.processing_log.append(
-                "Figure chart extraction skipped: no unprocessed PDF files are available."
+                "Figure chart extraction skipped: no new or changed PDF files are available."
             )
             return
         if not self.llm_client.configured:
@@ -1990,16 +2338,21 @@ class SciDataAgent:
             return
 
         figures_dir = state.output_dir / state.task_id / "figures"
+
         def locate_one(uploaded):
             try:
-                return locate_figures(
+                return (
                     uploaded,
-                    figures_dir,
-                    max_pages=None,
-                    max_figures=max_figures_per_pdf,
-                ), None
+                    locate_figures(
+                        uploaded,
+                        figures_dir,
+                        max_pages=None,
+                        max_figures=max_figures_per_pdf,
+                    ),
+                    None,
+                )
             except Exception as exc:
-                return [], f"Figure location failed for {uploaded.filename}: {exc}"
+                return uploaded, [], f"Figure location failed for {uploaded.filename}: {exc}"
 
         location_workers = _worker_count(
             max_workers,
@@ -2009,11 +2362,41 @@ class SciDataAgent:
         )
         location_results = _run_ordered_parallel(pdf_files, locate_one, location_workers)
         assets = []
-        for located, warning in location_results:
+        successfully_located: list[UploadedFile] = []
+        for uploaded, located, warning in location_results:
             assets.extend(located)
             if warning:
                 state.processing_log.append(warning)
-        state.parsed_sources.figure_assets.extend(assets)
+            else:
+                successfully_located.append(uploaded)
+
+        replaced_paths = {
+            _normalise_local_path(uploaded.path) for uploaded in successfully_located
+        }
+        replaced_figure_ids = {
+            asset.figure_id
+            for asset in state.parsed_sources.figure_assets
+            if _normalise_local_path(asset.source_path) in replaced_paths
+        }
+        state.parsed_sources.figure_assets = [
+            asset
+            for asset in state.parsed_sources.figure_assets
+            if _normalise_local_path(asset.source_path) not in replaced_paths
+        ] + assets
+        state.chart_extractions = [
+            item for item in state.chart_extractions if item.figure_id not in replaced_figure_ids
+        ]
+        state.chart_validations = [
+            item for item in state.chart_validations if item.figure_id not in replaced_figure_ids
+        ]
+        state.chart_corrections = [
+            item for item in state.chart_corrections if item.figure_id not in replaced_figure_ids
+        ]
+        for uploaded in successfully_located:
+            source_path = _normalise_local_path(uploaded.path)
+            state.parsed_sources.figure_source_fingerprints[source_path] = (
+                _figure_source_fingerprint(uploaded, max_figures_per_pdf)
+            )
         if not assets:
             state.processing_log.append(
                 f"Figure chart extraction completed: no figures with captions were located in {len(pdf_files)} PDF(s)."
@@ -2128,64 +2511,112 @@ class SciDataAgent:
         )
 
     def _interpret_sections(self, state: AgentState) -> None:
-        processed_section_paths = _completed_artifact_paths(state, {"parse_pdf_sections"})
+        artifact_processed_paths = _completed_artifact_paths(state, {"parse_pdf_sections"})
         text_blocks = [
             block
             for block in state.parsed_sources.text_blocks
-            if _normalise_local_path(block.source_path) not in processed_section_paths
+            if _normalise_local_path(block.source_path) not in artifact_processed_paths
         ]
         heading_candidates = [
             candidate
             for candidate in state.parsed_sources.heading_candidates
-            if _normalise_local_path(candidate.source_path) not in processed_section_paths
+            if _normalise_local_path(candidate.source_path) not in artifact_processed_paths
         ]
         if not text_blocks:
             state.processing_log.append(
-                "Section interpretation skipped: all available text was already section-parsed by an artifact action."
+                "Section interpretation skipped: no new source text requires section parsing."
             )
             return
-        if not state.parsed_sources.text_blocks:
-            state.processing_log.append("Section interpretation skipped: no text blocks parsed.")
-            return
-        if not heading_candidates:
-            state.parsed_sources.section_plan = fallback_section_plan_from_candidates([])
-            new_blocks = build_section_blocks_from_plan(
-                text_blocks,
-                state.parsed_sources.section_plan,
-            )
-            state.parsed_sources.section_blocks.extend(new_blocks)
-            state.processing_log.append(
-                "Section interpretation used page fallback: no heading candidates were extracted; "
-                f"section_blocks={len(state.parsed_sources.section_blocks)}."
-            )
-            return
-        try:
-            state.parsed_sources.section_plan = self.llm_nodes.interpret_sections(
-                state.research_question,
-                heading_candidates,
-            )
-        except Exception as exc:
-            if not self.allow_rule_fallback:
-                raise
-            state.parsed_sources.section_plan = fallback_section_plan_from_candidates(
-                heading_candidates
-            )
-            state.processing_log.append(
-                "Qwen Section Interpreter failed; deterministic section fallback was used "
-                f"for local testing only: {exc}"
-            )
 
-        new_blocks = build_section_blocks_from_plan(
-            text_blocks,
-            state.parsed_sources.section_plan,
-        )
-        state.parsed_sources.section_blocks.extend(new_blocks)
+        blocks_by_path: dict[str, list[Any]] = {}
+        for block in text_blocks:
+            blocks_by_path.setdefault(_normalise_local_path(block.source_path), []).append(block)
+        headings_by_path: dict[str, list[Any]] = {}
+        for candidate in heading_candidates:
+            headings_by_path.setdefault(
+                _normalise_local_path(candidate.source_path),
+                [],
+            ).append(candidate)
+
+        pending_paths = [
+            source_path
+            for source_path, source_blocks in blocks_by_path.items()
+            if state.parsed_sources.section_source_fingerprints.get(source_path)
+            != _section_source_fingerprint(
+                source_blocks,
+                headings_by_path.get(source_path, []),
+            )
+        ]
+        if not pending_paths:
+            state.processing_log.append(
+                "Section interpretation skipped: no new or changed source text requires parsing."
+            )
+            return
+
+        interpreted_source_count = 0
+        new_section_block_count = 0
+        for source_path in pending_paths:
+            source_blocks = blocks_by_path[source_path]
+            source_headings = headings_by_path.get(source_path, [])
+            if not source_headings:
+                source_plan = fallback_section_plan_from_candidates([])
+                state.processing_log.append(
+                    "Section interpretation used page fallback for "
+                    f"{source_blocks[0].source_file}: no heading candidates were extracted."
+                )
+            else:
+                try:
+                    source_plan = self.llm_nodes.interpret_sections(
+                        state.research_question,
+                        source_headings,
+                    )
+                except Exception as exc:
+                    if not self.allow_rule_fallback:
+                        # Plans and blocks from earlier files have already been
+                        # committed.  A retry will therefore resume with only
+                        # this source instead of replaying the entire corpus.
+                        raise
+                    source_plan = fallback_section_plan_from_candidates(source_headings)
+                    state.processing_log.append(
+                        "Qwen Section Interpreter failed; deterministic section fallback was used "
+                        f"for {source_blocks[0].source_file} in local testing only: {exc}"
+                    )
+
+            new_blocks = build_section_blocks_from_plan(source_blocks, source_plan)
+            state.parsed_sources.section_blocks = [
+                block
+                for block in state.parsed_sources.section_blocks
+                if _normalise_local_path(block.source_path) != source_path
+            ] + new_blocks
+            previous_plan = state.parsed_sources.section_plan
+            if previous_plan is not None:
+                source_file = source_blocks[0].source_file.casefold()
+                previous_plan = previous_plan.model_copy(
+                    update={
+                        "sections": [
+                            section
+                            for section in previous_plan.sections
+                            if str(section.source_file or "").casefold() != source_file
+                        ]
+                    }
+                )
+            state.parsed_sources.section_plan = merge_section_plans(
+                [previous_plan, source_plan]
+            )
+            state.parsed_sources.section_source_fingerprints[source_path] = (
+                _section_source_fingerprint(source_blocks, source_headings)
+            )
+            interpreted_source_count += 1
+            new_section_block_count += len(new_blocks)
+
         section_types = sorted({block.section_type for block in state.parsed_sources.section_blocks})
         plan_sections = state.parsed_sources.section_plan.sections if state.parsed_sources.section_plan else []
         ignored = state.parsed_sources.section_plan.ignored_candidates if state.parsed_sources.section_plan else []
         state.processing_log.append(
             "Section interpretation completed: "
-            f"heading_candidates={len(state.parsed_sources.heading_candidates)}, "
+            f"new_sources={interpreted_source_count}, "
+            f"new_heading_candidates={len(heading_candidates)}, "
+            f"new_section_blocks={new_section_block_count}, "
             f"planned_sections={len(plan_sections)}, "
             f"ignored_candidates={len(ignored)}, "
             f"section_blocks={len(state.parsed_sources.section_blocks)}, "
@@ -2216,7 +2647,7 @@ class SciDataAgent:
                 return
         if not state.task_plan:
             raise RuntimeError("Task plan missing before extraction.")
-        source_blocks = state.parsed_sources.section_blocks or state.parsed_sources.text_blocks
+        source_blocks = effective_extraction_blocks(state)
         selected_blocks = _selected_block_count(len(source_blocks), max_text_blocks)
         if selected_blocks < len(source_blocks):
             state.processing_log.append(
@@ -2256,7 +2687,7 @@ class SciDataAgent:
     ) -> None:
         if not state.dynamic_extraction_plan:
             raise RuntimeError("Dynamic extraction plan missing before dynamic extraction.")
-        source_blocks = state.parsed_sources.section_blocks or state.parsed_sources.text_blocks
+        source_blocks = effective_extraction_blocks(state)
         selected_blocks = _selected_block_count(len(source_blocks), max_text_blocks)
         if selected_blocks < len(source_blocks):
             state.processing_log.append(
@@ -2437,8 +2868,8 @@ class SciDataAgent:
             f"value_evidence_coverage={state.quality_report.value_evidence_coverage}."
         )
 
-    def _export(self, state: AgentState) -> None:
-        state.export_files = export_results(state)
+    def _export(self, state: AgentState, final_status: str | None = None) -> None:
+        state.export_files = export_results(state, final_status=final_status)
         state.processing_log.append(
             "Export completed: generated CSV, JSON, source_selection, source_triage, processing log, and quality_report files."
         )
@@ -2519,6 +2950,13 @@ class SciDataAgent:
             runtime_no_progress_limit=state.runtime_no_progress_limit,
             runtime_last_progress_iteration=state.runtime_last_progress_iteration,
             runtime_requires_source_discovery=state.runtime_requires_source_discovery,
+            workflow_revision=state.workflow_revision,
+            runtime_search_more_count=state.runtime_search_more_count,
+            runtime_search_more_limit=state.runtime_search_more_limit,
+            runtime_group_initial_searches=state.runtime_group_initial_searches,
+            runtime_group_search_more_counts=state.runtime_group_search_more_counts,
+            runtime_auto_download_sources=state.runtime_auto_download_sources,
+            runtime_stage_fingerprints=state.runtime_stage_fingerprints,
             agent_decision_history=state.agent_decision_history,
             tool_result_history=state.tool_result_history,
             stop_rejections=state.stop_rejections,
@@ -2593,6 +3031,10 @@ def _state_snapshot(state: AgentState) -> dict[str, Any]:
             "stop_reason": state.runtime_stop_reason,
             "no_progress_streak": state.runtime_no_progress_streak,
             "no_progress_limit": state.runtime_no_progress_limit,
+            "search_more_count": state.runtime_search_more_count,
+            "search_more_limit": state.runtime_search_more_limit,
+            "group_initial_searches": list(state.runtime_group_initial_searches),
+            "group_search_more_counts": dict(state.runtime_group_search_more_counts),
             "last_progress_iteration": state.runtime_last_progress_iteration,
             "decision_count": len(state.agent_decision_history),
             "tool_result_count": len(state.tool_result_history),
@@ -2886,9 +3328,9 @@ def _resolve_bool_option(value: bool | None, *, env_name: str, default: bool) ->
 def _agent_iteration_budget(value: int | None) -> int:
     if value is None:
         try:
-            value = int(os.getenv("SCIDATA_AGENT_MAX_ITERATIONS", "24"))
+            value = int(os.getenv("SCIDATA_AGENT_MAX_ITERATIONS", "100"))
         except (TypeError, ValueError):
-            value = 24
+            value = 100
     return max(1, min(int(value), 100))
 
 
@@ -2906,6 +3348,247 @@ def _agent_policy_retry_limit() -> int:
     except (TypeError, ValueError):
         value = 2
     return max(0, min(value, 5))
+
+
+def _agent_search_more_limit() -> int:
+    """Return the hard cap for supplemental searches for each field group."""
+    try:
+        value = int(os.getenv("SCIDATA_AGENT_MAX_SEARCH_MORE", "2"))
+    except (TypeError, ValueError):
+        value = 2
+    return max(0, min(value, 2))
+
+
+def _ensure_dynamic_plan_field_coverage(state: AgentState) -> None:
+    """Keep every domain-specific task field in one frozen dynamic group."""
+
+    plan = state.dynamic_extraction_plan
+    task_plan = state.task_plan
+    if plan is None or task_plan is None:
+        return
+    non_search_fields = {
+        "source_file",
+        "source_type",
+        "page",
+        "evidence_text",
+        "confidence",
+        "warnings",
+    }
+    task_fields = {
+        field.strip().casefold()
+        for field in task_plan.target_fields
+        if field.strip() and field.strip().casefold() not in non_search_fields
+    }
+    # A task-plan field is part of the retrieval contract even if the schema
+    # model accidentally marked it as not requiring evidence.
+    for table in plan.dynamic_tables:
+        for field in table.fields:
+            if field.name.strip().casefold() in task_fields:
+                field.evidence_required = True
+    existing = {
+        field.name.strip().casefold()
+        for table in plan.dynamic_tables
+        for field in table.fields
+        if field.name.strip() and field.evidence_required
+    }
+    omitted = [
+        field.strip()
+        for field in task_plan.target_fields
+        if field.strip()
+        and field.strip().casefold() not in non_search_fields
+        and field.strip().casefold() not in existing
+    ]
+    if not omitted:
+        return
+    plan.dynamic_tables.append(
+        DynamicTableSpec(
+            table_name="other_required_fields",
+            description="Task-specific fields omitted from the LLM-authored grouping.",
+            entity_type="other",
+            priority="high",
+            fields=[
+                DynamicFieldSpec(
+                    name=name,
+                    type="string|number|null",
+                    required=True,
+                    evidence_required=True,
+                    description="Required by the task plan and deterministically restored.",
+                )
+                for name in dict.fromkeys(omitted)
+            ],
+        )
+    )
+    plan.quality_rules.append(
+        "Task-specific fields omitted by the schema planner were restored in other_required_fields."
+    )
+
+
+def _field_search_groups(state: AgentState) -> list[dict[str, Any]]:
+    """Freeze the LLM-authored dynamic tables as stable retrieval groups."""
+
+    plan = state.dynamic_extraction_plan
+    if plan is None:
+        return []
+    non_search_fields = {
+        "source_file",
+        "source_type",
+        "page",
+        "evidence_text",
+        "confidence",
+        "warnings",
+    }
+    groups: list[dict[str, Any]] = []
+    seen_fields: set[str] = set()
+    for table in plan.dynamic_tables:
+        fields = []
+        candidates = [field for field in table.fields if field.evidence_required]
+        if not candidates:
+            candidates = list(table.fields)
+        for field in candidates:
+            name = field.name.strip()
+            key = name.casefold()
+            if not name or key in seen_fields or key in non_search_fields:
+                continue
+            seen_fields.add(key)
+            fields.append(name)
+        if not fields:
+            continue
+        groups.append({
+            "group_id": _stable_field_group_id(table.table_name),
+            "label": table.table_name,
+            "fields": fields,
+        })
+    # The task planner can contain fields that the schema planner omitted.
+    # Keep the LLM grouping, but deterministically collect every omission into
+    # one stable fallback group so initial retrieval still covers all fields.
+    omitted = [
+        field.strip()
+        for field in (state.task_plan.target_fields if state.task_plan else [])
+        if field.strip()
+        and field.strip().casefold() not in seen_fields
+        and field.strip().casefold() not in non_search_fields
+    ]
+    if omitted:
+        groups.append({
+            "group_id": "other_required_fields",
+            "label": "other_required_fields",
+            "fields": list(dict.fromkeys(omitted)),
+        })
+    return groups
+
+
+def _stable_field_group_id(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", str(value).casefold()).strip("_")
+    return slug or "field_group"
+
+
+def _next_field_group_search(state: AgentState) -> Any | None:
+    """Select the weakest unfinished group with supplemental budget left."""
+
+    if (
+        not state.runtime_requires_source_discovery
+        or state.source_discovery_plan is None
+        or state.coverage_report.unprocessed_relevant_artifacts
+    ):
+        return None
+    candidates = [
+        group
+        for group in state.coverage_report.field_groups
+        if (
+            group.status == "pending"
+            or (
+                group.initial_search_completed
+                and group.status == "insufficient"
+                and group.search_more_count < group.search_more_limit
+            )
+        )
+    ]
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda group: (
+            group.status != "pending",
+            not bool(set(group.required_fields).intersection(group.missing_fields)),
+            group.coverage_score,
+            group.source_count,
+            group.group_id,
+        ),
+    )
+
+
+def _required_action_parameters(state: AgentState, action: str) -> dict[str, Any]:
+    if action != "search_more":
+        return {}
+    group = _next_field_group_search(state)
+    if group is None:
+        return {}
+    parameters = {
+        "field_group_id": group.group_id,
+        "target_fields": list(group.fields),
+        "query_focus": (
+            f"Field group {group.label}: "
+            + ", ".join(group.missing_fields or group.fields)
+        ),
+    }
+    if not group.initial_search_completed:
+        parameters["initial_group_search"] = True
+    return parameters
+
+
+def _field_group_work_complete(state: AgentState) -> bool:
+    groups = state.coverage_report.field_groups
+    if not groups or state.coverage_report.unprocessed_relevant_artifacts:
+        return False
+    if not all(
+        group.initial_search_completed
+        and group.status in {"sufficient", "exhausted"}
+        for group in groups
+    ):
+        return False
+    # A supplemental search can finish a group's retry budget while also
+    # discovering a new source batch. Do not call that group complete until
+    # the new revision has passed selection, triage, ingestion, parsing and
+    # every derived extraction/validation stage.
+    if state.runtime_requires_source_discovery:
+        completed = {
+            str(item.get("tool_name"))
+            for item in state.tool_result_history
+            if isinstance(item, dict)
+            and item.get("status") in {"completed", "partial", "skipped"}
+            and int(item.get("workflow_revision") or 0) == state.workflow_revision
+        }
+        if not completed.intersection({"search_sources", "search_more"}):
+            return False
+        if state.source_selection_plan is None or "triage_sources" not in completed:
+            return False
+        if state.runtime_auto_download_sources:
+            providers = {
+                str(decision.provider or "").strip().casefold()
+                for decision in state.source_triage_decisions
+                if decision.should_ingest
+            }
+            if any(provider != "arxiv" for provider in providers) and "ingest_sources" not in completed:
+                return False
+            if "arxiv" in providers and "ingest_arxiv_pdfs" not in completed:
+                return False
+    return next_required_derived_stage(state) is None
+
+
+def _evidence_search_boundary_reached(state: AgentState) -> bool:
+    """Whether the task exhausted bounded discovery with no local work left.
+
+    Coverage can remain below the requested target because some values or
+    evidence types simply are not present in the discovered material.  Once
+    supplemental search is exhausted and every relevant artifact is processed,
+    that is a normal evidence boundary rather than an execution failure.
+    """
+
+    return bool(
+        state.runtime_requires_source_discovery
+        and state.source_discovery_plan is not None
+        and _field_group_work_complete(state)
+    )
 
 
 def _runtime_phase(state: AgentState) -> str:
@@ -2954,15 +3637,16 @@ def _scientific_progress_signature(state: AgentState) -> tuple[Any, ...]:
             result[key] = result.get(key, 0) + 1
         return tuple(sorted(result.items()))
 
-    connector_statuses = tuple(sorted(
+    completed_stage_results = tuple(sorted({
         (
-            str(item.get("connector") or item.get("connector_name") or "unknown"),
+            str(item.get("tool_name") or "unknown"),
             str(item.get("status") or "unknown"),
-            int(item.get("added_sources_count") or 0),
+            int(item.get("workflow_revision") or 0),
         )
-        for item in state.connector_status
+        for item in state.tool_result_history
         if isinstance(item, dict)
-    ))
+        and item.get("status") in {"completed", "partial", "skipped"}
+    }))
     coverage = state.coverage_report
     discovered_identity = tuple(
         sorted(
@@ -2983,7 +3667,12 @@ def _scientific_progress_signature(state: AgentState) -> tuple[Any, ...]:
     )
     artifact_identity = tuple(
         sorted(
-            (artifact.artifact_id, str(artifact.name or ""), str(artifact.local_path or ""))
+            (
+                artifact.artifact_id,
+                str(artifact.name or ""),
+                str(artifact.local_path or ""),
+                tuple(sorted(artifact.completed_operations)),
+            )
             for artifact in artifacts
         )
     )
@@ -2992,6 +3681,9 @@ def _scientific_progress_signature(state: AgentState) -> tuple[Any, ...]:
         state.dynamic_extraction_plan is not None,
         state.source_discovery_plan is not None,
         state.multi_source_search_plan is not None,
+        state.source_selection_plan is not None,
+        len(state.source_triage_decisions),
+        state.workflow_revision,
         len(state.source_discovery_plan.candidate_sources) if state.source_discovery_plan else 0,
         discovered_identity,
         len(state.source_catalog),
@@ -3000,7 +3692,10 @@ def _scientific_progress_signature(state: AgentState) -> tuple[Any, ...]:
         artifact_identity,
         counts(state.source_catalog, "status"),
         counts(artifacts, "status"),
-        connector_statuses,
+        completed_stage_results,
+        tuple(sorted(state.runtime_stage_fingerprints.items())),
+        tuple(sorted(state.runtime_group_initial_searches)),
+        tuple(sorted(state.runtime_group_search_more_counts.items())),
         sum(1 for artifact in artifacts if artifact.local_path),
         len(state.parsed_sources.text_blocks),
         len(state.parsed_sources.heading_candidates),
@@ -3110,6 +3805,45 @@ def _normalise_local_path(value: str | Path | None) -> str:
         return str(value).casefold()
 
 
+def _section_source_fingerprint(
+    text_blocks: list[Any],
+    heading_candidates: list[Any],
+) -> str:
+    """Return a stable identity for the section inputs of one source."""
+
+    payload = {
+        "text_blocks": [block.model_dump(mode="json") for block in text_blocks],
+        "heading_candidates": [
+            candidate.model_dump(mode="json") for candidate in heading_candidates
+        ],
+    }
+    encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _figure_source_fingerprint(
+    uploaded: UploadedFile,
+    max_figures_per_pdf: int | None,
+) -> str:
+    """Identify one PDF and the figure cap used to process it."""
+
+    try:
+        stat = uploaded.path.stat()
+        size = stat.st_size
+        modified_ns = stat.st_mtime_ns
+    except OSError:
+        size = None
+        modified_ns = None
+    payload = {
+        "path": _normalise_local_path(uploaded.path),
+        "size": size,
+        "modified_ns": modified_ns,
+        "max_figures_per_pdf": max_figures_per_pdf,
+    }
+    encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _text_block_key(block) -> tuple[str, int | None, str]:
     return (_normalise_local_path(block.source_path), block.page, block.text)
 
@@ -3190,6 +3924,10 @@ def _result_snapshot(result: AgentResult) -> dict[str, Any]:
             "stop_reason": result.runtime_stop_reason,
             "no_progress_streak": result.runtime_no_progress_streak,
             "no_progress_limit": result.runtime_no_progress_limit,
+            "search_more_count": result.runtime_search_more_count,
+            "search_more_limit": result.runtime_search_more_limit,
+            "group_initial_searches": list(result.runtime_group_initial_searches),
+            "group_search_more_counts": dict(result.runtime_group_search_more_counts),
             "last_progress_iteration": result.runtime_last_progress_iteration,
             "decision_count": len(result.agent_decision_history),
             "tool_result_count": len(result.tool_result_history),

@@ -102,6 +102,7 @@ EXPERIMENT_CONTEXT_FIELD_ORDER = (
 EXPERIMENT_CONTEXT_FIELDS = set(EXPERIMENT_CONTEXT_FIELD_ORDER)
 DEFAULT_TEXT_EXTRACTION_MAX_WORKERS = 2
 DEFAULT_TABLE_EXTRACTION_MAX_WORKERS = 2
+DEFAULT_SECTION_INTERPRETER_BATCH_SIZE = 16
 
 
 def _extraction_worker_count(
@@ -160,6 +161,259 @@ def _node_retry_attempts(explicit: int | None) -> int:
     except ValueError:
         configured = 2
     return max(1, min(configured, 5))
+
+
+def _section_interpreter_batch_size() -> int:
+    """Bound one section-planning response independently of corpus size."""
+
+    try:
+        configured = int(
+            os.getenv(
+                "SCIDATA_SECTION_INTERPRETER_BATCH_SIZE",
+                str(DEFAULT_SECTION_INTERPRETER_BATCH_SIZE),
+            )
+        )
+    except (TypeError, ValueError):
+        configured = DEFAULT_SECTION_INTERPRETER_BATCH_SIZE
+    return max(1, min(configured, 64))
+
+
+def _is_output_truncation_error(exc: BaseException) -> bool:
+    """Recognize provider errors that cannot succeed with an identical retry."""
+
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        message = str(current).casefold()
+        if "truncated" in message or (
+            "max_tokens" in message and ("length" in message or "limit" in message)
+        ):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
+def _artifact_planner_catalog_payload(
+    source_catalog: list[SourceCatalogEntry],
+) -> tuple[list[dict[str, Any]], int]:
+    """Provide the artifact planner a bounded, compact, gap-oriented catalog."""
+
+    try:
+        limit = int(os.getenv("SCIDATA_ARTIFACT_PLANNER_MAX_ARTIFACTS", "60"))
+    except ValueError:
+        limit = 60
+    limit = max(20, min(100, limit))
+    status_priority = {
+        "planned": 5,
+        "discovered": 4,
+        "metadata_read": 3,
+        "downloaded": 2,
+        "inspected": 1,
+        "parsed": 0,
+        "skipped": -1,
+        "failed": -2,
+    }
+    type_priority = {
+        "pdf": 4,
+        "supplementary_pdf": 4,
+        "csv": 4,
+        "tsv": 4,
+        "xlsx": 4,
+        "json": 3,
+        "xml": 3,
+        "readme": 2,
+        "code_archive": 2,
+        "file_manifest": 1,
+        "landing_page": 0,
+    }
+    candidates: list[tuple[tuple[float, float, int, str], SourceCatalogEntry, Any]] = []
+    for source in source_catalog:
+        for artifact in source.artifacts:
+            # Failed/skipped artifacts are terminal.  A parsed artifact may
+            # still need another modality (for example tables after PDF text),
+            # so expose its per-operation ledger to the planner.
+            if artifact.status in {"skipped", "failed"}:
+                continue
+            rank = (
+                float(artifact.relevance_score or 0.0),
+                float(source.relevance_score or 0.0),
+                status_priority.get(artifact.status, 0) * 10
+                + type_priority.get(artifact.artifact_type, 0),
+                artifact.artifact_id,
+            )
+            candidates.append((rank, source, artifact))
+    ranked = sorted(candidates, key=lambda item: item[0], reverse=True)
+    grouped: dict[str, dict[str, Any]] = {}
+    for _rank, source, artifact in ranked[:limit]:
+        item = grouped.setdefault(
+            source.source_id,
+            {
+                "source_id": source.source_id,
+                "title": source.title,
+                "source_type": source.source_type,
+                "provider": source.provider,
+                "status": source.status,
+                "relevance_score": source.relevance_score,
+                "artifacts": [],
+            },
+        )
+        item["artifacts"].append(
+            {
+                "artifact_id": artifact.artifact_id,
+                "artifact_type": artifact.artifact_type,
+                "name": artifact.name,
+                "provider": artifact.provider,
+                "status": artifact.status,
+                "url": artifact.url,
+                "local_path": artifact.local_path,
+                "content_type": artifact.content_type,
+                "size_bytes": artifact.size_bytes,
+                "relevance_score": artifact.relevance_score,
+                "evidence_types": artifact.evidence_types,
+                "failure_reason": artifact.failure_reason,
+                "completed_operations": artifact.completed_operations,
+            }
+        )
+    return list(grouped.values()), len(candidates)
+
+
+def _artifact_planner_quality_payload(report: QualityReport | None) -> dict[str, Any] | None:
+    """Keep planner quality context actionable rather than serializing every issue."""
+
+    if report is None:
+        return None
+    field_coverage = sorted(report.field_coverage.items(), key=lambda item: item[1])[:24]
+    return {
+        "record_count": report.record_count,
+        "dynamic_record_count": report.dynamic_record_count,
+        "total_record_count": report.total_record_count,
+        "issue_count": report.issue_count,
+        "warning_count": report.warning_count,
+        "error_count": report.error_count,
+        "conflict_count": report.conflict_count,
+        "evidence_coverage": report.evidence_coverage,
+        "value_evidence_coverage": report.value_evidence_coverage,
+        "field_coverage": dict(field_coverage),
+        "notes": [_planner_text(note, 360) for note in report.notes[:10]],
+        "issues": [
+            {
+                "level": issue.level,
+                "field": issue.field,
+                "message": _planner_text(issue.message, 360),
+            }
+            for issue in report.issues[:10]
+        ],
+    }
+
+
+def _artifact_planner_coverage_payload(report: CoverageReport | None) -> dict[str, Any] | None:
+    """Provide only unmet coverage requirements and their next useful action."""
+
+    if report is None:
+        return None
+    gaps = sorted(
+        report.gaps,
+        key=lambda gap: ({"high": 0, "medium": 1, "low": 2}.get(gap.priority, 3), gap.gap_id),
+    )
+    return {
+        "decision": report.decision,
+        "coverage_score": report.coverage_score,
+        "missing_requirements": report.missing_requirements[:24],
+        "required_evidence_types": report.required_evidence_types[:16],
+        "covered_evidence_types": report.covered_evidence_types[:16],
+        "unprocessed_relevant_artifacts": report.unprocessed_relevant_artifacts[:24],
+        "gaps": [
+            {
+                "gap_id": gap.gap_id,
+                "requirement_name": gap.requirement_name,
+                "priority": gap.priority,
+                "status": gap.status,
+                "missing_fields": gap.missing_fields[:12],
+                "missing_evidence_types": gap.missing_evidence_types[:8],
+                "recommended_actions": gap.recommended_actions[:6],
+                "reason": _planner_text(gap.reason, 360),
+            }
+            for gap in gaps[:20]
+        ],
+        "recommended_actions": report.recommended_actions[:12],
+    }
+
+
+def _planner_text(value: Any, limit: int = 480) -> str:
+    text = " ".join(str(value or "").split())
+    return text if len(text) <= limit else f"{text[:limit - 1]}…"
+
+
+def _artifact_planner_processing_log_payload(log: list[str] | None) -> list[str]:
+    return [_planner_text(item, 420) for item in (log or [])[-16:]]
+
+
+def _artifact_planner_connector_payload(items: list[dict[str, Any]] | None) -> list[dict[str, str]]:
+    return [
+        {
+            "connector": _planner_text(item.get("connector") or item.get("connector_name"), 80),
+            "status": _planner_text(item.get("status"), 40),
+            "error": _planner_text(item.get("error") or item.get("message"), 280),
+        }
+        for item in (items or [])[-12:]
+        if isinstance(item, dict)
+    ]
+
+
+def _artifact_planner_observation_payload(observation_json: str | None) -> str:
+    """Remove large tool schemas and retain the decision-relevant observation slice."""
+
+    if not observation_json:
+        return "null"
+    try:
+        observation = json.loads(observation_json)
+    except (TypeError, ValueError):
+        return "null"
+    if not isinstance(observation, dict):
+        return "null"
+    sources = observation.get("sources") if isinstance(observation.get("sources"), dict) else {}
+    artifacts = observation.get("artifacts") if isinstance(observation.get("artifacts"), dict) else {}
+    progress = observation.get("progress") if isinstance(observation.get("progress"), dict) else {}
+    task = observation.get("task") if isinstance(observation.get("task"), dict) else {}
+    return json.dumps(
+        {
+            "iteration": observation.get("iteration"),
+            "task": {
+                "research_question": _planner_text(task.get("research_question"), 600),
+                "target_fields": list(task.get("target_fields") or [])[:24],
+                "required_evidence_types": list(task.get("required_evidence_types") or [])[:16],
+            },
+            "progress": {
+                key: progress.get(key)
+                for key in (
+                    "coverage_decision", "coverage_score", "missing_requirements",
+                    "coverage_gaps", "open_quality_issues", "open_conflicts",
+                    "materialized_files", "text_blocks", "section_blocks", "tables",
+                    "figures", "dynamic_records", "candidate_records", "final_records",
+                    "completed_content_stages",
+                )
+            },
+            "sources": {
+                "candidate_count": sources.get("candidate_count"),
+                "catalog_count": sources.get("catalog_count"),
+                "status_counts": sources.get("status_counts"),
+                "items": list(sources.get("items") or [])[:16],
+            },
+            "artifacts": {
+                "total": artifacts.get("total"),
+                "status_counts": artifacts.get("status_counts"),
+                "unprocessed_relevant": artifacts.get("unprocessed_relevant"),
+                "items": list(artifacts.get("items") or [])[:24],
+            },
+            "recent_results": list(observation.get("recent_results") or [])[-8:],
+            "connectors": list(observation.get("connectors") or [])[-8:],
+            "failures": [_planner_text(item, 360) for item in list(observation.get("failures") or [])[-8:]],
+            "stop_rejections": [_planner_text(item, 360) for item in list(observation.get("stop_rejections") or [])[-6:]],
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
 
 
 class QwenAgentNodes:
@@ -255,17 +509,26 @@ class QwenAgentNodes:
                     f"LLM node is not configured: node={node}, error={exc}"
                 ) from exc
         last_exc: Exception | None = None
+        attempts_used = 0
         for attempt in range(1, attempts + 1):
+            attempts_used = attempt
             try:
                 return self.client.generate_json(node, system_prompt, user_prompt, temperature=temperature)
             except Exception as exc:
                 last_exc = exc
                 warning = f"LLM call failed: node={node}, attempt={attempt}/{attempts}, error={exc}"
                 self._append_node_warning(warning)
+                # A byte-for-byte retry cannot repair an output that already
+                # reached the provider's response limit.  Let callers such as
+                # the section interpreter reduce the batch immediately.
+                if _is_output_truncation_error(exc):
+                    break
                 if attempt < attempts:
                     self._emit_retry_event(node, "text", attempt, attempts, exc)
                     time.sleep(min(retry_delay_seconds * attempt, 8.0))
-        raise LLMCallError(f"LLM node failed after {attempts} attempts: node={node}, error={last_exc}") from last_exc
+        raise LLMCallError(
+            f"LLM node failed after {attempts_used} attempts: node={node}, error={last_exc}"
+        ) from last_exc
 
     def plan_task(self, research_question: str) -> TaskPlan:
         try:
@@ -357,6 +620,7 @@ class QwenAgentNodes:
         candidate_context_limit: int = 40,
         batch_label: str = "single batch",
         search_strategy: dict[str, Any] | None = None,
+        field_groups: list[dict[str, Any]] | None = None,
     ) -> MultiSourceSearchPlan:
         try:
             candidate_context = _source_candidate_summaries(
@@ -380,6 +644,7 @@ class QwenAgentNodes:
                     candidate_context_json=json.dumps(candidate_context, ensure_ascii=False, indent=2),
                     batch_label=batch_label,
                     search_strategy_json=json.dumps(search_strategy or {}, ensure_ascii=False, indent=2),
+                    field_groups_json=json.dumps(field_groups or [], ensure_ascii=False, indent=2),
                 ),
             )
             if not isinstance(payload, dict):
@@ -393,13 +658,26 @@ class QwenAgentNodes:
             payload = self._normalize_payload("qwen_multi_source_search_planner", payload, MultiSourceSearchPlan)
             _normalize_multi_source_search_requests(payload)
             plan = MultiSourceSearchPlan.model_validate(payload)
+            if field_groups:
+                plan = _ensure_field_group_search_requests(
+                    plan,
+                    research_question,
+                    field_groups,
+                )
             if plan.should_search and not plan.search_requests:
                 raise LLMCallError("Multi-source Search Planner returned no search requests.")
             return plan
         except Exception:
             if not self.allow_rule_fallback:
                 raise
-            return _fallback_multi_source_search_plan(research_question, source_discovery_plan)
+            fallback = _fallback_multi_source_search_plan(research_question, source_discovery_plan)
+            if field_groups:
+                fallback = _ensure_field_group_search_requests(
+                    fallback,
+                    research_question,
+                    field_groups,
+                )
+            return fallback
 
     def select_sources(
         self,
@@ -468,18 +746,7 @@ class QwenAgentNodes:
         allow_workflow_stage_actions: bool = False,
     ) -> ArtifactActionPlan:
         """Ask Qwen which concrete artifact operations should run next."""
-        catalog_payload = [
-            {
-                "source_id": source.source_id,
-                "title": source.title,
-                "source_type": source.source_type,
-                "provider": source.provider,
-                "status": source.status,
-                "relevance_score": source.relevance_score,
-                "artifacts": [artifact.model_dump(mode="json") for artifact in source.artifacts],
-            }
-            for source in source_catalog
-        ]
+        catalog_payload, catalog_total = _artifact_planner_catalog_payload(source_catalog)
         try:
             payload = self._generate_json_with_retries(
                 "qwen_artifact_action_planner",
@@ -487,12 +754,20 @@ class QwenAgentNodes:
                 ARTIFACT_ACTION_PLANNER_USER.format(
                     research_question=research_question,
                     dynamic_plan_json=dynamic_plan.model_dump_json() if dynamic_plan else "null",
-                    quality_report_json=quality_report.model_dump_json() if quality_report else "null",
-                    coverage_report_json=coverage_report.model_dump_json() if coverage_report else "null",
+                    quality_report_json=json.dumps(
+                        _artifact_planner_quality_payload(quality_report), ensure_ascii=False
+                    ),
+                    coverage_report_json=json.dumps(
+                        _artifact_planner_coverage_payload(coverage_report), ensure_ascii=False
+                    ),
                     source_catalog_json=json.dumps(catalog_payload, ensure_ascii=False, indent=2),
-                    processing_log_json=json.dumps((processing_log or [])[-40:], ensure_ascii=False, indent=2),
-                    connector_failures_json=json.dumps(connector_failures or [], ensure_ascii=False, indent=2),
-                    observation_json=observation_json or "null",
+                    processing_log_json=json.dumps(
+                        _artifact_planner_processing_log_payload(processing_log), ensure_ascii=False
+                    ),
+                    connector_failures_json=json.dumps(
+                        _artifact_planner_connector_payload(connector_failures), ensure_ascii=False
+                    ),
+                    observation_json=_artifact_planner_observation_payload(observation_json),
                     iteration=iteration,
                     runtime_mode=(
                         "dynamic ODA runtime"
@@ -524,6 +799,11 @@ class QwenAgentNodes:
         payload.setdefault("notes", [])
         payload = self._normalize_payload("qwen_artifact_action_planner", payload, ArtifactActionPlan)
         plan = ArtifactActionPlan.model_validate(payload)
+        if catalog_total > sum(len(item["artifacts"]) for item in catalog_payload):
+            plan.notes.append(
+                "Artifact planner received a ranked subset of "
+                f"{sum(len(item['artifacts']) for item in catalog_payload)}/{catalog_total} artifacts."
+            )
 
         artifact_ids = {
             artifact.artifact_id
@@ -654,7 +934,14 @@ class QwenAgentNodes:
             payload = self._generate_json_with_retries(
                 "qwen_dynamic_schema_planner",
                 DYNAMIC_PLANNER_SYSTEM,
-                DYNAMIC_PLANNER_USER.format(research_question=research_question),
+                DYNAMIC_PLANNER_USER.format(
+                    research_question=research_question,
+                    task_plan_json=json.dumps(
+                        task_plan.model_dump(mode="json") if task_plan else {},
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                ),
             )
             if not isinstance(payload, dict):
                 raise LLMCallError("Dynamic Schema Planner did not return a JSON object.")
@@ -683,6 +970,60 @@ class QwenAgentNodes:
             return plan
 
     def interpret_sections(
+        self,
+        research_question: str,
+        heading_candidates: list[HeadingCandidate],
+    ) -> SectionPlan:
+        """Interpret headings in bounded batches and merge the section plans.
+
+        Section-plan output grows roughly with the number of heading candidates.
+        Keeping this batching inside the LLM node protects every caller,
+        including both the global workflow stage and artifact-level PDF parsing.
+        If a provider still truncates a batch, bisect it until it fits.
+        """
+
+        if not heading_candidates:
+            return self._interpret_section_batch(research_question, heading_candidates)
+
+        batch_size = _section_interpreter_batch_size()
+        plans: list[SectionPlan] = []
+        for start in range(0, len(heading_candidates), batch_size):
+            plans.extend(
+                self._interpret_section_batch_adaptive(
+                    research_question,
+                    heading_candidates[start : start + batch_size],
+                )
+            )
+        return merge_section_plans(plans)
+
+    def _interpret_section_batch_adaptive(
+        self,
+        research_question: str,
+        heading_candidates: list[HeadingCandidate],
+    ) -> list[SectionPlan]:
+        try:
+            return [self._interpret_section_batch(research_question, heading_candidates)]
+        except Exception as exc:
+            if not _is_output_truncation_error(exc) or len(heading_candidates) <= 1:
+                raise
+            midpoint = len(heading_candidates) // 2
+            self._append_node_warning(
+                "Section Interpreter output was truncated; split "
+                f"{len(heading_candidates)} heading candidates into "
+                f"{midpoint} and {len(heading_candidates) - midpoint}."
+            )
+            return [
+                *self._interpret_section_batch_adaptive(
+                    research_question,
+                    heading_candidates[:midpoint],
+                ),
+                *self._interpret_section_batch_adaptive(
+                    research_question,
+                    heading_candidates[midpoint:],
+                ),
+            ]
+
+    def _interpret_section_batch(
         self,
         research_question: str,
         heading_candidates: list[HeadingCandidate],
@@ -1634,6 +1975,181 @@ def _normalize_multi_source_search_requests(payload: dict[str, Any]) -> None:
             normalized_count += 1
     if normalized_count:
         notes.append(f"Normalized {normalized_count} multi-source search request value(s) from LLM aliases.")
+
+
+def _ensure_field_group_search_requests(
+    plan: MultiSourceSearchPlan,
+    research_question: str,
+    field_groups: list[dict[str, Any]],
+) -> MultiSourceSearchPlan:
+    """Tag requests and deterministically fill any LLM-omitted field group."""
+
+    groups: dict[str, dict[str, Any]] = {}
+    for raw in field_groups:
+        if not isinstance(raw, dict):
+            continue
+        group_id = str(raw.get("group_id") or "").strip().casefold()
+        fields = [
+            str(field).strip()
+            for field in raw.get("fields", [])
+            if str(field).strip()
+        ]
+        if group_id and fields:
+            groups[group_id] = {
+                "group_id": group_id,
+                "label": str(raw.get("label") or group_id).strip(),
+                "fields": fields,
+            }
+    if not groups:
+        return plan
+
+    requests: list[SourceSearchRequest] = []
+    covered: set[str] = set()
+    for request in plan.search_requests:
+        group_id = str(request.field_group_id or "").strip().casefold()
+        request_fields = {
+            str(field).strip().casefold()
+            for field in request.target_fields
+            if str(field).strip()
+        }
+        if group_id not in groups:
+            matches = [
+                candidate_id
+                for candidate_id, group in groups.items()
+                if request_fields.intersection(
+                    str(field).casefold() for field in group["fields"]
+                )
+            ]
+            if not matches:
+                searchable_text = " ".join(
+                    [
+                        request.query,
+                        request.purpose or "",
+                        *request.must_have,
+                        *request.nice_to_have,
+                    ]
+                ).casefold()
+                matches = [
+                    candidate_id
+                    for candidate_id, group in groups.items()
+                    if any(
+                        str(field).replace("_", " ").casefold() in searchable_text
+                        for field in group["fields"]
+                    )
+                ]
+            group_id = matches[0] if len(matches) == 1 else ""
+        if group_id in groups:
+            covered.add(group_id)
+            group = groups[group_id]
+            target_fields = request.target_fields or list(group["fields"])
+            request = request.model_copy(
+                update={
+                    "field_group_id": group_id,
+                    "target_fields": target_fields,
+                }
+            )
+        requests.append(request)
+
+    existing_keys = {
+        (
+            str(request.connector_name).casefold(),
+            " ".join(str(request.query).split()).casefold(),
+            str(request.field_group_id or "").casefold(),
+        )
+        for request in requests
+    }
+    added: list[str] = []
+    for group_id, group in groups.items():
+        if group_id in covered:
+            continue
+        fields = list(group["fields"])
+        query = " ".join(
+            part
+            for part in [
+                " ".join(research_question.split()),
+                str(group["label"]),
+                " ".join(field.replace("_", " ") for field in fields[:8]),
+            ]
+            if part
+        )
+        key = ("openalex", query.casefold(), group_id)
+        if key in existing_keys:
+            continue
+        existing_keys.add(key)
+        requests.append(
+            SourceSearchRequest(
+                connector_name="openalex",
+                source_type="paper_metadata",
+                query=query,
+                purpose=f"Guaranteed initial retrieval for field group {group['label']}.",
+                max_results=100,
+                must_have=fields[:4],
+                nice_to_have=fields[4:8],
+                field_group_id=group_id,
+                target_fields=fields,
+            )
+        )
+        added.append(group_id)
+    notes = list(plan.notes)
+    if added:
+        notes.append(
+            "Added deterministic initial search coverage for field groups: "
+            + ", ".join(added)
+            + "."
+        )
+    return plan.model_copy(
+        update={
+            "should_search": True,
+            "search_requests": requests,
+            "notes": notes,
+        }
+    )
+
+
+def merge_section_plans(plans: list[SectionPlan | None]) -> SectionPlan:
+    """Merge independently interpreted batches without duplicating headings."""
+
+    sections = []
+    ignored_candidates = []
+    warnings: list[str] = []
+    seen_sections: set[tuple[str, int, str]] = set()
+    seen_ignored: set[tuple[str, int | None]] = set()
+    seen_warnings: set[str] = set()
+    used_llm = False
+
+    for plan in plans:
+        if plan is None:
+            continue
+        used_llm = used_llm or plan.used_llm
+        for section in plan.sections:
+            key = (
+                str(section.source_file or "").casefold(),
+                int(section.start_page),
+                _normalize_heading_key(section.start_anchor or section.section_title),
+            )
+            if key in seen_sections:
+                continue
+            seen_sections.add(key)
+            sections.append(section)
+        for candidate in plan.ignored_candidates:
+            key = (_normalize_heading_key(candidate.text), candidate.page)
+            if key in seen_ignored:
+                continue
+            seen_ignored.add(key)
+            ignored_candidates.append(candidate)
+        for warning in plan.warnings:
+            normalized = str(warning).strip()
+            if not normalized or normalized in seen_warnings:
+                continue
+            seen_warnings.add(normalized)
+            warnings.append(normalized)
+
+    return SectionPlan(
+        sections=sections,
+        ignored_candidates=ignored_candidates,
+        warnings=warnings,
+        used_llm=used_llm,
+    )
 
 
 def _repair_section_sources(payload: dict[str, Any], heading_candidates: list[HeadingCandidate]) -> None:

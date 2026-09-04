@@ -15,14 +15,20 @@ describe("task presentation helpers", () => {
     expect(progressPercent("completed", "source_discovery", null)).toBe(100);
   });
 
-  it("keeps progress monotonic across dynamic follow-up and nested stages", () => {
+  it("returns to the active stage when a dynamic workflow reopens source work", () => {
     const events = [
       { event_type: "step", step: "artifact_action_execution", status: "completed" },
       { event_type: "step", step: "artifact_search_more_source_selection", status: "started" },
       { event_type: "progress", step: "arxiv_pdf_ingestion", status: "started" },
     ];
-    expect(overallProgressPercent("running", events, "arxiv_pdf_ingestion", { current: 1, total: 2 })).toBe(52);
+    expect(overallProgressPercent("running", events, "arxiv_pdf_ingestion", { current: 1, total: 2 })).toBe(41);
     expect(stageLabel("artifact_search_more_source_selection")).toBe("扩展检索：筛选来源");
+  });
+
+  it("shows scientific coverage instead of 100% for a partial result", () => {
+    expect(overallProgressPercent("partial", [], "partial", null, null, 0.3667)).toBe(37);
+    expect(progressPercent("partial", "multi_source_search", null, "started")).toBe(20);
+    expect(stageLabel("partial")).toBe("部分完成");
   });
 
   it("formats empty and structured values without fabricating data", () => {

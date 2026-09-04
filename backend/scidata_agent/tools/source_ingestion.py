@@ -24,7 +24,7 @@ from scidata_agent.tools.url_safety import safe_urlopen
 
 
 TEXT_EXTENSIONS = {".txt", ".md", ".json", ".xml"}
-PARSEABLE_TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls"}
+PARSEABLE_TABLE_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".dat"}
 TABLE_EXTENSIONS = PARSEABLE_TABLE_EXTENSIONS | {".json", ".xml"}
 PDF_EXTENSIONS = {".pdf"}
 DEFAULT_ARTIFACT_MAX_BYTES = 100 * 1024 * 1024
@@ -54,6 +54,8 @@ def download_source_artifact(
             artifact.local_path = str(local_path)
             artifact.name = artifact.name or local_path.name
             artifact.size_bytes = local_path.stat().st_size
+            artifact.content_type = artifact.content_type or _content_type(local_path)
+            artifact.artifact_type = _detected_artifact_type(local_path, artifact.content_type)
             artifact.status = "downloaded"
             return local_path
     if not artifact.url:
@@ -75,9 +77,102 @@ def download_source_artifact(
     artifact.name = artifact.name or target_path.name
     artifact.size_bytes = target_path.stat().st_size
     artifact.content_type = artifact.content_type or _content_type(target_path)
+    artifact.artifact_type = _detected_artifact_type(target_path, artifact.content_type)
     artifact.status = "downloaded"
     artifact.failure_reason = None
     return target_path
+
+
+def _detected_artifact_type(path: Path, content_type: str | None) -> str:
+    """Classify materialized content from the local file, not its source URL."""
+
+    suffix_type = {
+        ".pdf": "pdf",
+        ".csv": "csv",
+        ".tsv": "tsv",
+        # Survey releases frequently use ``.dat`` for whitespace-delimited
+        # tables. Route it through the CSV parser rather than falling back to
+        # an un-actionable dataset manifest.
+        ".dat": "csv",
+        ".xlsx": "xlsx",
+        # ``.xls`` is accepted by the shared table parser too; normalise it
+        # to the parser's spreadsheet route rather than treating it as an
+        # unsupported binary download.
+        ".xls": "xlsx",
+        ".json": "json",
+        ".xml": "xml",
+        ".html": "html",
+        ".htm": "html",
+        ".md": "readme",
+        ".png": "image",
+        ".jpg": "image",
+        ".jpeg": "image",
+        ".webp": "image",
+    }.get(path.suffix.lower())
+    if suffix_type:
+        return suffix_type
+    normalized_content_type = str(content_type or "").split(";", 1)[0].strip().lower()
+    if normalized_content_type == "application/pdf":
+        return "pdf"
+    if normalized_content_type.startswith("text/html"):
+        return "html"
+    if normalized_content_type in {"text/csv", "text/tab-separated-values"}:
+        return "csv" if normalized_content_type == "text/csv" else "tsv"
+    if normalized_content_type in {"application/json", "text/json"}:
+        return "json"
+    try:
+        header = path.read_bytes()[:4096].lstrip().lower()
+    except OSError:
+        return "unknown"
+    if header.startswith(b"%pdf-"):
+        return "pdf"
+    if header.startswith((b"<!doctype html", b"<html")):
+        return "html"
+    if header.startswith((b"{", b"[")):
+        return "json"
+    if header.startswith(b"<?xml"):
+        return "xml"
+    return "unknown"
+
+
+def unsupported_materialized_format_reason(
+    path: Path,
+    artifact_type: str | None = None,
+) -> str | None:
+    """Return an auditable reason when a downloaded file has no parser route.
+
+    This is deliberately evaluated *after* download and local type detection:
+    extensionless URLs may still materialize as a supported PDF, CSV, or HTML
+    document. Unsupported files remain on disk for auditability but are not
+    attached to the content pipeline.
+    """
+
+    name = path.name.casefold()
+    archive_suffixes = (
+        ".zip", ".tar", ".tgz", ".tar.gz", ".tar.bz2", ".tbz", ".tbz2",
+        ".gz", ".bz2", ".xz", ".zst", ".rar", ".7z", ".cab",
+    )
+    if name.endswith(archive_suffixes):
+        return f"unsupported archive format: {path.suffix.casefold() or path.name}"
+    if name.endswith((".fits", ".fit")):
+        return "unsupported astronomy table format: FITS"
+    if name.endswith(".parquet"):
+        return "unsupported columnar table format: Parquet"
+    supported_types = {
+        "pdf",
+        "supplementary_pdf",
+        "csv",
+        "tsv",
+        "xlsx",
+        "html",
+        "readme",
+        "image",
+    }
+    if artifact_type in supported_types:
+        return None
+    if artifact_type in {"json", "xml"}:
+        return f"unsupported structured format: {str(artifact_type).upper()} parser is not implemented"
+    return f"unsupported materialized format: {path.suffix.casefold() or 'unknown'}"
 
 
 def _artifact_filename(artifact: SourceArtifact) -> str:
@@ -97,6 +192,7 @@ def _artifact_filename(artifact: SourceArtifact) -> str:
         "json": ".json",
         "xml": ".xml",
         "html": ".html",
+        "landing_page": ".html",
         "readme": ".md",
         "image": ".bin",
     }
@@ -187,10 +283,11 @@ def ingest_triaged_sources(
                 logs.append(f"Download failed: source='{source.title}', url='{file_url}', error={exc}")
                 continue
 
-            source.metadata["last_ingestion_status"] = "completed"
-
             source.metadata.setdefault("downloaded_paths", []).append(str(target_path))
             source.metadata["downloaded_path"] = str(target_path)
+            source.metadata.setdefault("downloaded_artifacts", {})[file_url] = str(target_path)
+            artifact_type = _detected_artifact_type(target_path, _content_type(target_path))
+            unsupported_reason = unsupported_materialized_format_reason(target_path, artifact_type)
             insight = SourceInsight(
                 source_id=source.source_id,
                 title=source.title,
@@ -208,6 +305,24 @@ def ingest_triaged_sources(
             )
             insights.append(insight)
             logs.append(f"Downloaded source file: source='{source.title}', file='{target_path.name}'.")
+
+            if unsupported_reason:
+                # This path bypasses ArtifactActionExecutor. Persist the same
+                # terminal status in source metadata so catalog refreshes and
+                # the Planner cannot revive an archive/unknown binary.
+                source.metadata.setdefault("unsupported_downloads", {})[file_url] = {
+                    "path": str(target_path),
+                    "artifact_type": artifact_type,
+                    "parser": "unsupported_format",
+                    "failure_reason": unsupported_reason,
+                }
+                source.metadata["last_ingestion_status"] = "skipped"
+                logs.append(
+                    f"Downloaded source file was skipped: source='{source.title}', reason={unsupported_reason}."
+                )
+                continue
+
+            source.metadata["last_ingestion_status"] = "completed"
 
             if target_path.suffix.lower() in PARSEABLE_TABLE_EXTENSIONS | PDF_EXTENSIONS:
                 uploaded_files.append(
@@ -465,7 +580,7 @@ def _validate_download_content(suffix: str, content: bytes, content_type: str) -
         raise RuntimeError("downloaded content is not an XLSX archive")
     if suffix == ".xls" and not content.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
         raise RuntimeError("downloaded content is not an XLS workbook")
-    if suffix in {".csv", ".tsv", ".json", ".xml", ".txt", ".md"} and b"\x00" in content[:4096]:
+    if suffix in {".csv", ".tsv", ".dat", ".json", ".xml", ".txt", ".md"} and b"\x00" in content[:4096]:
         raise RuntimeError("downloaded text/table content appears to be binary")
 
 
@@ -475,6 +590,12 @@ def _content_type(path: Path) -> str | None:
         return "application/pdf"
     if suffix == ".csv":
         return "text/csv"
+    if suffix == ".dat":
+        return "text/plain"
+    if suffix in {".html", ".htm"}:
+        return "text/html"
+    if suffix == ".json":
+        return "application/json"
     if suffix in {".xlsx", ".xls"}:
         return "application/vnd.ms-excel"
     return None

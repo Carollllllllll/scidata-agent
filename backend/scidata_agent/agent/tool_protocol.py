@@ -53,6 +53,7 @@ class ToolCall(BaseModel):
     priority: Literal["high", "medium", "low"] = "medium"
     gap_ids: list[str] = Field(default_factory=list)
     expected_evidence: list[str] = Field(default_factory=list)
+    workflow_revision: int = 0
     idempotency_key: str | None = None
 
     def effective_idempotency_key(self) -> str:
@@ -62,6 +63,7 @@ class ToolCall(BaseModel):
         payload = {
             "tool_name": self.tool_name,
             "arguments": _canonicalize(self.arguments),
+            "workflow_revision": max(0, int(self.workflow_revision)),
         }
         encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True).encode("utf-8")
         return hashlib.sha256(encoded).hexdigest()
@@ -80,6 +82,7 @@ class ToolResult(BaseModel):
     errors: list[str] = Field(default_factory=list)
     elapsed_ms: float = 0.0
     retry_count: int = 0
+    workflow_revision: int = 0
     idempotency_key: str | None = None
     cached: bool = False
 
@@ -111,6 +114,7 @@ def failed_tool_result(
         errors=[message],
         elapsed_ms=max(0.0, float(elapsed_ms)),
         retry_count=max(0, int(retry_count)),
+        workflow_revision=max(0, int(call.workflow_revision)),
         idempotency_key=call.effective_idempotency_key(),
     )
 
