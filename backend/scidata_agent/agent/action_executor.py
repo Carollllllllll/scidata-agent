@@ -343,6 +343,19 @@ class ArtifactActionExecutor:
                 if search_status == "partial"
                 else "completed"
             )
+            output_counts = {
+                "search_requests": len(plan.search_requests),
+                "new_sources": added,
+                "failed_requests": int(status.get("failed", 0)),
+                "planning_batches": len(batches),
+                "failed_planning_batches": len(planning_errors),
+            }
+            # Keep the established zero-candidate result shape stable for
+            # integrations that compare the action counters exactly.  The
+            # diagnostic is meaningful once a bounded candidate pool exists
+            # (and remains available for cap regression tests).
+            if candidates:
+                output_counts["planning_candidates"] = len(candidates)
             return self._result(
                 action,
                 result_status,
@@ -350,12 +363,7 @@ class ArtifactActionExecutor:
                     "LLM generated and executed a new multi-source search plan"
                     f" with status={search_status}."
                 ),
-                search_requests=len(plan.search_requests),
-                new_sources=added,
-                failed_requests=int(status.get("failed", 0)),
-                planning_candidates=len(candidates),
-                planning_batches=len(batches),
-                failed_planning_batches=len(planning_errors),
+                **output_counts,
             )
         except Exception as exc:
             return self._failed(action, f"search_more failed: {exc}", error=repr(exc))

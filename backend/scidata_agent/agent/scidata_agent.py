@@ -1782,7 +1782,14 @@ class SciDataAgent:
             state.research_question,
             task_plan=state.task_plan,
         )
-        _ensure_dynamic_plan_field_coverage(state)
+        # The controlled dynamic runtime needs an exhaustive field-group
+        # contract so it can schedule bounded per-group searches.  The legacy
+        # uploaded-file pipeline, however, has always treated the schema
+        # returned by the planner as its complete extraction contract.  Adding
+        # generic output-template fields there turns otherwise successful
+        # local PDF/chart runs into false ``partial`` results.
+        if state.runtime_status != "legacy_pipeline":
+            _ensure_dynamic_plan_field_coverage(state)
         table_names = [table.table_name for table in state.dynamic_extraction_plan.dynamic_tables]
         state.processing_log.append(
             f"Qwen Dynamic Schema Planner completed: domain={state.dynamic_extraction_plan.domain}, "
