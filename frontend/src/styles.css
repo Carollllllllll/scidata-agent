@@ -487,11 +487,12 @@ img { display: block; max-width: 100%; }
 .source-record-links button:hover { color: #405bc1; background: #eef2ff; }
 .source-record-links span { overflow: hidden; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .source-record-links small { color: #8d96aa; font-size: 12px; white-space: nowrap; }
-.connector-panel { grid-column: 1 / -1; padding: 21px 22px; }
-.connector-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 15px; }
-.connector-grid article { display: flex; align-items: flex-start; gap: 9px; padding: 11px; background: #f8f9fc; border-radius: 9px; }
+.connector-panel { margin-top: 14px; padding: 21px 22px; }
+.connector-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 15px; }
+.connector-grid article { min-width: 0; display: flex; align-items: flex-start; gap: 9px; padding: 11px; background: #f8f9fc; border-radius: 9px; }
+.connector-grid article > div { min-width: 0; }
 .connector-grid .service-indicator { margin-top: 3px; }
-.connector-grid strong { display: block; color: #4b566e; font-size: 12px; }.connector-grid p{margin:3px 0 0;color:#949baa;font-size: 12px;line-height:1.4}
+.connector-grid strong { display: block; overflow: hidden; color: #4b566e; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }.connector-grid p{display:-webkit-box;margin:3px 0 0;overflow:hidden;color:#949baa;font-size:12px;line-height:1.4;overflow-wrap:anywhere;word-break:break-word;-webkit-box-orient:vertical;-webkit-line-clamp:3}
 
 .evidence-panel { overflow: hidden; }
 .evidence-controls { justify-content: flex-start; }
@@ -687,7 +688,7 @@ img { display: block; max-width: 100%; }
   .table-sidebar { position: static; display: flex; align-items: stretch; gap: 6px; overflow-x: auto; }
   .table-sidebar-heading, .table-mode-note { display: none; }
   .table-sidebar > button { width: auto; min-width: 150px; margin: 0; }
-  .sources-layout { grid-template-columns: 1fr; }.source-detail{position:static;min-height:0}.connector-panel{grid-column:auto}
+  .sources-layout { grid-template-columns: 1fr; }.source-detail{position:static;min-height:0}
   .conflict-grid { grid-template-columns: repeat(2, 1fr); }
 }
 

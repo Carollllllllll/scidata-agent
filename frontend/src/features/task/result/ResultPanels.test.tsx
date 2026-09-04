@@ -56,6 +56,9 @@ describe("result panels", () => {
           artifacts: [{ artifact_id: "artifact_1", status: "parsed" }],
         },
       ],
+      connector_status: [
+        { connector: "arxiv", status: "completed", message: "Search completed." },
+      ],
     } as unknown as AgentResult;
 
     const html = renderToStaticMarkup(
@@ -65,6 +68,7 @@ describe("result panels", () => {
     expect(html).toContain("Paper one");
     expect(html).toContain("未知来源");
     expect(html).toContain("parsed");
+    expect(html).toContain("arxiv");
   });
 
   it("shows coverage gaps when the auditor requires another iteration", () => {

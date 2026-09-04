@@ -320,12 +320,13 @@ export function DynamicDataPanel({
 export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult | null; onSelectRecord: (record: EvidenceRecord) => void }) {
   const sources = result?.source_catalog ?? [];
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status, setStatus] = useState("relevant");
   const [selectedSource, setSelectedSource] = useState<SourceCatalogEntry | null>(null);
   const [page, setPage] = useState(0);
   const statuses = Array.from(new Set(sources.map((source) => source.status).filter(Boolean))) as string[];
   const filtered = sources.filter((source) => {
-    if (status !== "all" && source.status !== status) return false;
+    if (status === "relevant" && (source.status === "skipped" || (source.relevance_score != null && source.relevance_score < 0.45))) return false;
+    if (status !== "all" && status !== "relevant" && source.status !== status) return false;
     if (!search.trim()) return true;
     return `${source.title} ${source.provider} ${source.source_type}`.toLowerCase().includes(search.toLowerCase());
   });
@@ -343,12 +344,13 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
   if (!result) return <PanelEmptyState title="来源尚未生成" text="Agent 完成来源发现后，这里会展示选择理由、处理状态和关联资料。" />;
 
   return (
-    <div className="sources-layout">
-      <section className="panel-card sources-panel">
+    <>
+      <div className="sources-layout">
+        <section className="panel-card sources-panel">
         <div className="panel-heading wide"><div><span className="eyebrow dark">SOURCE CATALOG</span><h2>数据来源目录</h2><p>来源生命周期与记录质量分开显示。</p></div><div className="source-summary"><span><strong>{sources.length}</strong><small>已发现</small></span><span><strong>{selectedCount}</strong><small>已选择</small></span><span><strong>{downloadedCount}</strong><small>已下载</small></span><span><strong>{sources.filter((source) => source.status === "parsed").length}</strong><small>已解析</small></span></div></div>
         <div className="table-controls">
           <label className="search-control"><Icon name="search" size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索标题、Provider 或类型" /></label>
-          <select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">全部状态</option>{statuses.map((item) => <option key={item} value={item}>{sourceStatusLabel(item)}</option>)}</select>
+          <select value={status} onChange={(event) => setStatus(event.target.value)}><option value="relevant">有效来源</option><option value="all">全部状态</option>{statuses.map((item) => <option key={item} value={item}>{sourceStatusLabel(item)}</option>)}</select>
           <span className="result-count">{filtered.length} 个来源</span>
         </div>
         {filtered.length === 0 ? <EmptyState icon="database" title="没有符合条件的来源" text={sources.length === 0 ? "本次任务没有发现来源，或在来源规划前失败。" : "请调整筛选条件。"} /> : (
@@ -364,19 +366,20 @@ export function SourcesPanel({ result, onSelectRecord }: { result?: AgentResult 
           </div>
         )}
         {filtered.length > pageSize && <div className="pagination"><span>第 {page + 1} / {pageCount} 页</span><div><button disabled={page === 0} onClick={() => setPage((value) => value - 1)}>上一页</button><button disabled={page + 1 >= pageCount} onClick={() => setPage((value) => value + 1)}>下一页</button></div></div>}
-      </section>
+        </section>
 
-      <aside className="panel-card source-detail">
-        {selectedSource ? <SourceDetail source={selectedSource} records={recordsForSource(selectedSource, result.dynamic_records ?? [])} onSelectRecord={onSelectRecord} /> : <div className="source-detail-placeholder"><span><Icon name="database" size={24} /></span><h3>选择一个来源</h3><p>查看 Provider、选择理由、Artifact、下载状态和失败原因。</p></div>}
-      </aside>
+        <aside className="panel-card source-detail">
+          {selectedSource ? <SourceDetail source={selectedSource} records={recordsForSource(selectedSource, result.dynamic_records ?? [])} onSelectRecord={onSelectRecord} /> : <div className="source-detail-placeholder"><span><Icon name="database" size={24} /></span><h3>选择一个来源</h3><p>查看 Provider、选择理由、Artifact、下载状态和失败原因。</p></div>}
+        </aside>
+      </div>
 
       {(result.connector_status?.length ?? 0) > 0 && (
         <section className="panel-card connector-panel">
           <div className="panel-heading"><div><span className="eyebrow dark">CONNECTORS</span><h2>连接器状态</h2></div></div>
-          <div className="connector-grid">{result.connector_status?.map((connector, index) => <article key={`${String(connector.connector_name)}:${index}`}><span className={`service-indicator ${connector.status === "success" || connector.status === "completed" ? "online" : "offline"}`} /><div><strong>{displayValue(connector.connector_name ?? connector.provider ?? "Connector")}</strong><p>{displayValue(connector.message ?? connector.error ?? connector.status)}</p></div></article>)}</div>
+          <div className="connector-grid">{result.connector_status?.map((connector, index) => <article key={`${String(connector.connector_name ?? connector.connector ?? connector.provider)}:${index}`}><span className={`service-indicator ${connector.status === "success" || connector.status === "completed" ? "online" : "offline"}`} /><div><strong title={displayValue(connector.connector_name ?? connector.connector ?? connector.provider ?? "Connector")}>{displayValue(connector.connector_name ?? connector.connector ?? connector.provider ?? "Connector")}</strong><p title={displayValue(connector.message ?? connector.error ?? connector.status)}>{displayValue(connector.message ?? connector.error ?? connector.status)}</p></div></article>)}</div>
         </section>
       )}
-    </div>
+    </>
   );
 }
 

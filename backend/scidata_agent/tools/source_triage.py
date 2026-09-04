@@ -60,6 +60,7 @@ def triage_sources_from_selection(
     selection_plan: SourceSelectionPlan,
     max_pdf_downloads: int | None = None,
     max_auto_resources: int | None = DEFAULT_MAX_AUTO_RESOURCES,
+    research_question: str | None = None,
 ) -> list[SourceTriageDecision]:
     """Convert LLM semantic source selections into safe executable triage actions."""
     selections = {decision.source_id: decision for decision in selection_plan.decisions}
@@ -67,13 +68,71 @@ def triage_sources_from_selection(
     decisions = []
     for source in sources:
         selection = selections.get(source.source_id)
-        if selection is None:
+        if _is_topic_mismatch(source, research_question):
+            decision = _triage_topic_mismatch(source, selection)
+        elif selection is None:
             decision = _triage_unselected_source(source)
         else:
             decision = _triage_one_source_from_selection(source, selection, selected_pdf_ids)
         _attach_triage_metadata(source, decision)
         decisions.append(decision)
     return _apply_auto_resource_cap(sources, decisions, max_auto_resources=max_auto_resources)
+
+
+def _is_topic_mismatch(source: DiscoveredSource, research_question: str | None) -> bool:
+    """Reject obvious domain drift for research topics with a named core material.
+
+    Broad terms such as ``solar`` are shared by photovoltaic and heliophysics
+    literature.  This guard is deliberately enabled only when the user's goal
+    names a material that must occur in the source's available metadata.
+    """
+    question = str(research_question or "").casefold()
+    required_terms: set[str] = set()
+    if "perovskite" in question or "钙钛矿" in question:
+        required_terms.update({"perovskite", "钙钛矿"})
+    if not required_terms:
+        return False
+    metadata = source.metadata or {}
+    source_text = " ".join(
+        str(value or "")
+        for value in (
+            source.title,
+            source.description,
+            source.reason,
+            metadata.get("abstract"),
+            metadata.get("summary"),
+        )
+    ).casefold()
+    return not any(term in source_text for term in required_terms)
+
+
+def _triage_topic_mismatch(
+    source: DiscoveredSource,
+    selection: SourceSelectionDecision | None,
+) -> SourceTriageDecision:
+    provider = str(source.metadata.get("provider") or "").strip().lower() or None
+    return SourceTriageDecision(
+        source_id=source.source_id,
+        title=source.title,
+        provider=provider,
+        source_type=source.source_type,
+        relevance_score=0.0,
+        recommended_action="skip",
+        reason=(
+            "Deterministic topic guard rejected this source: the research question requires "
+            "perovskite/钙钛矿 evidence, but the available source metadata contains neither term."
+        ),
+        estimated_download_size=_estimated_download_size(source),
+        estimated_cost=_estimated_cost(_estimated_download_size(source)),
+        risk="low",
+        should_ingest=False,
+        metadata={
+            "url": source.url,
+            "query": source.query,
+            "selection_decision": selection.decision if selection else "omitted",
+            "topic_guard": "missing_required_material_term",
+        },
+    )
 
 
 def ingestible_pdf_source_ids(decisions: list[SourceTriageDecision]) -> set[str]:

@@ -2434,6 +2434,52 @@ def test_source_triage_caps_llm_selected_auto_resources_at_30() -> None:
     assert decisions[30].metadata["original_recommended_action"] == "download_pdf"
 
 
+def test_source_triage_rejects_solar_physics_when_perovskite_is_required() -> None:
+    off_topic = DiscoveredSource(
+        title="Solar cycle variation in solar f-mode frequencies and radius",
+        source_type="paper",
+        url="https://arxiv.org/abs/2401.00001",
+        query="perovskite solar-cell stability",
+        confidence=0.95,
+        metadata={"provider": "arxiv", "pdf_url": "https://arxiv.org/pdf/2401.00001"},
+    )
+    on_topic = DiscoveredSource(
+        title="Photo Stabilization of p-i-n Perovskite Solar Cells",
+        source_type="paper",
+        url="https://arxiv.org/abs/2401.00002",
+        query="perovskite solar-cell stability",
+        confidence=0.9,
+        metadata={"provider": "arxiv", "pdf_url": "https://arxiv.org/pdf/2401.00002"},
+    )
+    plan = SourceSelectionPlan(
+        research_goal="研究钙钛矿太阳能电池的稳定性和效率。",
+        decisions=[
+            SourceSelectionDecision(
+                source_id=source.source_id,
+                decision="deep_read",
+                priority="high",
+                source_role="primary_paper",
+                priority_score=0.9,
+                reason="The source appears relevant.",
+            )
+            for source in (off_topic, on_topic)
+        ],
+    )
+
+    decisions = triage_sources_from_selection(
+        [off_topic, on_topic],
+        plan,
+        research_question=plan.research_goal,
+        max_auto_resources=2,
+    )
+
+    by_title = {decision.title: decision for decision in decisions}
+    assert by_title[off_topic.title].recommended_action == "skip"
+    assert not by_title[off_topic.title].should_ingest
+    assert by_title[off_topic.title].metadata["topic_guard"] == "missing_required_material_term"
+    assert by_title[on_topic.title].recommended_action == "download_pdf"
+
+
 def test_source_triage_keeps_paper_indexes_as_metadata_without_pdf() -> None:
     sources = [
         DiscoveredSource(

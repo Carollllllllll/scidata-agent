@@ -1991,6 +1991,7 @@ class SciDataAgent:
                 state.source_selection_plan,
                 max_pdf_downloads=None,
                 max_auto_resources=max_auto_resources,
+                research_question=state.research_question,
             )
         elif self.require_llm and not self.allow_rule_fallback:
             raise RuntimeError("Source triage requires an LLM Source Selection Plan in official mode.")
