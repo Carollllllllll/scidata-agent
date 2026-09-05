@@ -43,10 +43,26 @@ load_dotenv()
 
 
 BASE_DIR = Path(__file__).resolve().parents[3]
-RUNTIME_DIR = BASE_DIR / "runtime"
+
+
+def _runtime_dir() -> Path:
+    """Resolve task storage outside the application image when requested.
+
+    SAE containers are replaceable. ``SCIDATA_RUNTIME_DIR`` lets a deployment
+    mount durable storage at a known path while retaining the repository-local
+    directory for local development and tests.
+    """
+
+    configured = os.getenv("SCIDATA_RUNTIME_DIR", "").strip()
+    return Path(configured).expanduser().resolve() if configured else BASE_DIR / "runtime"
+
+
+RUNTIME_DIR = _runtime_dir()
 UPLOAD_DIR = RUNTIME_DIR / "uploads"
 OUTPUT_DIR = RUNTIME_DIR / "outputs"
 TASK_STATE_DIR = RUNTIME_DIR / "tasks"
+for _directory in (UPLOAD_DIR, OUTPUT_DIR, TASK_STATE_DIR):
+    _directory.mkdir(parents=True, exist_ok=True)
 TASK_MANAGER = TaskManager(output_dir=OUTPUT_DIR, state_dir=TASK_STATE_DIR, upload_dir=UPLOAD_DIR)
 API_VERSION = "0.3.0"
 
@@ -695,5 +711,25 @@ if FastAPI is not None:
                 detail={"code": "ASSET_NOT_FOUND", "message": "任务资源不存在。"},
             )
         return FileResponse(file_path)
+
+    # Production serves the compiled React workbench from the same origin as
+    # the API. Vite remains responsible for the local development server.
+    _static_dir = Path(os.getenv("SCIDATA_STATIC_DIR", BASE_DIR / "frontend" / "dist")).resolve()
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/{frontend_path:path}", include_in_schema=False)
+    def serve_workbench(frontend_path: str = ""):
+        if frontend_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "接口不存在。"})
+        index_file = _static_dir / "index.html"
+        if not index_file.is_file():
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "FRONTEND_NOT_BUILT", "message": "前端资源尚未构建。"},
+            )
+        requested = (_static_dir / frontend_path).resolve()
+        if frontend_path and requested.is_file() and requested.is_relative_to(_static_dir):
+            return FileResponse(requested)
+        return FileResponse(index_file)
 else:
     app = None
