@@ -686,11 +686,21 @@ export function ExportsPanel({ task }: { task: TaskResponse }) {
       <div className="panel-heading wide"><div><span className="eyebrow dark">DELIVERABLES</span><h2>导出与调研报告</h2><p>所有下载均使用受控 API URL，不暴露服务器文件路径。</p></div><QualityBadge tone={entries.length ? "success" : "neutral"}>{entries.length} 个文件</QualityBadge></div>
       {reportPath && <details className="report-preview"><summary><span><Icon name="document" size={18} /><strong>在线预览调研报告</strong></span><small>{report.isLoading ? "读取中…" : report.isError ? "读取失败" : "展开查看 Markdown"}</small></summary>{report.data && <pre>{report.data}</pre>}{report.isError && <p>报告预览暂时不可用，仍可从下方下载原文件。</p>}</details>}
       {entries.length === 0 ? <EmptyState icon="download" title="导出文件尚未生成" text={task.status === "failed" ? "任务失败前没有完成导出。" : "任务完成 export 节点后，文件会自动出现在这里。"} /> : <div className="export-grid">{entries.map(([format, path]) => {
-        const meta = exportDescriptions[format] ?? { name: humanize(format), description: "任务生成的结构化交付文件", kind: "data" as const };
-        return <article key={format}><span className={`export-icon export-${meta.kind}`}><Icon name={meta.kind === "quality" ? "shield" : meta.kind === "log" ? "list" : meta.kind === "research" ? "document" : "table"} size={19} /></span><div><small>{format.toUpperCase()}</small><h3>{meta.name}</h3><p>{meta.description}</p></div><ApiAssetLink path={path} download ariaLabel={`下载${meta.name}`}><Icon name="download" size={17} />下载</ApiAssetLink></article>;
+        const meta = exportMeta(format, path);
+        return <article key={format}><span className={`export-icon export-${meta.kind}`}><Icon name={meta.kind === "quality" ? "shield" : meta.kind === "log" ? "list" : meta.kind === "research" ? "document" : "table"} size={19} /></span><div><small>{meta.fileLabel}</small><h3>{meta.name}</h3><p>{meta.description}</p></div><ApiAssetLink path={path} download ariaLabel={`下载${meta.name}`}><Icon name="download" size={17} />下载</ApiAssetLink></article>;
       })}</div>}
     </section>
   );
+}
+
+function exportMeta(format: string, path: string): { name: string; description: string; kind: "data" | "quality" | "research" | "log"; fileLabel: string } {
+  const standard = exportDescriptions[format];
+  if (standard) return { ...standard, fileLabel: format.toUpperCase() };
+  const filename = decodeURIComponent(path.split("/").pop()?.split("?")[0] || format);
+  if (format.startsWith("artifact__tables__")) return { name: `${humanize(filename.replace(/\.csv$/i, ""))} 数据表`, description: "按本次动态 Schema 导出的字段型 CSV 数据表", kind: "data", fileLabel: filename };
+  if (format.startsWith("artifact__chart_data__")) return { name: "图表数据文件", description: "从图表提取或校正后导出的结构化数据", kind: "data", fileLabel: filename };
+  if (format.startsWith("artifact__figures__")) return { name: "已提取图片", description: "来源 PDF 中识别并导出的图片或图表", kind: "research", fileLabel: filename };
+  return { name: humanize(filename), description: "任务生成的补充交付文件", kind: "data", fileLabel: filename };
 }
 
 export function EvidenceDrawer({

@@ -180,6 +180,32 @@ def test_reconciliation_preserves_live_owner_and_fails_orphan_only(tmp_path) -> 
         manager.shutdown()
 
 
+def test_download_urls_include_dynamic_result_artifacts(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(task_manager_module, "SciDataAgent", _FakeAgent)
+    manager = TaskManager(tmp_path / "outputs", tmp_path / "tasks", max_workers=1)
+    task_id = "20260819_120000_001_efgh"
+    output_dir = tmp_path / "outputs" / task_id
+    try:
+        task = manager.submit(task_id=task_id, research_question="test question", files=[], run_options={})
+        _wait_for_status(manager, task["task_id"], "completed")
+        tables_dir = output_dir / "tables"
+        figures_dir = output_dir / "figures"
+        tables_dir.mkdir(parents=True)
+        figures_dir.mkdir(parents=True)
+        (tables_dir / "fabrication_methods.csv").write_text("method\nspin coating\n", encoding="utf-8")
+        (figures_dir / "figure_1.png").write_bytes(b"png")
+        (output_dir / "agent_checkpoint.json").write_text("{}", encoding="utf-8")
+
+        urls = manager.download_urls(task_id)
+
+        assert "artifact__tables__fabrication_methods_csv" in urls
+        assert urls["artifact__tables__fabrication_methods_csv"].endswith("/assets/output/tables/fabrication_methods.csv")
+        assert "artifact__figures__figure_1_png" in urls
+        assert all("checkpoint" not in key for key in urls)
+    finally:
+        manager.shutdown()
+
+
 def test_pid_probe_treats_windows_style_system_error_as_dead(monkeypatch) -> None:
     monkeypatch.setattr(os, "kill", lambda pid, signal: (_ for _ in ()).throw(SystemError("invalid handle")))
 

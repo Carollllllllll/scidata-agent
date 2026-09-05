@@ -18,6 +18,11 @@ from scidata_agent.agent.scidata_agent import SciDataAgent
 
 TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 
+# These files are implementation checkpoints rather than user-facing task
+# deliverables.  In particular, a checkpoint can contain incomplete planning
+# state and should not be presented as a finished research result.
+_PRIVATE_OUTPUT_FILES = frozenset({"agent_checkpoint.json", "agent_monitor.jsonl"})
+
 
 class TaskQueueFullError(RuntimeError):
     pass
@@ -423,11 +428,55 @@ class TaskManager:
         return path
 
     def download_urls(self, task_id: str) -> dict[str, str]:
-        return {
-            export_format: f"/api/tasks/{task_id}/export?format={export_format}"
-            for export_format in self.EXPORT_FILES
-            if self.download_path(task_id, export_format) is not None
-        }
+        urls: dict[str, str] = {}
+        for export_format, path in self._available_export_files(task_id).items():
+            if export_format in self.EXPORT_FILES:
+                urls[export_format] = f"/api/tasks/{task_id}/export?format={export_format}"
+                continue
+            asset_url = self.asset_url(task_id, path)
+            if asset_url:
+                urls[export_format] = asset_url
+        return urls
+
+    def _available_export_files(self, task_id: str) -> dict[str, Path]:
+        """Return every finished, user-facing artifact in a task output tree.
+
+        The original allowlist remains the stable public API for the core
+        deliverables.  Schema-driven table CSVs, chart data, extracted figures,
+        and auxiliary CSV/JSON reports are generated dynamically, though, so a
+        fixed list silently hid them from the Export panel.
+        """
+
+        task_dir = self._task_output_dir(task_id)
+        if task_dir is None or not task_dir.is_dir():
+            return {}
+
+        files: dict[str, Path] = {}
+        exported_paths: set[Path] = set()
+        for export_format in self.EXPORT_FILES:
+            path = self.download_path(task_id, export_format)
+            if path is not None:
+                files[export_format] = path
+                exported_paths.add(path)
+
+        for path in sorted(task_dir.rglob("*")):
+            if not path.is_file():
+                continue
+            try:
+                relative = path.relative_to(task_dir)
+            except ValueError:
+                continue
+            if path.resolve() in exported_paths or relative.name in _PRIVATE_OUTPUT_FILES:
+                continue
+            key_parts = [re.sub(r"[^a-zA-Z0-9]+", "_", part).strip("_").lower() for part in relative.parts]
+            key_base = "artifact__" + "__".join(part for part in key_parts if part)
+            key = key_base
+            suffix = 2
+            while key in files:
+                key = f"{key_base}_{suffix}"
+                suffix += 1
+            files[key] = path.resolve()
+        return files
 
     def asset_url(self, task_id: str, file_path: str | Path) -> str | None:
         """Convert an internal task file path into a scoped public URL."""
