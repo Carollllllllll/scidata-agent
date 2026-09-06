@@ -1,0 +1,22 @@
+{
+  "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+  "should_search_arxiv": true,
+  "search_intent": "Synthesized from the LLM multi-source search plan.",
+  "queries": [
+    {
+      "query": "Ia supernova light curve peak magnitude decline rate",
+      "purpose": "获取最新关于Ia型超新星光变曲线中峰值星等与衰减率关系的前沿研究论文，支持光变曲线建模与衰减率分类标准分析。",
+      "max_results": 100
+    }
+  ],
+  "selection_criteria": [
+    "优先选择包含多波段数据（如B、V、R）的来源",
+    "优先选择附带原始数据或补充材料的论文与数据库",
+    "优先选择有明确观测设备（如Hubble、LCOGT、SNLS）标注的记录",
+    "优先选择提供可复现代码或数据处理流程的GitHub仓库",
+    "优先选择被多次引用或来自高影响期刊的论文"
+  ],
+  "notes": [
+    "This arXiv plan was derived from multi_source_search_plan for backward-compatible exports."
+  ]
+}

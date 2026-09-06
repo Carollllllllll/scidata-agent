@@ -1,0 +1,2182 @@
+[
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_plan_task_0",
+        "tool_name": "plan_task",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_plan_dynamic_schema_1",
+        "tool_name": "plan_dynamic_schema",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_discover_sources_2",
+        "tool_name": "discover_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_plan_multi_source_search_3",
+        "tool_name": "plan_multi_source_search",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_sources_4",
+        "tool_name": "search_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_5",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_6",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_7",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_8",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_9",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "ad8cf93e1b5a39b68f98321fa53872b069156f285a4ff9d3a0965fd173710acc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_10",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "ad8cf93e1b5a39b68f98321fa53872b069156f285a4ff9d3a0965fd173710acc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_11",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "12c9d56d47fea3da894599cf3cb6d012aa585762c100dd3d25c514d4fa0169b1"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_12",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "12c9d56d47fea3da894599cf3cb6d012aa585762c100dd3d25c514d4fa0169b1"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_13",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "12c9d56d47fea3da894599cf3cb6d012aa585762c100dd3d25c514d4fa0169b1"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_14",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "12c9d56d47fea3da894599cf3cb6d012aa585762c100dd3d25c514d4fa0169b1"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_15",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "12c9d56d47fea3da894599cf3cb6d012aa585762c100dd3d25c514d4fa0169b1"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_more_16",
+        "tool_name": "search_more",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "field_group_id": "light_curve_metrics",
+            "target_fields": [
+              "supernova_name",
+              "redshift",
+              "peak_magnitude",
+              "filter_band",
+              "decay_rate",
+              "observation_telescope",
+              "host_galaxy_type"
+            ],
+            "query_focus": "Field group light_curve_metrics: supernova_name, redshift, peak_magnitude, filter_band, decay_rate, observation_telescope, host_galaxy_type"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 0,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_17",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_18",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_19",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_20",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_21",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "1dd13344667e0c8bb40165798315745ebcf363ab0093800a68c9545b9240f82c"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_22",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "1dd13344667e0c8bb40165798315745ebcf363ab0093800a68c9545b9240f82c"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_23",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "87ae76153cd552497ee83309671c9309fe7e0fb6f35384db2bdbb9244517a552"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_24",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "87ae76153cd552497ee83309671c9309fe7e0fb6f35384db2bdbb9244517a552"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_25",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "87ae76153cd552497ee83309671c9309fe7e0fb6f35384db2bdbb9244517a552"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_26",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "87ae76153cd552497ee83309671c9309fe7e0fb6f35384db2bdbb9244517a552"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_27",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "87ae76153cd552497ee83309671c9309fe7e0fb6f35384db2bdbb9244517a552"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_more_28",
+        "tool_name": "search_more",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "field_group_id": "light_curve_metrics",
+            "target_fields": [
+              "supernova_name",
+              "redshift",
+              "peak_magnitude",
+              "filter_band",
+              "decay_rate",
+              "observation_telescope",
+              "host_galaxy_type"
+            ],
+            "query_focus": "Field group light_curve_metrics: supernova_name, redshift, peak_magnitude, filter_band, decay_rate, observation_telescope, host_galaxy_type"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 1,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_29",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_30",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_31",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_32",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_33",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "58832ed155096c5acf5f463f0f70f1b9d6f7ad9d1ed857fb6c2bc7c684255b9a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_34",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "58832ed155096c5acf5f463f0f70f1b9d6f7ad9d1ed857fb6c2bc7c684255b9a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_35",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "10318c276571cc61efef710edd0930ae4da74831e0700cea998bd11d94ee946f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_36",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "10318c276571cc61efef710edd0930ae4da74831e0700cea998bd11d94ee946f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_37",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "10318c276571cc61efef710edd0930ae4da74831e0700cea998bd11d94ee946f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_38",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "10318c276571cc61efef710edd0930ae4da74831e0700cea998bd11d94ee946f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_39",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "10318c276571cc61efef710edd0930ae4da74831e0700cea998bd11d94ee946f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_more_40",
+        "tool_name": "search_more",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "field_group_id": "cross_survey_comparisons",
+            "target_fields": [
+              "metric_name",
+              "source_1",
+              "value_1",
+              "source_2",
+              "value_2",
+              "discrepancy_reason"
+            ],
+            "query_focus": "Field group cross_survey_comparisons: value_1, value_2, discrepancy_reason"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 2,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_41",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_42",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_43",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_44",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_45",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "0829f8d5969aa35af1c5734f432305de56181183d10d8e10b3d8d564b1b371da"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_46",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "0829f8d5969aa35af1c5734f432305de56181183d10d8e10b3d8d564b1b371da"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_47",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "b326252c95383bc5dd31079edc2ae4b5fb3a31ca6d3e61f582d0db7832b95dfc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_48",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "b326252c95383bc5dd31079edc2ae4b5fb3a31ca6d3e61f582d0db7832b95dfc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_49",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "b326252c95383bc5dd31079edc2ae4b5fb3a31ca6d3e61f582d0db7832b95dfc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_50",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "b326252c95383bc5dd31079edc2ae4b5fb3a31ca6d3e61f582d0db7832b95dfc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_51",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "b326252c95383bc5dd31079edc2ae4b5fb3a31ca6d3e61f582d0db7832b95dfc"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_more_52",
+        "tool_name": "search_more",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "field_group_id": "cross_survey_comparisons",
+            "target_fields": [
+              "metric_name",
+              "source_1",
+              "value_1",
+              "source_2",
+              "value_2",
+              "discrepancy_reason"
+            ],
+            "query_focus": "Field group cross_survey_comparisons: value_1, value_2, discrepancy_reason"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 3,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_53",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_54",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_55",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_56",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_57",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "f1e3c5db3a7fc0eb84d430bd2f2ad08484fee2fb08e34b3426172e110cfa63f8"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_58",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "f1e3c5db3a7fc0eb84d430bd2f2ad08484fee2fb08e34b3426172e110cfa63f8"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_59",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3c475c1590a5ec6f8ba889413714d87c24fbe01b0b7f03f6764b99692555f45f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_60",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3c475c1590a5ec6f8ba889413714d87c24fbe01b0b7f03f6764b99692555f45f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_61",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3c475c1590a5ec6f8ba889413714d87c24fbe01b0b7f03f6764b99692555f45f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_62",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3c475c1590a5ec6f8ba889413714d87c24fbe01b0b7f03f6764b99692555f45f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_63",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3c475c1590a5ec6f8ba889413714d87c24fbe01b0b7f03f6764b99692555f45f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_more_64",
+        "tool_name": "search_more",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "field_group_id": "progenitor_evidence",
+            "target_fields": [
+              "progenitor_model"
+            ],
+            "query_focus": "Field group progenitor_evidence: progenitor_model"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 4,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_65",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_66",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_67",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_68",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_69",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "0789703a065fd7f8bb3f3319fb36623bc2e43c693d308d6238f5caa1089d0a6f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_70",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "0789703a065fd7f8bb3f3319fb36623bc2e43c693d308d6238f5caa1089d0a6f"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_71",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3e8c180bd22eb55d39b8d1099ca5e60a0d3725ef5f2e9e525f1cdc0ca98610f2"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_72",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3e8c180bd22eb55d39b8d1099ca5e60a0d3725ef5f2e9e525f1cdc0ca98610f2"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_73",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3e8c180bd22eb55d39b8d1099ca5e60a0d3725ef5f2e9e525f1cdc0ca98610f2"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_74",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3e8c180bd22eb55d39b8d1099ca5e60a0d3725ef5f2e9e525f1cdc0ca98610f2"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_75",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "3e8c180bd22eb55d39b8d1099ca5e60a0d3725ef5f2e9e525f1cdc0ca98610f2"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_search_more_76",
+        "tool_name": "search_more",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "field_group_id": "progenitor_evidence",
+            "target_fields": [
+              "progenitor_model"
+            ],
+            "query_focus": "Field group progenitor_evidence: progenitor_model"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 5,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_select_sources_77",
+        "tool_name": "select_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_triage_sources_78",
+        "tool_name": "triage_sources",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_ingest_arxiv_pdfs_79",
+        "tool_name": "ingest_arxiv_pdfs",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_parse_source_content_80",
+        "tool_name": "parse_source_content",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {}
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_figures_81",
+        "tool_name": "extract_figures",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "f477f3aceaa243c4534caa1922d1178e6a4ad6c2cf30da579ba3f3d4976b242d"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_interpret_sections_82",
+        "tool_name": "interpret_sections",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "f477f3aceaa243c4534caa1922d1178e6a4ad6c2cf30da579ba3f3d4976b242d"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_dynamic_records_83",
+        "tool_name": "extract_dynamic_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "e2ae5d71b6025cabcbecbf5aeb02d4756ba31d478b959c5386d511c1f2a9301a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_extract_records_84",
+        "tool_name": "extract_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "e2ae5d71b6025cabcbecbf5aeb02d4756ba31d478b959c5386d511c1f2a9301a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_normalize_records_85",
+        "tool_name": "normalize_records",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "e2ae5d71b6025cabcbecbf5aeb02d4756ba31d478b959c5386d511c1f2a9301a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_track_provenance_86",
+        "tool_name": "track_provenance",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "e2ae5d71b6025cabcbecbf5aeb02d4756ba31d478b959c5386d511c1f2a9301a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  },
+  {
+    "decision": "continue",
+    "reason": "Execute the planner-selected evidence actions.",
+    "tool_calls": [
+      {
+        "call_id": "runtime_validate_quality_87",
+        "tool_name": "validate_quality",
+        "arguments": {
+          "artifact_id": null,
+          "parameters": {
+            "_extraction_batch_fingerprint": "e2ae5d71b6025cabcbecbf5aeb02d4756ba31d478b959c5386d511c1f2a9301a"
+          }
+        },
+        "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+        "purpose": "Advance the required source-evidence workflow stage.",
+        "priority": "high",
+        "gap_ids": [],
+        "expected_evidence": [],
+        "workflow_revision": 6,
+        "idempotency_key": null
+      }
+    ],
+    "expected_evidence": [],
+    "stop_reason": null
+  }
+]

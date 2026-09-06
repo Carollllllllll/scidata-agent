@@ -1,0 +1,23 @@
+{
+  "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+  "iteration": 87,
+  "should_continue": true,
+  "stop_reason": null,
+  "actions": [
+    {
+      "action_id": "runtime_validate_quality_87",
+      "artifact_id": null,
+      "action": "validate_quality",
+      "purpose": "Advance the required source-evidence workflow stage.",
+      "expected_fields": [],
+      "priority": "high",
+      "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+      "gap_ids": [],
+      "parameters": {}
+    }
+  ],
+  "artifact_assessments": [],
+  "notes": [
+    "Runtime-directed workflow stage: validate_quality"
+  ]
+}

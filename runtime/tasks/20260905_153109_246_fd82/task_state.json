@@ -1,0 +1,33 @@
+{
+  "task_id": "20260905_153109_246_fd82",
+  "status": "completed",
+  "research_question": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+  "created_at": "2026-09-05T07:31:09.247031+00:00",
+  "updated_at": "2026-09-05T13:38:46.417663+00:00",
+  "current_step": "completed",
+  "message": "Agent task completed.",
+  "files_count": 0,
+  "uploads": [],
+  "internal_files": [],
+  "owner_pid": 6200,
+  "run_options": {
+    "max_pdf_pages": 8,
+    "max_arxiv_papers": null,
+    "max_auto_resources": 20,
+    "enable_live_search": true,
+    "auto_download_sources": true,
+    "max_dynamic_text_blocks": 20,
+    "max_record_text_blocks": 20,
+    "max_figures_per_pdf": 8,
+    "max_pdf_parse_workers": null,
+    "max_chart_workers": null,
+    "max_text_extraction_workers": null,
+    "max_table_extraction_workers": null,
+    "reuse_dynamic_records_for_metrics": true,
+    "enable_dynamic_runtime": true,
+    "max_agent_iterations": null
+  },
+  "auto_fetch_arxiv": true,
+  "error": null,
+  "result_status": "completed"
+}

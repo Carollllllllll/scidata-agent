@@ -1,0 +1,3320 @@
+{
+  "record_count": 11,
+  "dynamic_record_count": 228,
+  "total_record_count": 239,
+  "issue_count": 547,
+  "warning_count": 546,
+  "error_count": 0,
+  "conflict_count": 0,
+  "evidence_coverage": 1.0,
+  "evidence_text_coverage": 1.0,
+  "value_evidence_coverage": 0.6364,
+  "provenance_page_coverage": 0.6862,
+  "warning_free_rate": 0.3515,
+  "review_count": 165,
+  "field_coverage": {
+    "paper_title": 1.0,
+    "material": 0.3636,
+    "method": 0.7273,
+    "metric_name": 1.0,
+    "metric_value": 1.0,
+    "unit": 0.9091,
+    "condition": 0.9091,
+    "source_file": 1.0,
+    "source_type": 1.0,
+    "page": 1.0,
+    "evidence_text": 1.0,
+    "confidence": 1.0
+  },
+  "source_count": 6,
+  "issues": [
+    {
+      "record_id": "rec_ec01834c60",
+      "level": "warning",
+      "message": "metric_value is not directly visible in evidence_text; possible hallucination or weak provenance.",
+      "field": "evidence_text"
+    },
+    {
+      "record_id": "rec_ec01834c60",
+      "level": "warning",
+      "message": "Record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "rec_a0017418ee",
+      "level": "warning",
+      "message": "metric_value is not directly visible in evidence_text; possible hallucination or weak provenance.",
+      "field": "evidence_text"
+    },
+    {
+      "record_id": "rec_a0017418ee",
+      "level": "warning",
+      "message": "Record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "rec_cd6f59cfc1",
+      "level": "warning",
+      "message": "metric_value is not directly visible in evidence_text; possible hallucination or weak provenance.",
+      "field": "evidence_text"
+    },
+    {
+      "record_id": "rec_cd6f59cfc1",
+      "level": "warning",
+      "message": "Record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "rec_b04b45746b",
+      "level": "warning",
+      "message": "metric_value is not directly visible in evidence_text; possible hallucination or weak provenance.",
+      "field": "evidence_text"
+    },
+    {
+      "record_id": "rec_b04b45746b",
+      "level": "warning",
+      "message": "Record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "rec_38e39abd5c",
+      "level": "info",
+      "message": "unit is missing; metric may be unitless or source omitted it.",
+      "field": "unit"
+    },
+    {
+      "record_id": "rec_38e39abd5c",
+      "level": "warning",
+      "message": "Record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "rec_ec01834c60",
+      "level": "warning",
+      "message": "指标值0.02未在证据文本中找到，证据仅提及1-3%的准确度范围",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "rec_a0017418ee",
+      "level": "warning",
+      "message": "指标值17.38未在证据文本中直接出现，证据为'17.38 ± 0.17'但格式混乱，可能误读",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "rec_cd6f59cfc1",
+      "level": "warning",
+      "message": "指标值18.03未在证据文本中直接出现，证据为'18.03 ± 0.24'但格式混乱，可能误读",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "rec_b04b45746b",
+      "level": "warning",
+      "message": "指标值16.85未在证据文本中直接出现，证据为'16.85+0.54−0.81'但格式混乱，可能误读",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "rec_38e39abd5c",
+      "level": "warning",
+      "message": "单位缺失，且证据文本仅为'1'，无法支持指标值1.0，存在严重幻觉风险",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_7d0d3a7e2b",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_7d0d3a7e2b",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_9e1fd0befd",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_9e1fd0befd",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_7fc7904252",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_7fc7904252",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_0e5a3929ed",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_0e5a3929ed",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_50ac93220b",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_50ac93220b",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_b63b05fb74",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_b63b05fb74",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_effa56b6e2",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_effa56b6e2",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_6b31cf9844",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_6b31cf9844",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_065092e913",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_065092e913",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_96c9fb27fe",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_96c9fb27fe",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_c175fadb01",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_c175fadb01",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_b7f4cabe9b",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_b7f4cabe9b",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_83bf66a61d",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_83bf66a61d",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_0224834ebe",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_0224834ebe",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_1960f68588",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_1960f68588",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_912df6df05",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_912df6df05",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a87c9f174a",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_a87c9f174a",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_ab3ef21c7b",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_ab3ef21c7b",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_34f99929e6",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_34f99929e6",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_2287617a15",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_2287617a15",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_4423c73099",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_4423c73099",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_61acd490dc",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_61acd490dc",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_2582d223e0",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_2582d223e0",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_65404deb72",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_65404deb72",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_5760eecbc8",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_5760eecbc8",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_efcfeaf97e",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_efcfeaf97e",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_43705d6df6",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_43705d6df6",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_faf7933545",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_faf7933545",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a1d9a46be8",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_a1d9a46be8",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_06f28bda32",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_06f28bda32",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_91a89cff5c",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_91a89cff5c",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_2d4a05f372",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_2d4a05f372",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_e56a12af27",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_e56a12af27",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_6a9a047679",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_6a9a047679",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_1e617ab1fc",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_1e617ab1fc",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a061a5be54",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_a061a5be54",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_0f6e4d5ab2",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_0f6e4d5ab2",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f7bf3b6f4b",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f7bf3b6f4b",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_621e5930ab",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_621e5930ab",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a13b87d714",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_a13b87d714",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_24d2067aac",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_24d2067aac",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_cfc983bb24",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_cfc983bb24",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_9779bec6a8",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_9779bec6a8",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_d7800917d5",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_d7800917d5",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_66e89f06fb",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_66e89f06fb",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_b176dc2f80",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_b176dc2f80",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_e61f0344bb",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_e61f0344bb",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_cf6900266b",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_cf6900266b",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_0bd7464322",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_0bd7464322",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_c16cf1c06e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_c16cf1c06e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_01252665af",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_01252665af",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_01252665af",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_01252665af",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_01252665af",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_58995362c2",
+      "level": "warning",
+      "message": "Required dynamic field is missing: progenitor_model.",
+      "field": "progenitor_model"
+    },
+    {
+      "record_id": "dyn_58995362c2",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_056fb07717",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_name.",
+      "field": "metric_name"
+    },
+    {
+      "record_id": "dyn_056fb07717",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_1.",
+      "field": "source_1"
+    },
+    {
+      "record_id": "dyn_056fb07717",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_2.",
+      "field": "source_2"
+    },
+    {
+      "record_id": "dyn_056fb07717",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_056fb07717",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_1.",
+      "field": "value_1"
+    },
+    {
+      "record_id": "dyn_056fb07717",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_630909275c",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_630909275c",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_630909275c",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_630909275c",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_15bd95f205",
+      "level": "warning",
+      "message": "Required dynamic field is missing: fit_method.",
+      "field": "fit_method"
+    },
+    {
+      "record_id": "dyn_15bd95f205",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_a739d338cd",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_a739d338cd",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_48b09d8cd4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_48b09d8cd4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_48b09d8cd4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_48b09d8cd4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_48b09d8cd4",
+      "level": "warning",
+      "message": "Redshift, peak magnitude, filter band, decay rate, and host galaxy type not reported in this section; only observation telescope (TESS) is explicitly mentioned.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_5693da9e84",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_5693da9e84",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_5693da9e84",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_5693da9e84",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_5693da9e84",
+      "level": "warning",
+      "message": "Redshift, peak magnitude, filter band, decay rate, and host galaxy type not reported in this section; only observation telescope (TESS) is explicitly mentioned.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_11f076c81e",
+      "level": "warning",
+      "message": "Fit parameters and goodness-of-fit metrics (residual std dev, chi-squared) not quantified in text; inferred from figure description.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_ff3fdb6b66",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_ff3fdb6b66",
+      "level": "warning",
+      "message": "No information on fitting method, parameters, or fit quality provided; only mention of contamination issue.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_ff3fdb6b66",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_cf46b7d30b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_dd02ecff92",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_dd02ecff92",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_dd02ecff92",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_29a0e21d83",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_29a0e21d83",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_99286be201",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_99286be201",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_99286be201",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_99286be201",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_99286be201",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_0b86510fb6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_72fe6d2db5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_72fe6d2db5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_72fe6d2db5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_048af52736",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_048af52736",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_048af52736",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_5f28f11624",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_5f28f11624",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_5f28f11624",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_323ec65267",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_323ec65267",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_323ec65267",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_7bdf8f7b7b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_7bdf8f7b7b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_7bdf8f7b7b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_767cd66954",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_767cd66954",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_767cd66954",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_5f3f4c9860",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_5f3f4c9860",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_5f3f4c9860",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_101596b6b8",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_101596b6b8",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_101596b6b8",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_4fd4b866d0",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_4fd4b866d0",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_4fd4b866d0",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_4791fb6d28",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_4791fb6d28",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_4791fb6d28",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_6aa72343bc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_1.",
+      "field": "value_1"
+    },
+    {
+      "record_id": "dyn_6aa72343bc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_1582dea73e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_1582dea73e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_1582dea73e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_1582dea73e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_11a5755aa6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_a45b9d7be5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_a45b9d7be5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_1.",
+      "field": "value_1"
+    },
+    {
+      "record_id": "dyn_a45b9d7be5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_a45b9d7be5",
+      "level": "warning",
+      "message": "No specific values reported; only general distribution shown in figure. Discrepancy reason inferred due to lack of numerical data.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_d9fa6933a0",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_d9fa6933a0",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_2d0dbcfb72",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_2d0dbcfb72",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_2d0dbcfb72",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_2d0dbcfb72",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_f15cf02e72",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_6e8ce264d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_42685f0dcc",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_cd65ce2563",
+      "level": "warning",
+      "message": "Required dynamic field is missing: progenitor_model.",
+      "field": "progenitor_model"
+    },
+    {
+      "record_id": "dyn_cd65ce2563",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_cd65ce2563",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_cd65ce2563",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f29791b3e5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: fit_method.",
+      "field": "fit_method"
+    },
+    {
+      "record_id": "dyn_f29791b3e5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_f29791b3e5",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f29791b3e5",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_name.",
+      "field": "metric_name"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_1.",
+      "field": "source_1"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_2.",
+      "field": "source_2"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_1.",
+      "field": "value_1"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_a96f35cf61",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_9330b5a700",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_9330b5a700",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_9330b5a700",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_9330b5a700",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_9330b5a700",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_3647e27e21",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_3647e27e21",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_3647e27e21",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_4089012696",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_4089012696",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_ef116e0bcd",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_ef116e0bcd",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_ca297782fd",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_0a72ff2199",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_0a72ff2199",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_d6d2050cca",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_d6d2050cca",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_d6d2050cca",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_d6d2050cca",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_d616191d3e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_d616191d3e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_d616191d3e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_d616191d3e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_0ffdf0d76d",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_0ffdf0d76d",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_0ffdf0d76d",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_0ffdf0d76d",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_c920ec32e1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_c920ec32e1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_c920ec32e1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_d2d8701b11",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_d2d8701b11",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_d2d8701b11",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_d2d8701b11",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_f620a5d5e5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: progenitor_model.",
+      "field": "progenitor_model"
+    },
+    {
+      "record_id": "dyn_f620a5d5e5",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_f620a5d5e5",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f620a5d5e5",
+      "level": "warning",
+      "message": "No specific progenitor model evidence mentioned for individual supernovae.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f620a5d5e5",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_e390d803c6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: fit_method.",
+      "field": "fit_method"
+    },
+    {
+      "record_id": "dyn_e390d803c6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_e390d803c6",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_e390d803c6",
+      "level": "warning",
+      "message": "No light curve fitting details provided in this excerpt.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_e390d803c6",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_name.",
+      "field": "metric_name"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_1.",
+      "field": "source_1"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_2.",
+      "field": "source_2"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_1.",
+      "field": "value_1"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "No cross-survey comparisons reported in this excerpt.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_32994b6d15",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_d42fd0877f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_d42fd0877f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_9febdf52d0",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_cff8ebc46c",
+      "level": "warning",
+      "message": "Required dynamic field is missing: fit_method.",
+      "field": "fit_method"
+    },
+    {
+      "record_id": "dyn_cff8ebc46c",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_cff8ebc46c",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_cff8ebc46c",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_6ffbf19c0f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: material.",
+      "field": "material"
+    },
+    {
+      "record_id": "dyn_6ffbf19c0f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: paper_title.",
+      "field": "paper_title"
+    },
+    {
+      "record_id": "dyn_6ffbf19c0f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_6ffbf19c0f",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_6ffbf19c0f",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_fa88ded7c4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_fa88ded7c4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_fa88ded7c4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_fa88ded7c4",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_2cf591d723",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_2cf591d723",
+      "level": "warning",
+      "message": "No specific progenitor model is directly stated; 'no clear evidence' inferred from absence of discussion on progenitor systems.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_edcb1e2815",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_092f9dde2f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_092f9dde2f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_092f9dde2f",
+      "level": "warning",
+      "message": "No external source value provided for comparison; discrepancy reason is speculative.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_d7250b9c26",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f8fc2f3504",
+      "level": "warning",
+      "message": "Required dynamic field is missing: progenitor_model.",
+      "field": "progenitor_model"
+    },
+    {
+      "record_id": "dyn_f8fc2f3504",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_f8fc2f3504",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f8fc2f3504",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_bcbf454737",
+      "level": "warning",
+      "message": "Required dynamic field is missing: fit_method.",
+      "field": "fit_method"
+    },
+    {
+      "record_id": "dyn_bcbf454737",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_bcbf454737",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_bcbf454737",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_name.",
+      "field": "metric_name"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_1.",
+      "field": "source_1"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Required dynamic field is missing: source_2.",
+      "field": "source_2"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_1.",
+      "field": "value_1"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Required dynamic field is missing: value_2.",
+      "field": "value_2"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_db437eaf20",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: material.",
+      "field": "material"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: method.",
+      "field": "method"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: paper_title.",
+      "field": "paper_title"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_4eee126213",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_4eee126213",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_4eee126213",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_4eee126213",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_72975a8453",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_72975a8453",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_72975a8453",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_72975a8453",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_f9c249b813",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_f9c249b813",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_f9c249b813",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_f9c249b813",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_80d14fbcd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_80d14fbcd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_80d14fbcd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_80d14fbcd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_c1575dcc8e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_c1575dcc8e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_c1575dcc8e",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_c1575dcc8e",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_c12a6eb731",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_c12a6eb731",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_c12a6eb731",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_c12a6eb731",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_25e3ebea35",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_25e3ebea35",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_25e3ebea35",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_25e3ebea35",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_3668785d80",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_3668785d80",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_3668785d80",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_3668785d80",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f358d7ccf9",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_f08dad2929",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f08dad2929",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_bc59ba90c9",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_bc59ba90c9",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_5ecd90928e",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_5ecd90928e",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f9afce11b8",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f9afce11b8",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_e011832a09",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_e011832a09",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_1efdd5239f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_1efdd5239f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_1efdd5239f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_1efdd5239f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_aa0774fbec",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_aa0774fbec",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_505aa66012",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_505aa66012",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_b7f6b80242",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_b7f6b80242",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_b7f6b80242",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_f2417f056e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_f2417f056e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_f2417f056e",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_ed5b586246",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_ed5b586246",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_ed5b586246",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_598157cd8b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_598157cd8b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_598157cd8b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_7342fd1b6b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_7342fd1b6b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_7342fd1b6b",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_ab1bd37618",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_ab1bd37618",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_ab1bd37618",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_78ce00bdd6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_78ce00bdd6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_78ce00bdd6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_04b9087006",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_04b9087006",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_04b9087006",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_470e0822a7",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_470e0822a7",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_470e0822a7",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_66c151bd74",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_66c151bd74",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_66c151bd74",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_964195b07f",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_964195b07f",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_045c05e470",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_045c05e470",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_85d1538fe4",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_85d1538fe4",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: material.",
+      "field": "material"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: method.",
+      "field": "method"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: paper_title.",
+      "field": "paper_title"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_cb07d7ae7f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_cb07d7ae7f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_cb07d7ae7f",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_cb07d7ae7f",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_cb07d7ae7f",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Required dynamic field is missing: decay_rate.",
+      "field": "decay_rate"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Required dynamic field is missing: filter_band.",
+      "field": "filter_band"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Required dynamic field is missing: peak_magnitude.",
+      "field": "peak_magnitude"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Required dynamic field is missing: redshift.",
+      "field": "redshift"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Required dynamic field is missing: supernova_name.",
+      "field": "supernova_name"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: condition.",
+      "field": "condition"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: material.",
+      "field": "material"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: method.",
+      "field": "method"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: metric_value.",
+      "field": "metric_value"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: paper_title.",
+      "field": "paper_title"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Required dynamic field is missing: unit.",
+      "field": "unit"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Dynamic record confidence is low and should be reviewed.",
+      "field": "confidence"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Input content is non-structured and contains only fragmented characters; no valid scientific data can be extracted.",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "record confidence is below the review threshold",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "evidence text not found on recorded PDF page",
+      "field": "record_warning"
+    },
+    {
+      "record_id": "rec_38e39abd5c",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_7d0d3a7e2b",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_9e1fd0befd",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_7fc7904252",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_0e5a3929ed",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_50ac93220b",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_b63b05fb74",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_effa56b6e2",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_6b31cf9844",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_065092e913",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_96c9fb27fe",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_c175fadb01",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_b7f4cabe9b",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_83bf66a61d",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_0224834ebe",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_1960f68588",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_912df6df05",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_a87c9f174a",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_ab3ef21c7b",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_34f99929e6",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_2287617a15",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_4423c73099",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_61acd490dc",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_2582d223e0",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_65404deb72",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_5760eecbc8",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_efcfeaf97e",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_43705d6df6",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_faf7933545",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_a1d9a46be8",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_06f28bda32",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_91a89cff5c",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_2d4a05f372",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_e56a12af27",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_6a9a047679",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_1e617ab1fc",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_a061a5be54",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_0f6e4d5ab2",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_f7bf3b6f4b",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_621e5930ab",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_a13b87d714",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_24d2067aac",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_cfc983bb24",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_9779bec6a8",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_d7800917d5",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_66e89f06fb",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_b176dc2f80",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_e61f0344bb",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_cf6900266b",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_0bd7464322",
+      "level": "warning",
+      "message": "PDF evidence has no recorded page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_630909275c",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_dd02ecff92",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_29a0e21d83",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_d9fa6933a0",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_9330b5a700",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_f54aba3d1f",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_c1575dcc8e",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_c12a6eb731",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_25e3ebea35",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_3668785d80",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_f08dad2929",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_bc59ba90c9",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_5ecd90928e",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_f9afce11b8",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_aa0774fbec",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_505aa66012",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_ce77ce83ae",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_964195b07f",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_045c05e470",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_85d1538fe4",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_38519c2864",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_c135329bd1",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_cb07d7ae7f",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_a905de4325",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    },
+    {
+      "record_id": "dyn_f6c7abc5d6",
+      "level": "warning",
+      "message": "Evidence text was not found on the recorded PDF page; verify page provenance.",
+      "field": "page"
+    }
+  ],
+  "conflicts": [],
+  "notes": [
+    "Quality report follows the Data Agent loop: provenance, schema coverage, evidence support, and conflict checks.",
+    "A parser-only result is not sufficient for official evaluation; every critical value should keep source evidence.",
+    "Cross-modal audit merged: checks=10, supported=10, partial=0, not_comparable=0."
+  ]
+}

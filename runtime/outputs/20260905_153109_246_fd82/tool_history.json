@@ -1,0 +1,2372 @@
+[
+  {
+    "call_id": "runtime_plan_task_0",
+    "tool_name": "plan_task",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool plan_task completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 9296.333299949765,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "138fcc5679a99cb3470972d05451ea6530f04cf49e9ff149f891028213c7a952",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_plan_dynamic_schema_1",
+    "tool_name": "plan_dynamic_schema",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool plan_dynamic_schema completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 26068.08470003307,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "684c433dfb4f52afa06c2d950149d238f5be90bc5ede3c59019ceda47ea84c02",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_discover_sources_2",
+    "tool_name": "discover_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool discover_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 24374.623499810696,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "38960025836f01c583231b3e6029f2a39f149c5455f5f5319080644b9bd4f90c",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_plan_multi_source_search_3",
+    "tool_name": "plan_multi_source_search",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool plan_multi_source_search completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 19242.635699920356,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "5c0dad87ff52f429042cb589b0cfe1f1690a725030a22be217a62d087817c3aa",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_sources_4",
+    "tool_name": "search_sources",
+    "status": "partial",
+    "data": {
+      "message": "Dynamic workflow tool search_sources completed with 2 failed connector request(s).",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 2
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 40997.675499878824,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "4985e80d51dd74acd3ade8fda62df6555e8a416acbc287a99b4ab0f9ae224447",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_5",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 195254.9809999764,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "d41ffdde2a2c51cb04379922f2f849c18aac49605f74a56ae7d68defa000240e",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_6",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 126.11079961061478,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "ff014acbc192cd20819fcdc9bd6aff169837b9a47c05da6e9a33f769a9d570e2",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_7",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 20,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 104044.83180027455,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "a0b95efe9b0bf6b6a15388993c03a4aa58fa78bceddf7093812927940d462cf5",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_8",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 214403.7218997255,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "d1f2067b301a96edd5bfb3c822c8840d852f2160a2370d4239460a4a48a6bbf5",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_9",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 242457.94659946114,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "caf68edb49563f7394cee9ee9801599503ac187cf03470b5fd40ce530a28a95a",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_10",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 555974.357499741,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "dfcdf186df41087e57fb97d09fbb82cebe18c2a8dcf37993558d7696265d623b",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_11",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 296248.8199993968,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "140e0373424caddea5fcef474c73b1b27e5e821d29b83ce50075317d17aa5221",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_12",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 392958.92239920795,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "03d1ab50800aa7b9d734fcebef2cb2ecc5b9721254bfd500fb23391c287c042d",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_13",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 474.93889927864075,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "3729e8b504ba99b45bd833d70fc3f4b155c6c133cac5cac72efb93e0fcd8b39e",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_14",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 533.0613004043698,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "b7557801e25b1d961e33bded399e9e175606ce1538baca6dac10002ef8d66669",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_15",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 13421.243300661445,
+    "retry_count": 0,
+    "workflow_revision": 0,
+    "idempotency_key": "10ad8630e6d3f2e0e31a9ab1b3680275f2fb9ae02618582c216265d93ebb671a",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_more_16",
+    "tool_name": "search_more",
+    "status": "partial",
+    "data": {
+      "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+      "output_counts": {
+        "search_requests": 17,
+        "new_sources": 358,
+        "failed_requests": 5,
+        "planning_batches": 3,
+        "failed_planning_batches": 0,
+        "planning_candidates": 100
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 110170.61759997159,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "0d46ed819c048c480f458274c592563f5bb6ba93bbd45925ce21e74190ec5488",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_17",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 400029.79170065373,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "a7c1be7f6fea95d606ec3c2cd5488cd434af631fdf0b57d8b6fc32c281ea8f67",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_18",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 587.4051004648209,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "987fb3e9edeb113542dc6ef66638b80f2f2f36c80d71615f560dd6d89cf6f64e",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_19",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 20,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 11152.484900318086,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "c6339541ba491d325f9de87606b27baefe880b2c801e5e07b03546994d52884f",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_20",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 431301.09390057623,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "b9864cbad2bc98f5b424602dff17525a7671efdc18d9fd0dc523ad71c957c896",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_21",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 96856.19569942355,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "f9585b3abac967816413b1dfb87e4c0cf48bba8d27b31124d8d9a393800b8f1d",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_22",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 282584.9664993584,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "754209f289a170a630175ca6a2c7a6700cf821b537d90d9d9c1905b1f5ed65bd",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_23",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 404512.02439982444,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "fffcd242da4052abcebe25c4802d6e5b88a08b94c0fc01527341d50f49725921",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_24",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 387966.11640043557,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "7cde488dc3e67312b4b080d1b4835763a7a487b32e99c7fbd34acebe05520034",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_25",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1792.8659999743104,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "31bb2632151052a94fcb288a7695ac5ab8077f5c932d6548160154de163c160a",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_26",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1187.919800169766,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "d9f9a173bbfd2ef359e131193211db95980fb15e5550bd191049688ff0cc856a",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_27",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 10837.646399624646,
+    "retry_count": 0,
+    "workflow_revision": 1,
+    "idempotency_key": "62424d87f631c573ebd3e3ef27daae839d19bdd9f9d0b6631e77395e2f760395",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_more_28",
+    "tool_name": "search_more",
+    "status": "partial",
+    "data": {
+      "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+      "output_counts": {
+        "search_requests": 17,
+        "new_sources": 100,
+        "failed_requests": 5,
+        "planning_batches": 3,
+        "failed_planning_batches": 0,
+        "planning_candidates": 100
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 106858.09489991516,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "765296526545cbcfd57988e4e8c3a53bae8a20d8015bd56017cb29d2ad57c54c",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_29",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 163063.03980015218,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "922ce6c816cdff198452762ef7ad61f05fd1dfa2715ff4dbda0cfe6f6971821f",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_30",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 927.9185002669692,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "2ac61c62b4cffca1a1a1cdad70b9ed329b3c54ed66d5506a85fb1c40cc2ce197",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_31",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 20,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 284454.0008995682,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "32dea00e8218dae1b39645db098ab74021848fd0c8eea94e8e554ad9ff2d1cd4",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_32",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 683131.1179008335,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "13903b44d2394f6002878deb34fb0165f487c42dfd4a83a116518549de9d904e",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_33",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 60637.88890000433,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "3fa368615cd65e854c9f755f830fc651759b0796406aaa1d43df5e8c59732e33",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_34",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 121192.95090064406,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "18f899e56e0433a05ba9d09fe6a1e23d3b9fd2a9fa9dd130b9961e5c4e71b7ab",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_35",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 377649.21949990094,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "17b6d3b9af05d2621937b34909a314d2da828c54e0e1bc2d1a5c002281c8b466",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_36",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 376046.6371998191,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "526f1dbc0ba8e4a98e6c06394020a0f4dbc9f933f60cc6af7621494d89b8f565",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_37",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1509.0614994987845,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "8ceccabf2d3f7e20b7689a0a07fe87176130bcd3e5823e84090c3afd5f03e601",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_38",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1458.9815996587276,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "c9b27194d3f620511250f5dc0d05e1e99f5f63f308dd3494d27cbaf21efa1cb1",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_39",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 7783.2666002213955,
+    "retry_count": 0,
+    "workflow_revision": 2,
+    "idempotency_key": "900e0529040ae825a06826ad928faf6451bd58a94f9865a88918eb0d1749398e",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_more_40",
+    "tool_name": "search_more",
+    "status": "partial",
+    "data": {
+      "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+      "output_counts": {
+        "search_requests": 19,
+        "new_sources": 255,
+        "failed_requests": 5,
+        "planning_batches": 3,
+        "failed_planning_batches": 0,
+        "planning_candidates": 100
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 102474.67190027237,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "99bf3295a9d30819a2f60959d86c495bf84dbd0c1eb8250b2704e05a2666a498",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_41",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 131423.99919964373,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "5d2183c99fb3e507a469fd60ee0eeac6d346f8ed8b06a872c26e7100e5830295",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_42",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1247.4777000024915,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "db4ab7d85bbb3d6f73ec2888c4c6505d87bc60c728ea8e0d0813e4153a85b4b1",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_43",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 19,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 5396.321299485862,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "8915ffc185e878eebae7b300d68121a089ae80661dd55a7890bc5e20d49eb478",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_44",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 857772.9727998376,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "347f64dfb5bb7d0f78dd74af5bc57dde968bdfb0af81ac91370652fd83bae562",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_45",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 16741.671800613403,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "d3396af036057527ef1367ae6391d4eb65b499c6c37f7904b6a6d5cb11882226",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_46",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 32032.48570021242,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "ff2ee69ccf34095fd8e6be99220a7a9c70ab0ba40f2863fd9a2246440e880624",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_47",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 443352.62900032103,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "36548bdbcb701b070398fa92d458278516f382cdd47eb1eb90edca7514e9a8c8",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_48",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 444299.99169986695,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "f4bc9af9306b1483c4088cd7937a9b2a193b35b7d9c92828b0cb0fb3fad02b17",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_49",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1905.1218004897237,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "aec708b35e33297c02d65c96698d3e8eb89ba9b00b4f071b4a1fc75cd28e40f3",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_50",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1905.9081999585032,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "deee98b9d38e56bfb13834e4177f84147aff804692ade6c9914bde0dd61a75af",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_51",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 12294.498500414193,
+    "retry_count": 0,
+    "workflow_revision": 3,
+    "idempotency_key": "9fee5fe77f4b0968258291a782c6e8258a8b3955537a0ac11eaa445989a08430",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_more_52",
+    "tool_name": "search_more",
+    "status": "partial",
+    "data": {
+      "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+      "output_counts": {
+        "search_requests": 19,
+        "new_sources": 21,
+        "failed_requests": 5,
+        "planning_batches": 3,
+        "failed_planning_batches": 0,
+        "planning_candidates": 100
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 84700.79040061682,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "8be4a13e1012839c67a935677d79a4cb045d2d7a928ec539e986f25ec1a017b9",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_53",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 176712.98389974982,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "c1b605f433163f3d68e9e4d92efcadb84c6875e889089b3c983cfcecfc589725",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_54",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1490.8830001950264,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "cf1b80bbf86a8bc7656730769a95223c1a9186530749774c7a795b1e534beaa1",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_55",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 20,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1694.3978006020188,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "4337b80f43921894d572111a49993f471ccff08e04486e929288268b75703e13",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_56",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1039396.3227998465,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "348214f7ed5a1d28c8e081ba3cf7e989396e1e82422a89e9328515175f495bd8",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_57",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 27225.927099585533,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "866b178f46bc147f310a911a3954d2a3341ce63e890c39cbeb3eee37e9aec9af",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_58",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 65320.50700020045,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "461fc4c8306da6688fc7446cb27f972cdb9ea1614f9c6a01c30f808e27bdcbf1",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_59",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 475106.30089975893,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "7ab0c80eb7f8e0682c0005c7d2f784d0c1cc59810e6f37c607a1be3318b168e9",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_60",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 437138.1144998595,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "8b7ec2305893245f362fb70e11cdf22381558b22acc868e5cb7c1bf9ef05a5f3",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_61",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 2245.381699874997,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "5a179c50cef53c1e80a9107b347d8aa26a9bacea02ffcfee2444d7cab6abb4c5",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_62",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 2324.0109998732805,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "67fa7ac4d563656f74e91132dc06a40fde619502b13ceb3a79c2c3127df2e528",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_63",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 12703.078899532557,
+    "retry_count": 0,
+    "workflow_revision": 4,
+    "idempotency_key": "c5f47dfc65a9df981dd0f935d5749efdf3833a2178b607bca58b599a2b6e48ed",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_more_64",
+    "tool_name": "search_more",
+    "status": "partial",
+    "data": {
+      "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+      "output_counts": {
+        "search_requests": 19,
+        "new_sources": 159,
+        "failed_requests": 6,
+        "planning_batches": 3,
+        "failed_planning_batches": 0,
+        "planning_candidates": 100
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 97377.26450059563,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "ec5a5619b03911ac225240a5f9e116f7f3bae79c884d15cc23303476374b185d",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_65",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 169536.3814998418,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "ef9f2a5b07ba6210b1a87d75da84c648cf3158d09a4679cc71a5d0ea8aa292b8",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_66",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1938.7202998623252,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "57e1f72da360bc49e8caa4561d73c3071743e8d4349a94cf8f2292cad5475442",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_67",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 20,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 6415.792999789119,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "5ed30958a7e9e0388b8f00f7edde1fb58bbd9e5df041d86f58d4eea088e656bd",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_68",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1233774.8122997582,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "72a678b568eb8d5684134f9c312826fbb355e4bc0664d049f06f4883ef9fea39",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_69",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 24161.072199232876,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "f1959d623fa9bfdbbdad3b1c3a230bb290cbf2bf88895c92b03302014581fa41",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_70",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 25309.310799464583,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "cfcd9cba587204cdde405d473168fab78b4c1ec1e701b6d3af34d1c90d27f47d",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_71",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 414980.35909980536,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "ad36e028b5be415820a89ff624cae19c8a51187df29a3d109a8b3982db8cf8ef",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_72",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 460359.19929947704,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "72c0e5065e46b2c57860a7cef48549d07670e23b54814158181ad672669d9deb",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_73",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 3397.537499666214,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "77dde34247ae51a4ec19aab775384c25b8e5e831b15537cc14d0bf70de7fc5ae",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_74",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 2670.3139999881387,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "fbb7900e84e90a05ab31af017006ba996e35d750723046ea752e4abd6593e95f",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_75",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 10846.25540021807,
+    "retry_count": 0,
+    "workflow_revision": 5,
+    "idempotency_key": "bbad4586d8e16becb1426c48e695771ed1d1b18545c9eaff6e9d4d4a25a55f4d",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_search_more_76",
+    "tool_name": "search_more",
+    "status": "partial",
+    "data": {
+      "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+      "output_counts": {
+        "search_requests": 14,
+        "new_sources": 76,
+        "failed_requests": 3,
+        "planning_batches": 3,
+        "failed_planning_batches": 0,
+        "planning_candidates": 100
+      },
+      "legacy_status": "partial"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 64106.657300144434,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "c8dc1f213b9f7627442bf830f2fc84ad5c211ca7735ffdfdf768a301a8dcee5e",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_select_sources_77",
+    "tool_name": "select_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool select_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 175417.59589966387,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "076ab2d6c07232a464858ead91944fc53ecd0f89d00c018400f4e0eb8f36a4e2",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_triage_sources_78",
+    "tool_name": "triage_sources",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool triage_sources completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1950.6636997684836,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "68d1d2c868049ef62a79f90338ca88a05f425f3f5b3c25fa7b8c8a47b6417863",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_ingest_arxiv_pdfs_79",
+    "tool_name": "ingest_arxiv_pdfs",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+      "output_counts": {
+        "files_delta": 20,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 2182.1707002818584,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "ca92695949cca6f3f02590adabc94357774e8afeec7a6e061b11941a231b1121",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_parse_source_content_80",
+    "tool_name": "parse_source_content",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool parse_source_content completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 1420483.6809001863,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "ce87bf00e586d8132a2effb30ffc0def630a0b5ebba87673ace01c1180d8c149",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_figures_81",
+    "tool_name": "extract_figures",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_figures completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 21005.304699763656,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "d528b224cf282589e08707b592feee661123950f54d70fcfdfb5a6fa8febf355",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_interpret_sections_82",
+    "tool_name": "interpret_sections",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool interpret_sections completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 37045.41189968586,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "e8c46be22574c75f56edc40aebc4c0666e5314c6b0bf431433703eaa28ecca50",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_dynamic_records_83",
+    "tool_name": "extract_dynamic_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_dynamic_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 340823.0972997844,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "8aa4a93709063089d642e90742c62bee8da0eb0786f491491841dcf35602c730",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_extract_records_84",
+    "tool_name": "extract_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool extract_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 412286.0827008262,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "682caa62cb0f81d92f17705c60c8c6b56c5fd2ba046cf7aab8ed913520594ce6",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_normalize_records_85",
+    "tool_name": "normalize_records",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool normalize_records completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 2978.4228997305036,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "b383a4d371aa5955cd73092e74830b285d8fdc0029a6e5120fa99d7d9c1343a2",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_track_provenance_86",
+    "tool_name": "track_provenance",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool track_provenance completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 3026.3879001140594,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "085458292ba401f6ab920280fcfd95a369b71214d48162368790c4c406b8ad92",
+    "cached": false
+  },
+  {
+    "call_id": "runtime_validate_quality_87",
+    "tool_name": "validate_quality",
+    "status": "completed",
+    "data": {
+      "message": "Dynamic workflow tool validate_quality completed.",
+      "output_counts": {
+        "files_delta": 0,
+        "source_catalog_delta": 0,
+        "artifact_delta": 0,
+        "text_blocks_delta": 0,
+        "tables_delta": 0,
+        "chart_extractions_delta": 0,
+        "failed_connector_requests": 0
+      },
+      "legacy_status": "completed"
+    },
+    "artifact_refs": [],
+    "evidence_refs": [],
+    "warnings": [],
+    "errors": [],
+    "elapsed_ms": 12276.58519987017,
+    "retry_count": 0,
+    "workflow_revision": 6,
+    "idempotency_key": "9b8f3b4fc016bf20106abb4d91cbbfe2649d174c2b940802e596394ff7dd54d9",
+    "cached": false
+  }
+]

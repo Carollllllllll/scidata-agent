@@ -1,0 +1,395 @@
+{
+  "research_goal": "To analyze Type Ia supernova light curves by integrating peak magnitude, decay rate, and observational evidence of progenitor systems, enabling comparative studies across datasets and supporting model validation in cosmology.",
+  "domain": "astronomy",
+  "task_type": "data_extraction",
+  "user_focus": [
+    "peak_magnitude",
+    "decay_rate",
+    "progenitor_model",
+    "host_galaxy_type",
+    "observation_telescope",
+    "filter_band",
+    "redshift"
+  ],
+  "time_range": null,
+  "source_requirements": [
+    "papers",
+    "tables",
+    "supplementary_materials",
+    "open_databases",
+    "images_or_charts"
+  ],
+  "information_needs": [
+    {
+      "need_name": "peak magnitude and associated filter band",
+      "reason": "Critical for standardizing luminosity measurements and comparing brightness across surveys; essential for cosmological distance estimation.",
+      "priority": "high"
+    },
+    {
+      "need_name": "decay rate (e.g., delta m15, stretch factor)",
+      "reason": "Determines the shape of the light curve and is used to classify SN Ia and correct for intrinsic brightness variations.",
+      "priority": "high"
+    },
+    {
+      "need_name": "progenitor system evidence",
+      "reason": "Supports model validation by linking observed light curves to physical origins (e.g., double-degenerate vs. single-degenerate).",
+      "priority": "high"
+    },
+    {
+      "need_name": "host galaxy type and redshift",
+      "reason": "Helps assess environmental effects on SN Ia properties and enables accurate K-correction and cosmological modeling.",
+      "priority": "high"
+    },
+    {
+      "need_name": "observation telescope and filter band",
+      "reason": "Enables cross-calibration between surveys and identification of systematic biases due to instrumental response or bandpass differences.",
+      "priority": "high"
+    },
+    {
+      "need_name": "light curve fit parameters and residuals",
+      "reason": "Provides context for how peak magnitude and decay rate were derived, allowing assessment of data quality and fitting methodology.",
+      "priority": "medium"
+    },
+    {
+      "need_name": "metadata on data provenance and confidence",
+      "reason": "Ensures traceability and reliability of extracted values, especially when multiple sources report conflicting results.",
+      "priority": "high"
+    }
+  ],
+  "dynamic_tables": [
+    {
+      "table_name": "light_curve_metrics",
+      "description": "Extracts key photometric properties of Type Ia supernovae including peak magnitude and decay rate, linked to specific observations and filters.",
+      "entity_type": "metric",
+      "priority": "high",
+      "fields": [
+        {
+          "name": "supernova_name",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Unique identifier for the supernova (e.g., SN 2011fe, PS1-13bnr)",
+          "examples": [
+            "SN 2011fe",
+            "DES16C2jw"
+          ]
+        },
+        {
+          "name": "redshift",
+          "type": "number",
+          "required": true,
+          "evidence_required": true,
+          "description": "Cosmological redshift measured from spectroscopic data; used for K-correction and distance modulus calculation",
+          "examples": [
+            0.012,
+            0.54
+          ]
+        },
+        {
+          "name": "peak_magnitude",
+          "type": "number",
+          "required": true,
+          "evidence_required": true,
+          "description": "Apparent magnitude at maximum brightness; must be reported in a standard filter band",
+          "examples": [
+            -19.2,
+            -18.7
+          ]
+        },
+        {
+          "name": "filter_band",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Photometric band used (e.g., B, V, g, r, i); critical for consistency across surveys",
+          "examples": [
+            "V",
+            "g",
+            "r"
+          ]
+        },
+        {
+          "name": "decay_rate",
+          "type": "number",
+          "required": true,
+          "evidence_required": true,
+          "description": "Rate of decline in brightness after peak; commonly expressed as delta m15 (mag/100 days) or stretch factor",
+          "examples": [
+            1.1,
+            0.95
+          ]
+        },
+        {
+          "name": "observation_telescope",
+          "type": "string",
+          "required": false,
+          "evidence_required": true,
+          "description": "Telescope used for photometric observations (e.g., Keck, LSST, Hubble)",
+          "examples": [
+            "Keck",
+            "LSST",
+            "Magellan"
+          ]
+        },
+        {
+          "name": "host_galaxy_type",
+          "type": "string",
+          "required": false,
+          "evidence_required": true,
+          "description": "Morphological classification of host galaxy (e.g., spiral, elliptical, irregular)",
+          "examples": [
+            "Spiral",
+            "Elliptical"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "progenitor_evidence",
+      "description": "Captures observational and theoretical support for proposed progenitor models of each supernova.",
+      "entity_type": "evidence",
+      "priority": "high",
+      "fields": [
+        {
+          "name": "supernova_name",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Reference to the supernova being analyzed",
+          "examples": [
+            "SN 2011fe",
+            "SN 2014J"
+          ]
+        },
+        {
+          "name": "progenitor_model",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Proposed origin scenario: e.g., 'double-degenerate', 'single-degenerate', 'hybrid', 'no clear evidence'",
+          "examples": [
+            "single-degenerate",
+            "double-degenerate",
+            "ambiguous"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "light_curve_fits",
+      "description": "Records details about light curve fitting procedures, including parameters, residuals, and goodness-of-fit metrics.",
+      "entity_type": "method",
+      "priority": "medium",
+      "fields": [
+        {
+          "name": "supernova_name",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Target supernova for which light curve was fitted",
+          "examples": [
+            "SN 2012fr",
+            "PS1-13bnr"
+          ]
+        },
+        {
+          "name": "fit_method",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Name of fitting algorithm or model used (e.g., SALT2, MLCS2k2, SiFTO)",
+          "examples": [
+            "SALT2",
+            "MLCS2k2"
+          ]
+        },
+        {
+          "name": "fit_parameters",
+          "type": "list[string]",
+          "required": false,
+          "evidence_required": true,
+          "description": "List of fitted parameters (e.g., amplitude, time of peak, stretch, color excess)",
+          "examples": [
+            "stretch=1.05",
+            "color=0.12",
+            "amplitude=-19.3"
+          ]
+        },
+        {
+          "name": "residual_std_dev",
+          "type": "number",
+          "required": false,
+          "evidence_required": true,
+          "description": "Standard deviation of residuals from the best-fit model; indicates fit quality",
+          "examples": [
+            0.08,
+            0.15
+          ]
+        },
+        {
+          "name": "chi_squared",
+          "type": "number",
+          "required": false,
+          "evidence_required": true,
+          "description": "Chi-squared value indicating statistical fit quality",
+          "examples": [
+            12.4,
+            23.1
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "cross_survey_comparisons",
+      "description": "Identifies and documents discrepancies between multiple studies reporting the same metric for a given supernova.",
+      "entity_type": "limitation",
+      "priority": "high",
+      "fields": [
+        {
+          "name": "supernova_name",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Supernova subject to comparison across sources",
+          "examples": [
+            "SN 2011fe",
+            "SN 2014J"
+          ]
+        },
+        {
+          "name": "metric_name",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Name of the metric compared (e.g., peak_magnitude, decay_rate)",
+          "examples": [
+            "peak_magnitude",
+            "delta_m15"
+          ]
+        },
+        {
+          "name": "source_1",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "First source (paper, database, etc.) reporting the value",
+          "examples": [
+            "SNLS Collaboration 2018",
+            "DES 2020"
+          ]
+        },
+        {
+          "name": "value_1",
+          "type": "number",
+          "required": true,
+          "evidence_required": true,
+          "description": "Value reported by first source",
+          "examples": [
+            -19.2,
+            1.1
+          ]
+        },
+        {
+          "name": "source_2",
+          "type": "string",
+          "required": true,
+          "evidence_required": true,
+          "description": "Second source reporting a different value",
+          "examples": [
+            "KAIT 2012",
+            "COSMOS 2019"
+          ]
+        },
+        {
+          "name": "value_2",
+          "type": "number",
+          "required": true,
+          "evidence_required": true,
+          "description": "Value reported by second source",
+          "examples": [
+            -18.9,
+            1.3
+          ]
+        },
+        {
+          "name": "discrepancy_reason",
+          "type": "string",
+          "required": false,
+          "evidence_required": true,
+          "description": "Brief explanation of possible cause (e.g., different filter bands, fitting method, sample selection)",
+          "examples": [
+            "Different filter band (B vs. V)",
+            "Use of SALT2 vs. MLCS2k2"
+          ]
+        }
+      ]
+    },
+    {
+      "table_name": "other_required_fields",
+      "description": "Task-specific fields omitted from the LLM-authored grouping.",
+      "entity_type": "other",
+      "priority": "high",
+      "fields": [
+        {
+          "name": "paper_title",
+          "type": "string|number|null",
+          "required": true,
+          "evidence_required": true,
+          "description": "Required by the task plan and deterministically restored.",
+          "examples": []
+        },
+        {
+          "name": "material",
+          "type": "string|number|null",
+          "required": true,
+          "evidence_required": true,
+          "description": "Required by the task plan and deterministically restored.",
+          "examples": []
+        },
+        {
+          "name": "method",
+          "type": "string|number|null",
+          "required": true,
+          "evidence_required": true,
+          "description": "Required by the task plan and deterministically restored.",
+          "examples": []
+        },
+        {
+          "name": "metric_value",
+          "type": "string|number|null",
+          "required": true,
+          "evidence_required": true,
+          "description": "Required by the task plan and deterministically restored.",
+          "examples": []
+        },
+        {
+          "name": "unit",
+          "type": "string|number|null",
+          "required": true,
+          "evidence_required": true,
+          "description": "Required by the task plan and deterministically restored.",
+          "examples": []
+        },
+        {
+          "name": "condition",
+          "type": "string|number|null",
+          "required": true,
+          "evidence_required": true,
+          "description": "Required by the task plan and deterministically restored.",
+          "examples": []
+        }
+      ]
+    }
+  ],
+  "quality_rules": [
+    "All extracted values must be directly traceable to a verifiable source (paper, table, figure, or supplementary material).",
+    "Evidence_text must include a verbatim excerpt or caption that supports the claim.",
+    "Confidence scores must reflect data quality and source reliability; no hallucinated or assumed values allowed.",
+    "When multiple sources report conflicting values for the same metric and supernova, the discrepancy must be recorded in the cross_survey_comparisons table.",
+    "Filter band and redshift must be consistent with published standards; if uncertain, flag with 'uncertain' in evidence_text.",
+    "Do not infer or extrapolate missing values; use null if information is unavailable.",
+    "Record-level provenance fields are stored outside dynamic table fields and must not be duplicated.",
+    "Task-specific fields omitted by the schema planner were restored in other_required_fields."
+  ],
+  "missing_data_policy": "Use null for missing information; do not fabricate values."
+}

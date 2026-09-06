@@ -1,0 +1,3393 @@
+[
+  {
+    "review_id": "review_ebccb35dff7d",
+    "subject_type": "coverage_gap",
+    "subject_id": "evidence_dataset_76f747de",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: Required evidence: dataset",
+    "reason": "No parsed evidence of type 'dataset' is available.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "unavailable",
+      "missing_fields": [],
+      "missing_evidence_types": [
+        "dataset"
+      ],
+      "evidence_count": 0,
+      "recommended_actions": [
+        "download_artifact",
+        "read_file_manifest",
+        "parse_csv"
+      ]
+    }
+  },
+  {
+    "review_id": "review_57bd1f49f30c",
+    "subject_type": "coverage_gap",
+    "subject_id": "evidence_supplementary_material_8aa0671c",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: Required evidence: supplementary_material",
+    "reason": "No parsed evidence of type 'supplementary_material' is available.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "missing",
+      "missing_fields": [],
+      "missing_evidence_types": [
+        "supplementary_material"
+      ],
+      "evidence_count": 0,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_b14828860b54",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_decay_rate_59f98f00",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: decay_rate",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "decay_rate"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 24,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_86b8d56bfeb7",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_filter_band_23d27447",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: filter_band",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "filter_band"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 25,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_c997dd93579c",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_peak_magnitude_59b5b2f0",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: peak_magnitude",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "peak_magnitude"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 7,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_666c4e329488",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_progenitor_model_c3ff8f7a",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: progenitor_model",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "progenitor_model"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 10,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_823dec650eb4",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_redshift_2ef0ce79",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: redshift",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "redshift"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 3,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_02c3a369d3d0",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_supernova_name_74ca32b5",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: supernova_name",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "supernova_name"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 50,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_f635d56514db",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_value_1_bc679926",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: value_1",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "value_1"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 2,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_ae1c775d48a2",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_value_2_72224b17",
+    "priority": "high",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: value_2",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "value_2"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 1,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_da003cfdb1f7",
+    "subject_type": "record",
+    "subject_id": "dyn_32994b6d15",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_32994b6d15",
+    "reason": "No cross-survey comparisons reported in this excerpt. | required dynamic field missing: supernova_name | required dynamic field missing: metric_name | required dynamic field missing: source_1 | required dynamic field missing: value_1 | required dynamic field missing: source_2 | required dynamic field missing: value_2 | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_32994b6d15",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_af880e77a2a6"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_6b5dcaabc2aa",
+    "subject_type": "record",
+    "subject_id": "dyn_38519c2864",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_38519c2864",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "record_id": "dyn_38519c2864",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_30fcd6fe2245"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_22defed016bd",
+    "subject_type": "record",
+    "subject_id": "dyn_42685f0dcc",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_42685f0dcc",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_9602025v1_explosion_models_for_type_ia_supernovae_a_comparison_with_observed_light_curves_.pdf",
+    "page": 7,
+    "record_id": "dyn_42685f0dcc",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3e79ebae9feb"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_cc4bbf8da916",
+    "subject_type": "record",
+    "subject_id": "dyn_6ffbf19c0f",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_6ffbf19c0f",
+    "reason": "required dynamic field missing: paper_title | required dynamic field missing: material | required dynamic field missing: unit | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_0711_1375v2_light_curves_of_five_type_ia_supernovae_at_intermediate_redshift.pdf",
+    "page": 6,
+    "record_id": "dyn_6ffbf19c0f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d30b3eea082c"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_3d18462b82c1",
+    "subject_type": "record",
+    "subject_id": "dyn_9330b5a700",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_9330b5a700",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9602025v1_explosion_models_for_type_ia_supernovae_a_comparison_with_observed_light_curves_.pdf",
+    "page": 7,
+    "record_id": "dyn_9330b5a700",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d642b3f5e6e4"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_cfb833880162",
+    "subject_type": "record",
+    "subject_id": "dyn_a905de4325",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a905de4325",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 6,
+    "record_id": "dyn_a905de4325",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_bd3e0ce998ef"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_b0f637a0ad1f",
+    "subject_type": "record",
+    "subject_id": "dyn_a96f35cf61",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a96f35cf61",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: metric_name | required dynamic field missing: source_1 | required dynamic field missing: value_1 | required dynamic field missing: source_2 | required dynamic field missing: value_2 | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_9602025v1_explosion_models_for_type_ia_supernovae_a_comparison_with_observed_light_curves_.pdf",
+    "page": 7,
+    "record_id": "dyn_a96f35cf61",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3c476c13ca2f"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_95125d3a6db2",
+    "subject_type": "record",
+    "subject_id": "dyn_bcbf454737",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_bcbf454737",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: fit_method | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_bcbf454737",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_bf6f4ad0225c"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_ed39b2a85089",
+    "subject_type": "record",
+    "subject_id": "dyn_c135329bd1",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_c135329bd1",
+    "reason": "required dynamic field missing: paper_title | required dynamic field missing: material | required dynamic field missing: method | required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2607_20599v1_semi_analytical_light_curve_model_for_transients_preceding_binary_mergers_i_supe.pdf",
+    "page": 8,
+    "record_id": "dyn_c135329bd1",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_535a22fa8d88"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_c7a7b76b98b4",
+    "subject_type": "record",
+    "subject_id": "dyn_cd65ce2563",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_cd65ce2563",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: progenitor_model | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_9602025v1_explosion_models_for_type_ia_supernovae_a_comparison_with_observed_light_curves_.pdf",
+    "page": 7,
+    "record_id": "dyn_cd65ce2563",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_a27348829c7a"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_13c2c5fb4a47",
+    "subject_type": "record",
+    "subject_id": "dyn_ce77ce83ae",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ce77ce83ae",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 4,
+    "record_id": "dyn_ce77ce83ae",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_2bdf1699a970"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_9dea610f549e",
+    "subject_type": "record",
+    "subject_id": "dyn_cff8ebc46c",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_cff8ebc46c",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: fit_method | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_0711_1375v2_light_curves_of_five_type_ia_supernovae_at_intermediate_redshift.pdf",
+    "page": 6,
+    "record_id": "dyn_cff8ebc46c",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_ba2ba1a6307a"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_3e82176db2fd",
+    "subject_type": "record",
+    "subject_id": "dyn_d7250b9c26",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d7250b9c26",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_d7250b9c26",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_732491f6f4bc"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_5749925944fc",
+    "subject_type": "record",
+    "subject_id": "dyn_db437eaf20",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_db437eaf20",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: metric_name | required dynamic field missing: source_1 | required dynamic field missing: value_1 | required dynamic field missing: source_2 | required dynamic field missing: value_2 | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_db437eaf20",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_afc563f7d66b"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_47abc055bbe1",
+    "subject_type": "record",
+    "subject_id": "dyn_e390d803c6",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_e390d803c6",
+    "reason": "No light curve fitting details provided in this excerpt. | required dynamic field missing: supernova_name | required dynamic field missing: fit_method | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_e390d803c6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_1aa7d13c8c67"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_8e8195c1a9f7",
+    "subject_type": "record",
+    "subject_id": "dyn_f29791b3e5",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f29791b3e5",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: fit_method | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_9602025v1_explosion_models_for_type_ia_supernovae_a_comparison_with_observed_light_curves_.pdf",
+    "page": 7,
+    "record_id": "dyn_f29791b3e5",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_13b1d60ac498"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_70cd3f2ae08e",
+    "subject_type": "record",
+    "subject_id": "dyn_f54aba3d1f",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f54aba3d1f",
+    "reason": "required dynamic field missing: paper_title | required dynamic field missing: material | required dynamic field missing: method | required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_f54aba3d1f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d20448e3b27a"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_4741730f94a0",
+    "subject_type": "record",
+    "subject_id": "dyn_f620a5d5e5",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f620a5d5e5",
+    "reason": "No specific progenitor model evidence mentioned for individual supernovae. | required dynamic field missing: supernova_name | required dynamic field missing: progenitor_model | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_f620a5d5e5",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_5d03bd1213d3"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_b4299a1a3ccd",
+    "subject_type": "record",
+    "subject_id": "dyn_f6c7abc5d6",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f6c7abc5d6",
+    "reason": "Input content is non-structured and contains only fragmented characters; no valid scientific data can be extracted. | required dynamic field missing: paper_title | required dynamic field missing: material | required dynamic field missing: method | required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review | record confidence is below the review threshold | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 6,
+    "record_id": "dyn_f6c7abc5d6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_cc92efa7a202"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_c766a40a0497",
+    "subject_type": "record",
+    "subject_id": "dyn_f8fc2f3504",
+    "priority": "high",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f8fc2f3504",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: progenitor_model | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_f8fc2f3504",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_2399cb0dfd43"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.0
+    }
+  },
+  {
+    "review_id": "review_25486ab54fd9",
+    "subject_type": "record",
+    "subject_id": "dyn_01252665af",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_01252665af",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": 3,
+    "record_id": "dyn_01252665af",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_22680e24a22a"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_47c900ac2456",
+    "subject_type": "record",
+    "subject_id": "dyn_0224834ebe",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0224834ebe",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0601088v1_late_light_curves_of_normally_luminous_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_0224834ebe",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d0e0330bba5c"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_984cf6e781a8",
+    "subject_type": "record",
+    "subject_id": "dyn_045c05e470",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_045c05e470",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "record_id": "dyn_045c05e470",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_545cda123d3d"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_f0ead7800f34",
+    "subject_type": "record",
+    "subject_id": "dyn_048af52736",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_048af52736",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_048af52736",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d0209454a7aa"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_1cab4c3a38d9",
+    "subject_type": "record",
+    "subject_id": "dyn_04b9087006",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_04b9087006",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_04b9087006",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_f1824c3a3ceb"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_0096d47e06eb",
+    "subject_type": "record",
+    "subject_id": "dyn_056fb07717",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_056fb07717",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: metric_name | required dynamic field missing: source_1 | required dynamic field missing: value_1 | required dynamic field missing: source_2 | required dynamic field missing: value_2 | record contains extraction warnings that require review",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": 3,
+    "record_id": "dyn_056fb07717",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d7040ec33766"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_9e99d83fa7bc",
+    "subject_type": "record",
+    "subject_id": "dyn_065092e913",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_065092e913",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0610084v1_late_light_curves_of_normal_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_065092e913",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_83cae53c0eb3"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_6a059f5f4422",
+    "subject_type": "record",
+    "subject_id": "dyn_06f28bda32",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_06f28bda32",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1106_3968v2_the_most_slowly_declining_type_ia_supernova_2001ay.pdf",
+    "page": null,
+    "record_id": "dyn_06f28bda32",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_4e990dca040c"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_f40fd0da331c",
+    "subject_type": "record",
+    "subject_id": "dyn_092f9dde2f",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_092f9dde2f",
+    "reason": "No external source value provided for comparison; discrepancy reason is speculative. | required dynamic field missing: supernova_name | required dynamic field missing: value_2 | record contains extraction warnings that require review",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_092f9dde2f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3b3b0c71f8ba"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.8
+    }
+  },
+  {
+    "review_id": "review_e971d63d7241",
+    "subject_type": "record",
+    "subject_id": "dyn_0a72ff2199",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0a72ff2199",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 5,
+    "record_id": "dyn_0a72ff2199",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_b8370e0aeda1"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_8a9e5d85cb80",
+    "subject_type": "record",
+    "subject_id": "dyn_0b86510fb6",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0b86510fb6",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 4,
+    "record_id": "dyn_0b86510fb6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_530fa6398038"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_3ce40aab9cf6",
+    "subject_type": "record",
+    "subject_id": "dyn_0bd7464322",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0bd7464322",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9803229v1_nebular_velocities_in_type_ia_supernovae_and_their_relationship_to_light_curves.pdf",
+    "page": null,
+    "record_id": "dyn_0bd7464322",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_a5422b164704"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_0d451b94a6eb",
+    "subject_type": "record",
+    "subject_id": "dyn_0e5a3929ed",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0e5a3929ed",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1109_3629v1_constraining_the_properties_of_sne_ia_progenitors_from_light_curves.pdf",
+    "page": null,
+    "record_id": "dyn_0e5a3929ed",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_820ecfdb4158"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_d032f8a0687d",
+    "subject_type": "record",
+    "subject_id": "dyn_0f6e4d5ab2",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0f6e4d5ab2",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2411_11986v1_ztf_sn_ia_dr2_an_environmental_study_of_type_ia_supernovae_using_host_galaxy_ima.pdf",
+    "page": null,
+    "record_id": "dyn_0f6e4d5ab2",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_e016549903f1"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_c7489e864322",
+    "subject_type": "record",
+    "subject_id": "dyn_0ffdf0d76d",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_0ffdf0d76d",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_0ffdf0d76d",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_8bbc577faa1b"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_f1ee05077fed",
+    "subject_type": "record",
+    "subject_id": "dyn_101596b6b8",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_101596b6b8",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_101596b6b8",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_9310d5676a89"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_ddb0cb3e3209",
+    "subject_type": "record",
+    "subject_id": "dyn_11a5755aa6",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_11a5755aa6",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_11a5755aa6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_231a929c31a2"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_c808bc5ef497",
+    "subject_type": "record",
+    "subject_id": "dyn_11f076c81e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_11f076c81e",
+    "reason": "Fit parameters and goodness-of-fit metrics (residual std dev, chi-squared) not quantified in text; inferred from figure description. | record contains extraction warnings that require review",
+    "source_file": "arxiv_1904_02171v2_early_time_light_curves_of_type_ia_supernovae_observed_with_tess.pdf",
+    "page": 8,
+    "record_id": "dyn_11f076c81e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_fd7a73b8155e"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.8
+    }
+  },
+  {
+    "review_id": "review_a58239125632",
+    "subject_type": "record",
+    "subject_id": "dyn_1582dea73e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_1582dea73e",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_1582dea73e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_8f6ea17f78b6"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_3d81b2e0085b",
+    "subject_type": "record",
+    "subject_id": "dyn_15bd95f205",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_15bd95f205",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: fit_method | record contains extraction warnings that require review",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": 3,
+    "record_id": "dyn_15bd95f205",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_db0dc2525547"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_0ff819f20451",
+    "subject_type": "record",
+    "subject_id": "dyn_1960f68588",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_1960f68588",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1910_03614v1_a_year_long_plateau_in_the_late_time_near_infrared_light_curves_of_type_ia_super.pdf",
+    "page": null,
+    "record_id": "dyn_1960f68588",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_274277a6eee0"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_776f243793c4",
+    "subject_type": "record",
+    "subject_id": "dyn_1e617ab1fc",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_1e617ab1fc",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": null,
+    "record_id": "dyn_1e617ab1fc",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_adce480d9eba"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_a277544bb9be",
+    "subject_type": "record",
+    "subject_id": "dyn_1efdd5239f",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_1efdd5239f",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2007_02101v2_an_investigation_of_56_ni_shells_as_the_source_of_early_light_curve_bumps_in_typ.pdf",
+    "page": 7,
+    "record_id": "dyn_1efdd5239f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_a2db9292bf07"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_76e540ba6961",
+    "subject_type": "record",
+    "subject_id": "dyn_2287617a15",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_2287617a15",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9608181v1_the_rise_times_and_bolometric_light_curve_of_sn_1994d_constraints_on_models_of_t.pdf",
+    "page": null,
+    "record_id": "dyn_2287617a15",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_ee2b985e778e"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_58204b0dff25",
+    "subject_type": "record",
+    "subject_id": "dyn_24d2067aac",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_24d2067aac",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9604143v1_a_precise_distance_indicator_type_ia_supernova_multicolor_light_curve_shapes.pdf",
+    "page": null,
+    "record_id": "dyn_24d2067aac",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_cfc9252bd9e3"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_b001728815ac",
+    "subject_type": "record",
+    "subject_id": "dyn_2582d223e0",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_2582d223e0",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": null,
+    "record_id": "dyn_2582d223e0",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_559d8ba85ce1"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_cc527ebc5a5c",
+    "subject_type": "record",
+    "subject_id": "dyn_25e3ebea35",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_25e3ebea35",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_25e3ebea35",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_48a16c372166"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_7ed9d48943fe",
+    "subject_type": "record",
+    "subject_id": "dyn_29a0e21d83",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_29a0e21d83",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1402_6842v1_type_ia_supernova_bolometric_light_curves_and_ejected_mass_estimates_from_the_ne.pdf",
+    "page": 7,
+    "record_id": "dyn_29a0e21d83",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_262a2ab91054"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_394ef4952a1a",
+    "subject_type": "record",
+    "subject_id": "dyn_2cf591d723",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_2cf591d723",
+    "reason": "No specific progenitor model is directly stated; 'no clear evidence' inferred from absence of discussion on progenitor systems. | required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_2cf591d723",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_0a8e81f93e87"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.7
+    }
+  },
+  {
+    "review_id": "review_bc403af34d87",
+    "subject_type": "record",
+    "subject_id": "dyn_2d0dbcfb72",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_2d0dbcfb72",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_2d0dbcfb72",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_bf8b445f47c0"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_ce36214ffe6f",
+    "subject_type": "record",
+    "subject_id": "dyn_2d4a05f372",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_2d4a05f372",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9905049v1_type_ia_supernovae_and_their_cosmological_implications.pdf",
+    "page": null,
+    "record_id": "dyn_2d4a05f372",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_817103f1b7bf"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_729bc2a55ec8",
+    "subject_type": "record",
+    "subject_id": "dyn_323ec65267",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_323ec65267",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_323ec65267",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_0aae3ef05051"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_a18a0dab987d",
+    "subject_type": "record",
+    "subject_id": "dyn_34f99929e6",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_34f99929e6",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": null,
+    "record_id": "dyn_34f99929e6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_9ace9128b34f"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_81f0127ec41c",
+    "subject_type": "record",
+    "subject_id": "dyn_3647e27e21",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_3647e27e21",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_0409338v1_the_late_time_light_curve_of_the_type_ia_supernova_2000cx.pdf",
+    "page": 4,
+    "record_id": "dyn_3647e27e21",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_95011773474e"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_f483ace549bb",
+    "subject_type": "record",
+    "subject_id": "dyn_3668785d80",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_3668785d80",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_3668785d80",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_2fd219ac5717"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_1ed481cfcc0e",
+    "subject_type": "record",
+    "subject_id": "dyn_4089012696",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_4089012696",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_0409338v1_the_late_time_light_curve_of_the_type_ia_supernova_2000cx.pdf",
+    "page": 4,
+    "record_id": "dyn_4089012696",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_10aee500ffb1"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_e824235a3579",
+    "subject_type": "record",
+    "subject_id": "dyn_43705d6df6",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_43705d6df6",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9609070v1_maximum_brightness_and_post_maximum_decline_of_light_curves_of_sn_ia_a_compariso.pdf",
+    "page": null,
+    "record_id": "dyn_43705d6df6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_334ffe3b0d5c"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_398e866da5ae",
+    "subject_type": "record",
+    "subject_id": "dyn_4423c73099",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_4423c73099",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9903264v1_the_progenitors_of_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_4423c73099",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_47079e689950"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_dda742fc14a4",
+    "subject_type": "record",
+    "subject_id": "dyn_470e0822a7",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_470e0822a7",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_470e0822a7",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_7bb74fd89be7"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_14c63873f1af",
+    "subject_type": "record",
+    "subject_id": "dyn_4791fb6d28",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_4791fb6d28",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_4791fb6d28",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_0be31671fadd"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_e2b353b5c82f",
+    "subject_type": "record",
+    "subject_id": "dyn_48b09d8cd4",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_48b09d8cd4",
+    "reason": "Redshift, peak magnitude, filter band, decay rate, and host galaxy type not reported in this section; only observation telescope (TESS) is explicitly mentioned. | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1904_02171v2_early_time_light_curves_of_type_ia_supernovae_observed_with_tess.pdf",
+    "page": 8,
+    "record_id": "dyn_48b09d8cd4",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d6dbc1277f54"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.7
+    }
+  },
+  {
+    "review_id": "review_7510e19b3ba6",
+    "subject_type": "record",
+    "subject_id": "dyn_4eee126213",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_4eee126213",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 3,
+    "record_id": "dyn_4eee126213",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_1fae5d75638c"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_7e53daf292c2",
+    "subject_type": "record",
+    "subject_id": "dyn_4fd4b866d0",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_4fd4b866d0",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_4fd4b866d0",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_1f2c489c421e"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_2eaea52e585d",
+    "subject_type": "record",
+    "subject_id": "dyn_505aa66012",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_505aa66012",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2007_02101v2_an_investigation_of_56_ni_shells_as_the_source_of_early_light_curve_bumps_in_typ.pdf",
+    "page": 7,
+    "record_id": "dyn_505aa66012",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_1977d674699b"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_16c1a54f6e07",
+    "subject_type": "record",
+    "subject_id": "dyn_50ac93220b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_50ac93220b",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": null,
+    "record_id": "dyn_50ac93220b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_8780f0855fcb"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_bf61f5d9a8de",
+    "subject_type": "record",
+    "subject_id": "dyn_5693da9e84",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_5693da9e84",
+    "reason": "Redshift, peak magnitude, filter band, decay rate, and host galaxy type not reported in this section; only observation telescope (TESS) is explicitly mentioned. | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1904_02171v2_early_time_light_curves_of_type_ia_supernovae_observed_with_tess.pdf",
+    "page": 8,
+    "record_id": "dyn_5693da9e84",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_c7c231faf470"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.7
+    }
+  },
+  {
+    "review_id": "review_2ab40b38bbbe",
+    "subject_type": "record",
+    "subject_id": "dyn_5760eecbc8",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_5760eecbc8",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1702_06585v1_two_classes_of_fast_declining_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_5760eecbc8",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_b17293a12bcc"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_126ffe8f8869",
+    "subject_type": "record",
+    "subject_id": "dyn_58995362c2",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_58995362c2",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: progenitor_model | record contains extraction warnings that require review",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": 3,
+    "record_id": "dyn_58995362c2",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_91dde47ef664"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_5f4882ad5c94",
+    "subject_type": "record",
+    "subject_id": "dyn_598157cd8b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_598157cd8b",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_598157cd8b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_4f9dfe25eaa6"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_77d363972ac7",
+    "subject_type": "record",
+    "subject_id": "dyn_5ecd90928e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_5ecd90928e",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_5ecd90928e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_6bcfe61e7825"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_053dea18ca0b",
+    "subject_type": "record",
+    "subject_id": "dyn_5f28f11624",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_5f28f11624",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_5f28f11624",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_a1ef51989d6f"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_68600aeeaaf1",
+    "subject_type": "record",
+    "subject_id": "dyn_5f3f4c9860",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_5f3f4c9860",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_5f3f4c9860",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_6b8b4e463d63"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_69c0c28d9aa1",
+    "subject_type": "record",
+    "subject_id": "dyn_61acd490dc",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_61acd490dc",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_61acd490dc",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3431e6ff5d73"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_fc410f81d68a",
+    "subject_type": "record",
+    "subject_id": "dyn_621e5930ab",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_621e5930ab",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9602025v1_explosion_models_for_type_ia_supernovae_a_comparison_with_observed_light_curves_.pdf",
+    "page": null,
+    "record_id": "dyn_621e5930ab",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_25245f788924"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_4258770d5e39",
+    "subject_type": "record",
+    "subject_id": "dyn_630909275c",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_630909275c",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": 3,
+    "record_id": "dyn_630909275c",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_6f8c210ea3b1"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_2311c05e3661",
+    "subject_type": "record",
+    "subject_id": "dyn_65404deb72",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_65404deb72",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": null,
+    "record_id": "dyn_65404deb72",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_fa91951c9231"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_820089bf520f",
+    "subject_type": "record",
+    "subject_id": "dyn_66c151bd74",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_66c151bd74",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_66c151bd74",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_bd955b435ac9"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_ca070012988f",
+    "subject_type": "record",
+    "subject_id": "dyn_66e89f06fb",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_66e89f06fb",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0703764v1_light_curves_for_off_centre_ignition_models_of_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_66e89f06fb",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_f4c232219808"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_7d5b35185cf7",
+    "subject_type": "record",
+    "subject_id": "dyn_6a9a047679",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_6a9a047679",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1612_02725v3_an_empirical_fitting_method_for_type_ia_supernova_light_curves_ii_estimating_the.pdf",
+    "page": null,
+    "record_id": "dyn_6a9a047679",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_1cde016d5628"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_73e1713012f8",
+    "subject_type": "record",
+    "subject_id": "dyn_6aa72343bc",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_6aa72343bc",
+    "reason": "required dynamic field missing: value_1 | required dynamic field missing: value_2 | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_6aa72343bc",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_db737a4a6002"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_f07a62a8e8bc",
+    "subject_type": "record",
+    "subject_id": "dyn_6b31cf9844",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_6b31cf9844",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1207_2695v3_a_search_for_new_candidate_super_chandrasekhar_mass_type_ia_supernovae_in_the_ne.pdf",
+    "page": null,
+    "record_id": "dyn_6b31cf9844",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_9a5b38b0ab23"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_13a0715a0b69",
+    "subject_type": "record",
+    "subject_id": "dyn_6e8ce264d6",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_6e8ce264d6",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_6e8ce264d6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_9ad0a47dbac2"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_be3e4eba1221",
+    "subject_type": "record",
+    "subject_id": "dyn_72975a8453",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_72975a8453",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 3,
+    "record_id": "dyn_72975a8453",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_382b5609272c"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_9d34a519f8b2",
+    "subject_type": "record",
+    "subject_id": "dyn_72fe6d2db5",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_72fe6d2db5",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 4,
+    "record_id": "dyn_72fe6d2db5",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3816fb377ed2"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_c07d1beff154",
+    "subject_type": "record",
+    "subject_id": "dyn_7342fd1b6b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_7342fd1b6b",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_7342fd1b6b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_f0145c37c06d"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_a9cdfbd3b965",
+    "subject_type": "record",
+    "subject_id": "dyn_767cd66954",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_767cd66954",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_767cd66954",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_7ae7683c09d8"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_7e20be6b0bdf",
+    "subject_type": "record",
+    "subject_id": "dyn_78ce00bdd6",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_78ce00bdd6",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_78ce00bdd6",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_5125f268404c"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_050f6cd1b9e4",
+    "subject_type": "record",
+    "subject_id": "dyn_7bdf8f7b7b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_7bdf8f7b7b",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | record contains extraction warnings that require review",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": 7,
+    "record_id": "dyn_7bdf8f7b7b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_b26b66bfd9cd"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_c950e2f9754d",
+    "subject_type": "record",
+    "subject_id": "dyn_7d0d3a7e2b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_7d0d3a7e2b",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0104382v1_timescale_stretch_parameterization_of_type_ia_supernova_b_band_light_curves.pdf",
+    "page": null,
+    "record_id": "dyn_7d0d3a7e2b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_c258274cb627"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_a2e3df9fcffd",
+    "subject_type": "record",
+    "subject_id": "dyn_7fc7904252",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_7fc7904252",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2601_07745v2_a_colibri_photometric_study_of_sn_2025bvm_a_normal_slowly_declining_type_ia_supe.pdf",
+    "page": null,
+    "record_id": "dyn_7fc7904252",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_e1f045a905a8"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_4eb454c09736",
+    "subject_type": "record",
+    "subject_id": "dyn_80d14fbcd1",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_80d14fbcd1",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 3,
+    "record_id": "dyn_80d14fbcd1",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_29e5476dfb2d"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_8990ed050f67",
+    "subject_type": "record",
+    "subject_id": "dyn_83bf66a61d",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_83bf66a61d",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1205_0814v1_a_physical_model_for_sn_2001ay_a_normal_bright_extremely_slowly_declining_type_i.pdf",
+    "page": null,
+    "record_id": "dyn_83bf66a61d",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_f273cdf3bab2"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_78a889762b4a",
+    "subject_type": "record",
+    "subject_id": "dyn_85d1538fe4",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_85d1538fe4",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "record_id": "dyn_85d1538fe4",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_5618a94ba020"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_edbbd5f0b786",
+    "subject_type": "record",
+    "subject_id": "dyn_912df6df05",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_912df6df05",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1402_6842v1_type_ia_supernova_bolometric_light_curves_and_ejected_mass_estimates_from_the_ne.pdf",
+    "page": null,
+    "record_id": "dyn_912df6df05",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_c2fbf03471f2"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_30d841d19cae",
+    "subject_type": "record",
+    "subject_id": "dyn_91a89cff5c",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_91a89cff5c",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0009490v1_can_differences_in_the_nickel_abundance_in_chandrasekhar_mass_models_explain_the.pdf",
+    "page": null,
+    "record_id": "dyn_91a89cff5c",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_85a045fa9f73"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_75cedb52d79e",
+    "subject_type": "record",
+    "subject_id": "dyn_964195b07f",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_964195b07f",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "record_id": "dyn_964195b07f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_ec3c7cf4793d"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_f6f041f992fd",
+    "subject_type": "record",
+    "subject_id": "dyn_96c9fb27fe",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_96c9fb27fe",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2007_02101v2_an_investigation_of_56_ni_shells_as_the_source_of_early_light_curve_bumps_in_typ.pdf",
+    "page": null,
+    "record_id": "dyn_96c9fb27fe",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_bf6cfd11e08a"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_820f9090b2e3",
+    "subject_type": "record",
+    "subject_id": "dyn_9779bec6a8",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_9779bec6a8",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2607_20599v1_semi_analytical_light_curve_model_for_transients_preceding_binary_mergers_i_supe.pdf",
+    "page": null,
+    "record_id": "dyn_9779bec6a8",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_9d4d2726930a"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_5fbb217433f9",
+    "subject_type": "record",
+    "subject_id": "dyn_99286be201",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_99286be201",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 4,
+    "record_id": "dyn_99286be201",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_1dba2edfea55"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_508cb8602f8b",
+    "subject_type": "record",
+    "subject_id": "dyn_9e1fd0befd",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_9e1fd0befd",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1302_3375v1_light_curve_models_for_sn_2009dc.pdf",
+    "page": null,
+    "record_id": "dyn_9e1fd0befd",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_5b3cc041e3b0"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_9d553ef1d503",
+    "subject_type": "record",
+    "subject_id": "dyn_9febdf52d0",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_9febdf52d0",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_0711_1375v2_light_curves_of_five_type_ia_supernovae_at_intermediate_redshift.pdf",
+    "page": 6,
+    "record_id": "dyn_9febdf52d0",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d589b91b81a9"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_3b887b5aa746",
+    "subject_type": "record",
+    "subject_id": "dyn_a061a5be54",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a061a5be54",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1408_1033v1_the_ultraviolet_brightest_type_ia_supernova_2011de.pdf",
+    "page": null,
+    "record_id": "dyn_a061a5be54",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_a60dd841436b"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_8d576ebbf0f2",
+    "subject_type": "record",
+    "subject_id": "dyn_a13b87d714",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a13b87d714",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_9709262v1_optical_light_curves_of_the_type_ia_supernovae_1990n_and_1991t.pdf",
+    "page": null,
+    "record_id": "dyn_a13b87d714",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_5da9e49be6e7"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_54481543818c",
+    "subject_type": "record",
+    "subject_id": "dyn_a1d9a46be8",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a1d9a46be8",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1805_03712v2_properties_of_type_ia_supernova_light_curves.pdf",
+    "page": null,
+    "record_id": "dyn_a1d9a46be8",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_47af68ffaaf1"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_15d15708fa27",
+    "subject_type": "record",
+    "subject_id": "dyn_a45b9d7be5",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a45b9d7be5",
+    "reason": "No specific values reported; only general distribution shown in figure. Discrepancy reason inferred due to lack of numerical data. | required dynamic field missing: supernova_name | required dynamic field missing: value_1 | required dynamic field missing: value_2 | record contains extraction warnings that require review",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_a45b9d7be5",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_66ecfc71b41e"
+    ],
+    "details": {
+      "table_name": "cross_survey_comparisons",
+      "confidence": 0.75
+    }
+  },
+  {
+    "review_id": "review_8e2b7c3f6cb4",
+    "subject_type": "record",
+    "subject_id": "dyn_a739d338cd",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a739d338cd",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | record contains extraction warnings that require review",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": 3,
+    "record_id": "dyn_a739d338cd",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_b591003d8216"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_ec5289627430",
+    "subject_type": "record",
+    "subject_id": "dyn_a87c9f174a",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_a87c9f174a",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1004_5200v1_the_light_curves_of_type_ia_supernova_2008gy.pdf",
+    "page": null,
+    "record_id": "dyn_a87c9f174a",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_f1dcca20218b"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_fb88af4063ad",
+    "subject_type": "record",
+    "subject_id": "dyn_aa0774fbec",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_aa0774fbec",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2007_02101v2_an_investigation_of_56_ni_shells_as_the_source_of_early_light_curve_bumps_in_typ.pdf",
+    "page": 7,
+    "record_id": "dyn_aa0774fbec",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_88214d7d555f"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_20a991979a46",
+    "subject_type": "record",
+    "subject_id": "dyn_ab1bd37618",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ab1bd37618",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_ab1bd37618",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_2e60424bc18e"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_310493e6e38e",
+    "subject_type": "record",
+    "subject_id": "dyn_ab3ef21c7b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ab3ef21c7b",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0611356v1_nearby_supernova_factory_observations_of_sn_2006d_on_sporadic_carbon_signatures_.pdf",
+    "page": null,
+    "record_id": "dyn_ab3ef21c7b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_88c35d8f1a03"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_da96e28e85fb",
+    "subject_type": "record",
+    "subject_id": "dyn_b176dc2f80",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_b176dc2f80",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1904_02171v2_early_time_light_curves_of_type_ia_supernovae_observed_with_tess.pdf",
+    "page": null,
+    "record_id": "dyn_b176dc2f80",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_85b1afcfc9c6"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_f278ce1fdc34",
+    "subject_type": "record",
+    "subject_id": "dyn_b63b05fb74",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_b63b05fb74",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2208_14740v2_model_independent_bounds_on_type_ia_supernova_absolute_peak_magnitude.pdf",
+    "page": null,
+    "record_id": "dyn_b63b05fb74",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_8931f4a9ff14"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_2a73c63b7d56",
+    "subject_type": "record",
+    "subject_id": "dyn_b7f4cabe9b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_b7f4cabe9b",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0711_1375v2_light_curves_of_five_type_ia_supernovae_at_intermediate_redshift.pdf",
+    "page": null,
+    "record_id": "dyn_b7f4cabe9b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_2977263aaf62"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_e0da1e097e5b",
+    "subject_type": "record",
+    "subject_id": "dyn_b7f6b80242",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_b7f6b80242",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2007_02101v2_an_investigation_of_56_ni_shells_as_the_source_of_early_light_curve_bumps_in_typ.pdf",
+    "page": 7,
+    "record_id": "dyn_b7f6b80242",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d2417dbf5047"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_0eee9a780e88",
+    "subject_type": "record",
+    "subject_id": "dyn_bc59ba90c9",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_bc59ba90c9",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_bc59ba90c9",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_fce450eae31c"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_eebd35720e98",
+    "subject_type": "record",
+    "subject_id": "dyn_c12a6eb731",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_c12a6eb731",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_c12a6eb731",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_bc8c653652b0"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_6132652f77c8",
+    "subject_type": "record",
+    "subject_id": "dyn_c1575dcc8e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_c1575dcc8e",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_c1575dcc8e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_194c80979af4"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_3174abf30cfc",
+    "subject_type": "record",
+    "subject_id": "dyn_c16cf1c06e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_c16cf1c06e",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2601_07745v2_a_colibri_photometric_study_of_sn_2025bvm_a_normal_slowly_declining_type_ia_supe.pdf",
+    "page": 2,
+    "record_id": "dyn_c16cf1c06e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_482894028f6f"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_176107e0c8a4",
+    "subject_type": "record",
+    "subject_id": "dyn_c175fadb01",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_c175fadb01",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0606499v1_nearby_supernova_factory_observations_of_sn_2005gj_another_type_ia_supernova_in_.pdf",
+    "page": null,
+    "record_id": "dyn_c175fadb01",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_c267acb5530c"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_a5472164b7f0",
+    "subject_type": "record",
+    "subject_id": "dyn_c920ec32e1",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_c920ec32e1",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | required dynamic field missing: condition | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_c920ec32e1",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_362952adaf98"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_61a7c9b30fb6",
+    "subject_type": "record",
+    "subject_id": "dyn_ca297782fd",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ca297782fd",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 5,
+    "record_id": "dyn_ca297782fd",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_72cb6045823e"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_f0043153f137",
+    "subject_type": "record",
+    "subject_id": "dyn_cb07d7ae7f",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_cb07d7ae7f",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 6,
+    "record_id": "dyn_cb07d7ae7f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_ea6df499f54a"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_49625b702d5e",
+    "subject_type": "record",
+    "subject_id": "dyn_cf46b7d30b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_cf46b7d30b",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_1904_02171v2_early_time_light_curves_of_type_ia_supernovae_observed_with_tess.pdf",
+    "page": 8,
+    "record_id": "dyn_cf46b7d30b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_4616264e2183"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_abd8ff457c14",
+    "subject_type": "record",
+    "subject_id": "dyn_cf6900266b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_cf6900266b",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1010_5786v3_the_hubble_space_telescope_cluster_supernova_survey_ii_the_type_ia_supernova_rat.pdf",
+    "page": null,
+    "record_id": "dyn_cf6900266b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_79c2a92a0a24"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_3ac737a56593",
+    "subject_type": "record",
+    "subject_id": "dyn_cfc983bb24",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_cfc983bb24",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0705_0726v2_diversity_of_decline_rate_corrected_type_ia_supernova_rise_times_one_mode_or_two.pdf",
+    "page": null,
+    "record_id": "dyn_cfc983bb24",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3e71380924b9"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_964beff22ebb",
+    "subject_type": "record",
+    "subject_id": "dyn_d2d8701b11",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d2d8701b11",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_d2d8701b11",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d6069bcae815"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_0ef9940d4931",
+    "subject_type": "record",
+    "subject_id": "dyn_d42fd0877f",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d42fd0877f",
+    "reason": "required dynamic field missing: metric_value | required dynamic field missing: unit | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_d42fd0877f",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_0ba08a85a6a5"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_c104eb8a3570",
+    "subject_type": "record",
+    "subject_id": "dyn_d616191d3e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d616191d3e",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_d616191d3e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_2480b5a14186"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_aa25da998b5e",
+    "subject_type": "record",
+    "subject_id": "dyn_d6d2050cca",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d6d2050cca",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 3,
+    "record_id": "dyn_d6d2050cca",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_f40f4ba98dda"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_ed5e232a8a1c",
+    "subject_type": "record",
+    "subject_id": "dyn_d7800917d5",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d7800917d5",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1011_5910v3_type_ia_supernova_light_curve_inference_hierarchical_models_in_the_optical_and_n.pdf",
+    "page": null,
+    "record_id": "dyn_d7800917d5",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_0cc1b6c8ff5a"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_ad3f1d93c2fe",
+    "subject_type": "record",
+    "subject_id": "dyn_d9fa6933a0",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_d9fa6933a0",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_d9fa6933a0",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_dde553d10966"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_800507631b6e",
+    "subject_type": "record",
+    "subject_id": "dyn_dd02ecff92",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_dd02ecff92",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review | evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1402_6842v1_type_ia_supernova_bolometric_light_curves_and_ejected_mass_estimates_from_the_ne.pdf",
+    "page": 7,
+    "record_id": "dyn_dd02ecff92",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d0baf625c61d"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_56a6312d1d5a",
+    "subject_type": "record",
+    "subject_id": "dyn_e011832a09",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_e011832a09",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2601_07745v2_a_colibri_photometric_study_of_sn_2025bvm_a_normal_slowly_declining_type_ia_supe.pdf",
+    "page": 3,
+    "record_id": "dyn_e011832a09",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_13f7527c55f4"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_6df22291a58f",
+    "subject_type": "record",
+    "subject_id": "dyn_e56a12af27",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_e56a12af27",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1201_1723v1_near_infrared_light_curves_of_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_e56a12af27",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_07ff9a692f09"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_cf0d95e66abb",
+    "subject_type": "record",
+    "subject_id": "dyn_e61f0344bb",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_e61f0344bb",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": null,
+    "record_id": "dyn_e61f0344bb",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_50a7f77ecac3"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_a242abc32081",
+    "subject_type": "record",
+    "subject_id": "dyn_ed5b586246",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ed5b586246",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_ed5b586246",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_c5041a352684"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_88d3ef57ad18",
+    "subject_type": "record",
+    "subject_id": "dyn_edcb1e2815",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_edcb1e2815",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_edcb1e2815",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3711afb9610f"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_52086a9f8021",
+    "subject_type": "record",
+    "subject_id": "dyn_ef116e0bcd",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ef116e0bcd",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_0409338v1_the_late_time_light_curve_of_the_type_ia_supernova_2000cx.pdf",
+    "page": 4,
+    "record_id": "dyn_ef116e0bcd",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_e22064e6cdd8"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.95
+    }
+  },
+  {
+    "review_id": "review_70d04a0aa2ea",
+    "subject_type": "record",
+    "subject_id": "dyn_efcfeaf97e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_efcfeaf97e",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0409338v1_the_late_time_light_curve_of_the_type_ia_supernova_2000cx.pdf",
+    "page": null,
+    "record_id": "dyn_efcfeaf97e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_0670c775218e"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_0b3ef6358c48",
+    "subject_type": "record",
+    "subject_id": "dyn_effa56b6e2",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_effa56b6e2",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_2209_00569v1_can_the_violent_merger_of_white_dwarfs_explain_the_slowest_declining_type_ia_sup.pdf",
+    "page": null,
+    "record_id": "dyn_effa56b6e2",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3a673f626ccf"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_9478cb1e9fa8",
+    "subject_type": "record",
+    "subject_id": "dyn_f08dad2929",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f08dad2929",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_f08dad2929",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_b0a3431fd003"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_e8ec8dda5cb8",
+    "subject_type": "record",
+    "subject_id": "dyn_f15cf02e72",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f15cf02e72",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_2409_04346v2_ztf_sn_ia_dr2_overview.pdf",
+    "page": 7,
+    "record_id": "dyn_f15cf02e72",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_03d0d9ac66b5"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_626bb90aa704",
+    "subject_type": "record",
+    "subject_id": "dyn_f2417f056e",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f2417f056e",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | record contains extraction warnings that require review",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "record_id": "dyn_f2417f056e",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_3369269e1a3c"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_78d940f2d9ef",
+    "subject_type": "record",
+    "subject_id": "dyn_f358d7ccf9",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f358d7ccf9",
+    "reason": "required dynamic field missing: supernova_name | record contains extraction warnings that require review",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_f358d7ccf9",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_fd341bf75aaf"
+    ],
+    "details": {
+      "table_name": "progenitor_evidence",
+      "confidence": 0.85
+    }
+  },
+  {
+    "review_id": "review_3fa4cba73bb5",
+    "subject_type": "record",
+    "subject_id": "dyn_f7bf3b6f4b",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f7bf3b6f4b",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1203_4832v2_the_spectroscopic_diversity_of_type_ia_supernovae.pdf",
+    "page": null,
+    "record_id": "dyn_f7bf3b6f4b",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_d2716fede1b0"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_d71f4a8059d3",
+    "subject_type": "record",
+    "subject_id": "dyn_f9afce11b8",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f9afce11b8",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_0807_1244v1_light_curve_studies_of_nearby_type_ia_supernovae_with_a_multi_band_stretch_metho.pdf",
+    "page": 7,
+    "record_id": "dyn_f9afce11b8",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_e271c275cd3a"
+    ],
+    "details": {
+      "table_name": "other_required_fields",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_97e45a2f5104",
+    "subject_type": "record",
+    "subject_id": "dyn_f9c249b813",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_f9c249b813",
+    "reason": "required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: filter_band | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_1411_1064v1_the_rising_light_curves_of_type_ia_supernovae.pdf",
+    "page": 3,
+    "record_id": "dyn_f9c249b813",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_8745fb06c8f4"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_7b0da61e03f8",
+    "subject_type": "record",
+    "subject_id": "dyn_fa88ded7c4",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_fa88ded7c4",
+    "reason": "required dynamic field missing: supernova_name | required dynamic field missing: redshift | required dynamic field missing: peak_magnitude | required dynamic field missing: decay_rate | record contains extraction warnings that require review",
+    "source_file": "arxiv_0908_0536v3_type_ia_supernova_light_curve_inference_hierarchical_bayesian_analysis_in_the_ne.pdf",
+    "page": 1,
+    "record_id": "dyn_fa88ded7c4",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_4b4dc364e622"
+    ],
+    "details": {
+      "table_name": "light_curve_metrics",
+      "confidence": 0.9
+    }
+  },
+  {
+    "review_id": "review_56d4c9eeba81",
+    "subject_type": "record",
+    "subject_id": "dyn_faf7933545",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_faf7933545",
+    "reason": "evidence text not found on recorded PDF page",
+    "source_file": "arxiv_1502_00568v1_near_infrared_light_curves_of_type_ia_supernovae_studying_the_properties_of_the_.pdf",
+    "page": null,
+    "record_id": "dyn_faf7933545",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_22c7459d27e1"
+    ],
+    "details": {
+      "table_name": "paper_metadata",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_219bb124eb58",
+    "subject_type": "record",
+    "subject_id": "dyn_ff3fdb6b66",
+    "priority": "medium",
+    "risk_type": "record_quality",
+    "title": "Review extracted record dyn_ff3fdb6b66",
+    "reason": "No information on fitting method, parameters, or fit quality provided; only mention of contamination issue. | record contains extraction warnings that require review | record confidence is below the review threshold",
+    "source_file": "arxiv_1904_02171v2_early_time_light_curves_of_type_ia_supernovae_observed_with_tess.pdf",
+    "page": 8,
+    "record_id": "dyn_ff3fdb6b66",
+    "figure_id": null,
+    "evidence_refs": [
+      "evidence_fea2b250b2b7"
+    ],
+    "details": {
+      "table_name": "light_curve_fits",
+      "confidence": 0.5
+    }
+  },
+  {
+    "review_id": "review_f0a2fd1e97a5",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_chi_squared_209fd4af",
+    "priority": "low",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: chi_squared",
+    "reason": "No sufficient field-level evidence has been extracted.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "missing",
+      "missing_fields": [
+        "chi_squared"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 0,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_4f50829ad0cb",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_discrepancy_reason_fa6a6841",
+    "priority": "low",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: discrepancy_reason",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "discrepancy_reason"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 4,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_0138f1c41e65",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_host_galaxy_type_0380042b",
+    "priority": "low",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: host_galaxy_type",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "host_galaxy_type"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 1,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_ff569e4949e7",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_observation_telescope_1e577933",
+    "priority": "low",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: observation_telescope",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "observation_telescope"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 16,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  },
+  {
+    "review_id": "review_cf13bbcd1b7d",
+    "subject_type": "coverage_gap",
+    "subject_id": "requirement_residual_std_dev_309757a3",
+    "priority": "low",
+    "risk_type": "coverage_gap",
+    "title": "Review evidence gap: residual_std_dev",
+    "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+    "source_file": null,
+    "page": null,
+    "record_id": null,
+    "figure_id": null,
+    "evidence_refs": [],
+    "details": {
+      "status": "partial",
+      "missing_fields": [
+        "residual_std_dev"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 2,
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    }
+  }
+]

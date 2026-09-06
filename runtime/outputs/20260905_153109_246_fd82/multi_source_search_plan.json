@@ -1,0 +1,353 @@
+{
+  "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+  "domain": "astronomy",
+  "should_search": true,
+  "search_requests": [
+    {
+      "connector_name": "arxiv",
+      "source_type": "paper_search",
+      "query": "Type Ia supernova light curve peak magnitude decline rate",
+      "purpose": "获取最新的Ia型超新星光变曲线研究论文，重点覆盖峰值星等与衰减率的关系，支持对光变曲线建模与物理机制的分析。",
+      "max_results": 100,
+      "must_have": [
+        "light curve",
+        "peak magnitude",
+        "decline rate"
+      ],
+      "nice_to_have": [
+        "bolometric",
+        "near-infrared",
+        "stretch parameter",
+        "SALT2",
+        "SNooPy"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "arxiv",
+      "source_type": "paper_search",
+      "query": "Ia supernova progenitor model explosion mechanism",
+      "purpose": "探索Ia型超新星的前身星模型（如双白矮星合并、单简并模型）与光变曲线特征之间的关联，为‘来源证据’提供理论支持。",
+      "max_results": 100,
+      "must_have": [
+        "progenitor",
+        "explosion mechanism",
+        "double degenerate",
+        "single degenerate"
+      ],
+      "nice_to_have": [
+        "Chandrasekhar mass",
+        "sub-Chandrasekhar",
+        "violent merger",
+        "carbon detonation"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "openalex",
+      "source_type": "paper_metadata",
+      "query": "Type Ia supernova light curve peak magnitude decline rate",
+      "purpose": "通过开放科学知识图谱发现高影响力、高被引的权威论文及其引用网络，识别核心研究团队与关键期刊，增强对衰减率与峰值星等关系的系统性理解。",
+      "max_results": 100,
+      "must_have": [
+        "type Ia supernova",
+        "light curve",
+        "peak magnitude",
+        "decline rate"
+      ],
+      "nice_to_have": [
+        "Hubble constant",
+        "cosmological constant",
+        "standard candle",
+        "distance modulus"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "zenodo",
+      "source_type": "dataset",
+      "query": "Type Ia supernova light curve data",
+      "purpose": "检索公开发布的Ia型超新星光变曲线数据集，包括多波段测光数据、原始观测表与补充材料，用于构建标准化数据集。",
+      "max_results": 100,
+      "must_have": [
+        "supernova",
+        "light curve",
+        "photometry",
+        "multi-band"
+      ],
+      "nice_to_have": [
+        "CfA3",
+        "ZTF SN Ia DR2",
+        "CSP",
+        "LSQ",
+        "SNLS"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "github",
+      "source_type": "repository",
+      "query": "Ia supernova light curve analysis code",
+      "purpose": "查找由天文社区维护的开源代码仓库，包含光变曲线拟合脚本、数据处理流程与可视化工具，支持可复现的数据分析。",
+      "max_results": 100,
+      "must_have": [
+        "light curve",
+        "python",
+        "analysis",
+        "fitting"
+      ],
+      "nice_to_have": [
+        "SALT2",
+        "SNooPy",
+        "MLCS2k2",
+        "JLA",
+        "colibri"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "arxiv",
+      "source_type": "paper",
+      "query": "Type Ia supernova light curve peak magnitude decline rate progenitor model",
+      "purpose": "获取关于Ia型超新星光变曲线中峰值星等、衰减率与前身星模型之间关系的最新理论与观测研究，特别是结合光度学数据与爆炸机制的综合分析。",
+      "max_results": 100,
+      "must_have": [
+        "light curve",
+        "peak magnitude",
+        "decline rate",
+        "progenitor model"
+      ],
+      "nice_to_have": [
+        "nickel abundance",
+        "ejected mass",
+        "host galaxy",
+        "spectroscopy"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "openalex",
+      "source_type": "paper_search",
+      "query": "Type Ia supernova light curve peak brightness decline rate origin",
+      "purpose": "通过OpenAlex检索涵盖多语言、跨机构的高质量论文，补充arXiv中可能遗漏的权威期刊文献，尤其关注已发表在《The Astrophysical Journal》《Astronomy & Astrophysics》等期刊上的实证研究。",
+      "max_results": 100,
+      "must_have": [
+        "Type Ia supernova",
+        "light curve",
+        "peak brightness",
+        "decline rate",
+        "origin"
+      ],
+      "nice_to_have": [
+        "standard candle",
+        "cosmological implications",
+        "metallicity",
+        "age gradient"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "semantic_scholar",
+      "source_type": "paper_search",
+      "query": "Ia supernova bolometric light curve nickel distribution explosion mechanism",
+      "purpose": "利用Semantic Scholar的语义索引能力挖掘与镍分布、能量释放及爆炸机制相关的深度研究，识别高影响力论文及其引用网络，揭示光变曲线形状与物理起源之间的因果关系。",
+      "max_results": 100,
+      "must_have": [
+        "bolometric light curve",
+        "nickel distribution",
+        "explosion mechanism"
+      ],
+      "nice_to_have": [
+        "delayed detonation",
+        "pulsating delayed detonation",
+        "double degenerate",
+        "single degenerate"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "crossref",
+      "source_type": "paper_metadata",
+      "query": "10.1086/317060 OR 10.3847/1538-4357/ad1b5a OR 10.1086/317060",
+      "purpose": "定位关键论文的正式出版元数据（DOI），确保引用完整性，特别是针对峰值星等与衰减率关系的实证研究，用于构建可靠的数据集。",
+      "max_results": 10,
+      "must_have": [
+        "doi"
+      ],
+      "nice_to_have": [
+        "journal",
+        "publication_date",
+        "citation_count"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "zenodo",
+      "source_type": "dataset",
+      "query": "Type Ia supernova light curve data Open Supernova Catalog",
+      "purpose": "获取公开可用的Ia型超新星光变曲线数据集，包括多波段光度数据、光谱信息和宿主星系参数，支持对峰值星等、衰减率与前身星环境的统计分析。",
+      "max_results": 50,
+      "must_have": [
+        "light curve",
+        "supernova",
+        "Open Supernova Catalog"
+      ],
+      "nice_to_have": [
+        "photometry",
+        "spectroscopy",
+        "host galaxy",
+        "redshift"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "openalex",
+      "source_type": "paper_search",
+      "query": "Type Ia supernova light curve AND (peak magnitude OR decline rate) AND (progenitor OR origin)",
+      "purpose": "通过 OpenAlex 检索涵盖光变曲线、峰值星等、衰减率及前身星来源的权威论文，识别高影响力研究并补充 arXiv 的覆盖盲区，确保引用完整性。",
+      "max_results": 100,
+      "must_have": [
+        "Type Ia supernova",
+        "light curve",
+        "peak magnitude",
+        "decline rate",
+        "progenitor"
+      ],
+      "nice_to_have": [
+        "host galaxy",
+        "metallicity",
+        "age gradient",
+        "dust extinction"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "semantic_scholar",
+      "source_type": "paper_search",
+      "query": "Ia supernova light curve stretch and decline rate correlation with progenitor",
+      "purpose": "利用 Semantic Scholar 的语义检索能力，发现关于光变曲线形状（如拉伸参数）与衰减率、前身星模型之间关联的关键论文，尤其关注近期高被引文献。",
+      "max_results": 100,
+      "must_have": [
+        "light curve stretch",
+        "decline rate",
+        "progenitor",
+        "Type Ia supernova"
+      ],
+      "nice_to_have": [
+        "velocity gradient",
+        "Ni-56 mass",
+        "explosion mechanism"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "zenodo",
+      "source_type": "dataset",
+      "query": "ZTF SN Ia DR2 light curves photometry host galaxy properties",
+      "purpose": "获取 ZTF SN Ia DR2 数据集中公开发布的光变曲线、测光数据与宿主星系属性，用于验证和扩展已有研究中的统计分析，支持大规模样本的来源证据整合。",
+      "max_results": 100,
+      "must_have": [
+        "ZTF SN Ia DR2",
+        "light curve",
+        "photometry",
+        "host galaxy"
+      ],
+      "nice_to_have": [
+        "spectra",
+        "distance modulus",
+        "redshift",
+        "surface brightness"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    },
+    {
+      "connector_name": "figshare",
+      "source_type": "dataset",
+      "query": "Type Ia supernova light curve templates multiband stretch method",
+      "purpose": "查找包含多波段光变曲线模板和拉伸方法的公开数据集，支持对峰值星等与衰减率关系的标准化建模，并为分类子型提供数据基础。",
+      "max_results": 100,
+      "must_have": [
+        "light curve template",
+        "multiband",
+        "stretch method",
+        "Type Ia supernova"
+      ],
+      "nice_to_have": [
+        "U band",
+        "B band",
+        "V band",
+        "R band",
+        "I band"
+      ],
+      "field_group_id": "progenitor_evidence",
+      "target_fields": [
+        "progenitor_model"
+      ]
+    }
+  ],
+  "selection_criteria": [
+    "优先选择高被引或高星标（stars）的资源",
+    "优先选择包含原始数据、补充材料或可执行代码的条目",
+    "优先选择近五年内发表或更新的文献与数据集",
+    "优先选择来自大型巡天项目（如ZTF、CSP、SNLS）的成果",
+    "优先选择包含多波段光度数据和光谱信息的论文或数据集",
+    "优先选择被引量高、发表于主流天体物理期刊的论文",
+    "优先选择提供可复现代码或完整数据文件的资源",
+    "优先选择包含宿主星系环境信息的研究",
+    "优先选择具有 DOI 或正式出版信息的论文",
+    "优先选择包含可复现数据或代码的开放资源",
+    "优先选择近五年内发表且被引量较高的研究",
+    "优先选择包含多波段光变曲线、宿主星系属性和前身星模型推断的综合性研究"
+  ],
+  "notes": [
+    "已发现多个关键数据库（如Open Supernova Catalog、SIMBAD、LCOGT）和论文，但需补充跨平台元数据与可复现分析工具。",
+    "动态恢复策略聚焦于'progenitor_model'字段，因此特别强调在arXiv与OpenAlex中搜索前身星模型相关研究。",
+    "建议后续批次结合DOI系统验证关键论文的正式出版信息，确保引用完整性。",
+    "根据动态恢复策略，聚焦于'progenitor_model'字段，确保所有请求覆盖该字段及相关物理参数。",
+    "已从arXiv获取大量相关论文，但需通过Crossref验证关键论文的正式出版状态，以增强引用可信度。",
+    "Zenodo中的Open Supernova Catalog是构建统一数据集的理想来源，建议优先使用其结构化表格数据。",
+    "已从 arXiv 获取多个关键论文，但需通过 OpenAlex 和 Semantic Scholar 补充跨平台引用完整性。",
+    "ZTF SN Ia DR2 数据集是当前最大规模的低红移 SNe Ia 样本，必须纳入数据源。",
+    "建议结合 Zenodo 和 Figshare 中的公开数据集进行元分析，以增强来源证据的统计稳健性。",
+    "动态恢复策略聚焦于 progenitor_model，本次搜索已全面覆盖该字段及相关指标。"
+  ]
+}

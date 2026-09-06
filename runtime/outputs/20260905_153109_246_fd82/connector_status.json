@@ -1,0 +1,1010 @@
+[
+  {
+    "index": 1,
+    "connector": "arxiv",
+    "query": "Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 2,
+    "connector": "openalex",
+    "query": "Ia supernova light curve AND (peak magnitude OR decay rate) AND (host galaxy OR progenitor)",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 3,
+    "connector": "zenodo",
+    "query": "Ia supernova light curve data set",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 4,
+    "connector": "figshare",
+    "query": "Ia supernova supplementary data",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 5,
+    "connector": "github",
+    "query": "Ia supernova light curve analysis repository",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 6,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova origin progenitor model host galaxy metallicity",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+origin+progenitor+model+host+galaxy+metallicity&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 27.7s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 7,
+    "connector": "crossref",
+    "query": "Ia supernova light curve peak magnitude decay rate",
+    "status": "completed",
+    "added": 83,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 8,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 9,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve peak magnitude decay rate",
+    "status": "completed",
+    "added": 99,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 10,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova light curve shape and luminosity relation",
+    "status": "completed",
+    "added": 90,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 11,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data multi-band photometry",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 12,
+    "connector": "figshare",
+    "query": "Ia supernova light curve tables supplementary materials",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 13,
+    "connector": "github",
+    "query": "Ia supernova light curve analysis code repository",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 14,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 15,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve shape and luminosity correlation",
+    "status": "completed",
+    "added": 56,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 16,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova progenitor models and ejecta composition",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+progenitor+models+and+ejecta+composition&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 27.9s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 17,
+    "connector": "zenodo",
+    "query": "Type Ia supernova photometry light curves Open Supernova Catalog",
+    "status": "completed",
+    "added": 7,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 18,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve parameters table",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 19,
+    "connector": "arxiv",
+    "query": "Ia supernova spectroscopic diversity peak luminosity correlation",
+    "status": "completed",
+    "added": 69,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 20,
+    "connector": "zenodo",
+    "query": "ZTF SN Ia DR2 photometry light curves",
+    "status": "completed",
+    "added": 17,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 21,
+    "connector": "figshare",
+    "query": "Type Ia supernova multicolor light curve shapes MLCS data",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 22,
+    "connector": "github",
+    "query": "Type Ia supernova light curve modeling code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 23,
+    "connector": "openalex",
+    "query": "Type Ia supernova host galaxy environment morphology correlation",
+    "status": "completed",
+    "added": 74,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 24,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova rise time decline rate correlation",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+rise+time+decline+rate+correlation&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 27.9s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 25,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 26,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve brightness decline rate",
+    "status": "completed",
+    "added": 99,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 27,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova photometry peak luminosity decline rate",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+photometry+peak+luminosity+decline+rate&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 12.2s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 28,
+    "connector": "crossref",
+    "query": "10.1086/513732",
+    "status": "completed",
+    "added": 1,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 29,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 30,
+    "connector": "figshare",
+    "query": "Type Ia supernova supplementary data",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 31,
+    "connector": "github",
+    "query": "ia-sn-lightcurves dataset",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 32,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 33,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve shape brightness correlation",
+    "status": "completed",
+    "added": 41,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 34,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova bolometric light curve modeling radioactive decay",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+bolometric+light+curve+modeling+radioactive+decay&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 12.2s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 35,
+    "connector": "zenodo",
+    "query": "Type Ia supernova photometry light curve data",
+    "status": "completed",
+    "added": 8,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 36,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve tables supplementary material",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 37,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate host galaxy environment",
+    "status": "completed",
+    "added": 46,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 38,
+    "connector": "openalex",
+    "query": "type Ia supernova light curve template stretch parameter",
+    "status": "completed",
+    "added": 52,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 39,
+    "connector": "zenodo",
+    "query": "ZTF SN Ia DR2 photometry light curve data",
+    "status": "completed",
+    "added": 18,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 40,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve data release PAIRITEL CSP CfA3",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 41,
+    "connector": "github",
+    "query": "type Ia supernova light curve analysis code python",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 42,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 43,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 99,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 44,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova photometry light curve shape correlation",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+photometry+light+curve+shape+correlation&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 23.0s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 45,
+    "connector": "crossref",
+    "query": "Type Ia supernova peak luminosity decline rate relation",
+    "status": "completed",
+    "added": 85,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 46,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data set",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 47,
+    "connector": "figshare",
+    "query": "Ia supernova multicolor light curve tables",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 48,
+    "connector": "github",
+    "query": "Ia supernova light curve analysis code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 49,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate correlation",
+    "status": "completed",
+    "added": 5,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 50,
+    "connector": "arxiv",
+    "query": "Ia supernova progenitor models ejecta mass nickel-56 distribution",
+    "status": "completed",
+    "added": 80,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 51,
+    "connector": "arxiv",
+    "query": "Ia supernova early rise time bolometric light curve shape",
+    "status": "completed",
+    "added": 40,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 52,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve diversity host galaxy environment",
+    "status": "completed",
+    "added": 87,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 53,
+    "connector": "zenodo",
+    "query": "Open Supernova Catalog Type Ia light curves",
+    "status": "completed",
+    "added": 7,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 54,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve parameters table",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 55,
+    "connector": "github",
+    "query": "type-ia-supernova-light-curve-analysis code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 56,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate host galaxy environment",
+    "status": "completed",
+    "added": 44,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 57,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve shape diversity correlation with progenitor model",
+    "status": "completed",
+    "added": 47,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 58,
+    "connector": "semantic_scholar",
+    "query": "Type Ia supernova rise time correlation with decline rate and stretch factor",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Type+Ia+supernova+rise+time+correlation+with+decline+rate+and+stretch+factor&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 23.0s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 59,
+    "connector": "zenodo",
+    "query": "Type Ia supernova photometry light curve data release ZTF SN Ia DR2",
+    "status": "completed",
+    "added": 14,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 60,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve parameters table peak magnitude decline rate",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 61,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 62,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 99,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 63,
+    "connector": "semantic_scholar",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Type+Ia+supernova+light+curve+peak+magnitude+decline+rate&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 34.7s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 64,
+    "connector": "crossref",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 37,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 65,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 66,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve supplementary material",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 67,
+    "connector": "github",
+    "query": "Type Ia supernova light curve analysis",
+    "status": "completed",
+    "added": 1,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 68,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 69,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve shape and brightness correlation",
+    "status": "completed",
+    "added": 46,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 70,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova bolometric light curve modeling and nickel distribution",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+bolometric+light+curve+modeling+and+nickel+distribution&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 34.7s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 71,
+    "connector": "crossref",
+    "query": "Type Ia supernova light curve decline rate and peak luminosity relation",
+    "status": "completed",
+    "added": 45,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 72,
+    "connector": "zenodo",
+    "query": "Open Supernova Catalog Type Ia light curves",
+    "status": "completed",
+    "added": 7,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 73,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve parameters table",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 74,
+    "connector": "github",
+    "query": "Type Ia supernova light curve analysis code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 75,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate diversity",
+    "status": "completed",
+    "added": 6,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 76,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve template comparison",
+    "status": "completed",
+    "added": 30,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 77,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data release DR2 ZTF",
+    "status": "completed",
+    "added": 12,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 78,
+    "connector": "figshare",
+    "query": "Open Supernova Catalog light curve data Type Ia",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 79,
+    "connector": "github",
+    "query": "type-ia-supernova-light-curve-analysis code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 80,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 81,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 99,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 82,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova photometry peak brightness decline rate",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+photometry+peak+brightness+decline+rate&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 20.7s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 83,
+    "connector": "crossref",
+    "query": "10.1086/513732",
+    "status": "completed",
+    "added": 10,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 84,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 85,
+    "connector": "figshare",
+    "query": "Type Ia supernova supplementary data",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 86,
+    "connector": "github",
+    "query": "ia-supernova-lightcurve analysis",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 87,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 88,
+    "connector": "arxiv",
+    "query": "progenitor model Type Ia supernova white dwarf merger double degenerate",
+    "status": "completed",
+    "added": 84,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 89,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve diversity and standardization",
+    "status": "completed",
+    "added": 94,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 90,
+    "connector": "semantic_scholar",
+    "query": "nickel-56 distribution in Type Ia supernovae ejecta",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=nickel-56+distribution+in+Type+Ia+supernovae+ejecta&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 20.7s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 91,
+    "connector": "zenodo",
+    "query": "Open Supernova Catalog Type Ia light curves",
+    "status": "completed",
+    "added": 7,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 92,
+    "connector": "figshare",
+    "query": "Type Ia supernova bolometric light curve tables",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 93,
+    "connector": "github",
+    "query": "Type Ia supernova light curve modeling code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 94,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate progenitor model",
+    "status": "completed",
+    "added": 23,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 95,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve diversity and progenitor constraints",
+    "status": "completed",
+    "added": 57,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 96,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova rise time correlation with decline rate and progenitor",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+rise+time+correlation+with+decline+rate+and+progenitor&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 20.7s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 97,
+    "connector": "zenodo",
+    "query": "ZTF SN Ia DR2 light curve data host galaxy properties",
+    "status": "completed",
+    "added": 20,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 98,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve parameters table",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 99,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 100,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 100,
+    "connector": "arxiv",
+    "query": "Ia supernova progenitor model explosion mechanism",
+    "status": "completed",
+    "added": 80,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 101,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve peak magnitude decline rate",
+    "status": "completed",
+    "added": 99,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 102,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data",
+    "status": "completed",
+    "added": 24,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 103,
+    "connector": "github",
+    "query": "Ia supernova light curve analysis code",
+    "status": "completed",
+    "added": 0,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 104,
+    "connector": "arxiv",
+    "query": "Type Ia supernova light curve peak magnitude decline rate progenitor model",
+    "status": "completed",
+    "added": 13,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 105,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve peak brightness decline rate origin",
+    "status": "completed",
+    "added": 62,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 106,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova bolometric light curve nickel distribution explosion mechanism",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+bolometric+light+curve+nickel+distribution+explosion+mechanism&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 53.3s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 107,
+    "connector": "crossref",
+    "query": "10.1086/317060 OR 10.3847/1538-4357/ad1b5a OR 10.1086/317060",
+    "status": "completed",
+    "added": 9,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 108,
+    "connector": "zenodo",
+    "query": "Type Ia supernova light curve data Open Supernova Catalog",
+    "status": "completed",
+    "added": 4,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 109,
+    "connector": "openalex",
+    "query": "Type Ia supernova light curve AND (peak magnitude OR decline rate) AND (progenitor OR origin)",
+    "status": "completed",
+    "added": 40,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 110,
+    "connector": "semantic_scholar",
+    "query": "Ia supernova light curve stretch and decline rate correlation with progenitor",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.semanticscholar.org/graph/v1/paper/search?query=Ia+supernova+light+curve+stretch+and+decline+rate+correlation+with+progenitor&limit=100&fields=title%2Cabstract%2Cauthors%2Cyear%2Cvenue%2Curl%2CopenAccessPdf%2CexternalIds%2CcitationCount, attempts=3, error=provider circuit open for host=api.semanticscholar.org; retry after 53.3s",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  },
+  {
+    "index": 111,
+    "connector": "zenodo",
+    "query": "ZTF SN Ia DR2 light curves photometry host galaxy properties",
+    "status": "completed",
+    "added": 23,
+    "error": null,
+    "metadata": "{\"cache_hit\": false, \"attempts\": 1}"
+  },
+  {
+    "index": 112,
+    "connector": "figshare",
+    "query": "Type Ia supernova light curve templates multiband stretch method",
+    "status": "failed",
+    "added": 0,
+    "error": "JSON request failed: url=https://api.figshare.com/v2/articles/search, attempts=3, error=HTTP Error 403: Forbidden",
+    "metadata": "{\"attempts\": 2, \"retry_round\": 1}"
+  }
+]

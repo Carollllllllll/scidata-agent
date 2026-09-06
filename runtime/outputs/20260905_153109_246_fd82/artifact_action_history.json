@@ -1,0 +1,4102 @@
+[
+  {
+    "iteration": 0,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 0,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_plan_task_0",
+          "artifact_id": null,
+          "action": "plan_task",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: plan_task"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_plan_task_0",
+        "artifact_id": null,
+        "action": "plan_task",
+        "status": "completed",
+        "message": "Dynamic workflow tool plan_task completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 1,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 1,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_plan_dynamic_schema_1",
+          "artifact_id": null,
+          "action": "plan_dynamic_schema",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: plan_dynamic_schema"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_plan_dynamic_schema_1",
+        "artifact_id": null,
+        "action": "plan_dynamic_schema",
+        "status": "completed",
+        "message": "Dynamic workflow tool plan_dynamic_schema completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 2,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_discover_sources_2",
+          "artifact_id": null,
+          "action": "discover_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: discover_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_discover_sources_2",
+        "artifact_id": null,
+        "action": "discover_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool discover_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 3,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_plan_multi_source_search_3",
+          "artifact_id": null,
+          "action": "plan_multi_source_search",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: plan_multi_source_search"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_plan_multi_source_search_3",
+        "artifact_id": null,
+        "action": "plan_multi_source_search",
+        "status": "completed",
+        "message": "Dynamic workflow tool plan_multi_source_search completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 4,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_sources_4",
+          "artifact_id": null,
+          "action": "search_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_sources_4",
+        "artifact_id": null,
+        "action": "search_sources",
+        "status": "partial",
+        "message": "Dynamic workflow tool search_sources completed with 2 failed connector request(s).",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 2
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 5,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 5,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_5",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_5",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 6,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 6,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_6",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_6",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 7,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 7,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_7",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_7",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 20,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 8,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 8,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_8",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_8",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 9,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 9,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_9",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_9",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 10,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 10,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_10",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_10",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 11,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 11,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_11",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_11",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 12,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 12,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_12",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_12",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 13,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 13,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_13",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_13",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 14,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 14,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_14",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_14",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 15,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 15,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_15",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_15",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 16,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 16,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_more_16",
+          "artifact_id": null,
+          "action": "search_more",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {
+            "field_group_id": "light_curve_metrics",
+            "target_fields": [
+              "supernova_name",
+              "redshift",
+              "peak_magnitude",
+              "filter_band",
+              "decay_rate",
+              "observation_telescope",
+              "host_galaxy_type"
+            ],
+            "query_focus": "Field group light_curve_metrics: supernova_name, redshift, peak_magnitude, filter_band, decay_rate, observation_telescope, host_galaxy_type"
+          }
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_more"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_more_16",
+        "artifact_id": null,
+        "action": "search_more",
+        "status": "partial",
+        "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+        "output_counts": {
+          "search_requests": 17,
+          "new_sources": 358,
+          "failed_requests": 5,
+          "planning_batches": 3,
+          "failed_planning_batches": 0,
+          "planning_candidates": 100
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 17,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 17,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_17",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_17",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 18,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 18,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_18",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_18",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 19,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 19,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_19",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_19",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 20,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 20,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 20,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_20",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_20",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 21,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 21,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_21",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_21",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 22,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 22,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_22",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_22",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 23,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 23,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_23",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_23",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 24,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 24,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_24",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_24",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 25,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 25,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_25",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_25",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 26,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 26,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_26",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_26",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 27,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 27,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_27",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_27",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 28,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 28,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_more_28",
+          "artifact_id": null,
+          "action": "search_more",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {
+            "field_group_id": "light_curve_metrics",
+            "target_fields": [
+              "supernova_name",
+              "redshift",
+              "peak_magnitude",
+              "filter_band",
+              "decay_rate",
+              "observation_telescope",
+              "host_galaxy_type"
+            ],
+            "query_focus": "Field group light_curve_metrics: supernova_name, redshift, peak_magnitude, filter_band, decay_rate, observation_telescope, host_galaxy_type"
+          }
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_more"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_more_28",
+        "artifact_id": null,
+        "action": "search_more",
+        "status": "partial",
+        "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+        "output_counts": {
+          "search_requests": 17,
+          "new_sources": 100,
+          "failed_requests": 5,
+          "planning_batches": 3,
+          "failed_planning_batches": 0,
+          "planning_candidates": 100
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 29,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 29,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_29",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_29",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 30,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 30,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_30",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_30",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 31,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 31,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_31",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_31",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 20,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 32,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 32,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_32",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_32",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 33,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 33,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_33",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_33",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 34,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 34,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_34",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_34",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 35,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 35,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_35",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_35",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 36,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 36,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_36",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_36",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 37,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 37,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_37",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_37",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 38,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 38,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_38",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_38",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 39,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 39,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_39",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_39",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 40,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 40,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_more_40",
+          "artifact_id": null,
+          "action": "search_more",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {
+            "field_group_id": "cross_survey_comparisons",
+            "target_fields": [
+              "metric_name",
+              "source_1",
+              "value_1",
+              "source_2",
+              "value_2",
+              "discrepancy_reason"
+            ],
+            "query_focus": "Field group cross_survey_comparisons: value_1, value_2, discrepancy_reason"
+          }
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_more"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_more_40",
+        "artifact_id": null,
+        "action": "search_more",
+        "status": "partial",
+        "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+        "output_counts": {
+          "search_requests": 19,
+          "new_sources": 255,
+          "failed_requests": 5,
+          "planning_batches": 3,
+          "failed_planning_batches": 0,
+          "planning_candidates": 100
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 41,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 41,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_41",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_41",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 42,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 42,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_42",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_42",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 43,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 43,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_43",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_43",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 19,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 44,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 44,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_44",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_44",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 45,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 45,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_45",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_45",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 46,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 46,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_46",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_46",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 47,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 47,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_47",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_47",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 48,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 48,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_48",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_48",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 49,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 49,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_49",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_49",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 50,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 50,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_50",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_50",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 51,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 51,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_51",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_51",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 52,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 52,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_more_52",
+          "artifact_id": null,
+          "action": "search_more",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {
+            "field_group_id": "cross_survey_comparisons",
+            "target_fields": [
+              "metric_name",
+              "source_1",
+              "value_1",
+              "source_2",
+              "value_2",
+              "discrepancy_reason"
+            ],
+            "query_focus": "Field group cross_survey_comparisons: value_1, value_2, discrepancy_reason"
+          }
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_more"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_more_52",
+        "artifact_id": null,
+        "action": "search_more",
+        "status": "partial",
+        "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+        "output_counts": {
+          "search_requests": 19,
+          "new_sources": 21,
+          "failed_requests": 5,
+          "planning_batches": 3,
+          "failed_planning_batches": 0,
+          "planning_candidates": 100
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 53,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 53,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_53",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_53",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 54,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 54,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_54",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_54",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 55,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 55,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_55",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_55",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 20,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 56,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 56,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_56",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_56",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 57,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 57,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_57",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_57",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 58,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 58,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_58",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_58",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 59,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 59,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_59",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_59",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 60,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 60,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_60",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_60",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 61,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 61,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_61",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_61",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 62,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 62,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_62",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_62",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 63,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 63,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_63",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_63",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 64,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 64,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_more_64",
+          "artifact_id": null,
+          "action": "search_more",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {
+            "field_group_id": "progenitor_evidence",
+            "target_fields": [
+              "progenitor_model"
+            ],
+            "query_focus": "Field group progenitor_evidence: progenitor_model"
+          }
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_more"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_more_64",
+        "artifact_id": null,
+        "action": "search_more",
+        "status": "partial",
+        "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+        "output_counts": {
+          "search_requests": 19,
+          "new_sources": 159,
+          "failed_requests": 6,
+          "planning_batches": 3,
+          "failed_planning_batches": 0,
+          "planning_candidates": 100
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 65,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 65,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_65",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_65",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 66,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 66,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_66",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_66",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 67,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 67,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_67",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_67",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 20,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 68,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 68,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_68",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_68",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 69,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 69,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_69",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_69",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 70,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 70,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_70",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_70",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 71,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 71,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_71",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_71",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 72,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 72,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_72",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_72",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 73,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 73,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_73",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_73",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 74,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 74,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_74",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_74",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 75,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 75,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_75",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_75",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 76,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 76,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_search_more_76",
+          "artifact_id": null,
+          "action": "search_more",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {
+            "field_group_id": "progenitor_evidence",
+            "target_fields": [
+              "progenitor_model"
+            ],
+            "query_focus": "Field group progenitor_evidence: progenitor_model"
+          }
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: search_more"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_search_more_76",
+        "artifact_id": null,
+        "action": "search_more",
+        "status": "partial",
+        "message": "LLM generated and executed a new multi-source search plan with status=partial.",
+        "output_counts": {
+          "search_requests": 14,
+          "new_sources": 76,
+          "failed_requests": 3,
+          "planning_batches": 3,
+          "failed_planning_batches": 0,
+          "planning_candidates": 100
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 77,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 77,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_select_sources_77",
+          "artifact_id": null,
+          "action": "select_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: select_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_select_sources_77",
+        "artifact_id": null,
+        "action": "select_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool select_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 78,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 78,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_triage_sources_78",
+          "artifact_id": null,
+          "action": "triage_sources",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: triage_sources"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_triage_sources_78",
+        "artifact_id": null,
+        "action": "triage_sources",
+        "status": "completed",
+        "message": "Dynamic workflow tool triage_sources completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 79,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 79,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_ingest_arxiv_pdfs_79",
+          "artifact_id": null,
+          "action": "ingest_arxiv_pdfs",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: ingest_arxiv_pdfs"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_ingest_arxiv_pdfs_79",
+        "artifact_id": null,
+        "action": "ingest_arxiv_pdfs",
+        "status": "completed",
+        "message": "Dynamic workflow tool ingest_arxiv_pdfs completed.",
+        "output_counts": {
+          "files_delta": 20,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 80,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 80,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_parse_source_content_80",
+          "artifact_id": null,
+          "action": "parse_source_content",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: parse_source_content"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_parse_source_content_80",
+        "artifact_id": null,
+        "action": "parse_source_content",
+        "status": "completed",
+        "message": "Dynamic workflow tool parse_source_content completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 81,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 81,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_figures_81",
+          "artifact_id": null,
+          "action": "extract_figures",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_figures"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_figures_81",
+        "artifact_id": null,
+        "action": "extract_figures",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_figures completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 82,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 82,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_interpret_sections_82",
+          "artifact_id": null,
+          "action": "interpret_sections",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: interpret_sections"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_interpret_sections_82",
+        "artifact_id": null,
+        "action": "interpret_sections",
+        "status": "completed",
+        "message": "Dynamic workflow tool interpret_sections completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 83,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 83,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_dynamic_records_83",
+          "artifact_id": null,
+          "action": "extract_dynamic_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_dynamic_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_dynamic_records_83",
+        "artifact_id": null,
+        "action": "extract_dynamic_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_dynamic_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 84,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 84,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_extract_records_84",
+          "artifact_id": null,
+          "action": "extract_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: extract_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_extract_records_84",
+        "artifact_id": null,
+        "action": "extract_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool extract_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 85,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 85,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_normalize_records_85",
+          "artifact_id": null,
+          "action": "normalize_records",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: normalize_records"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_normalize_records_85",
+        "artifact_id": null,
+        "action": "normalize_records",
+        "status": "completed",
+        "message": "Dynamic workflow tool normalize_records completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 86,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 86,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_track_provenance_86",
+          "artifact_id": null,
+          "action": "track_provenance",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: track_provenance"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_track_provenance_86",
+        "artifact_id": null,
+        "action": "track_provenance",
+        "status": "completed",
+        "message": "Dynamic workflow tool track_provenance completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  },
+  {
+    "iteration": 87,
+    "plan": {
+      "research_goal": "研究 Ia 型超新星光变曲线，整合峰值星等、衰减率和来源证据",
+      "iteration": 87,
+      "should_continue": true,
+      "stop_reason": null,
+      "actions": [
+        {
+          "action_id": "runtime_validate_quality_87",
+          "artifact_id": null,
+          "action": "validate_quality",
+          "purpose": "Advance the required source-evidence workflow stage.",
+          "expected_fields": [],
+          "priority": "high",
+          "reason": "The runtime advances source selection, triage, and ingestion in order before accepting further artifact-level actions.",
+          "gap_ids": [],
+          "parameters": {}
+        }
+      ],
+      "artifact_assessments": [],
+      "notes": [
+        "Runtime-directed workflow stage: validate_quality"
+      ]
+    },
+    "results": [
+      {
+        "action_id": "runtime_validate_quality_87",
+        "artifact_id": null,
+        "action": "validate_quality",
+        "status": "completed",
+        "message": "Dynamic workflow tool validate_quality completed.",
+        "output_counts": {
+          "files_delta": 0,
+          "source_catalog_delta": 0,
+          "artifact_delta": 0,
+          "text_blocks_delta": 0,
+          "tables_delta": 0,
+          "chart_extractions_delta": 0,
+          "failed_connector_requests": 0
+        },
+        "warnings": [],
+        "error": null
+      }
+    ]
+  }
+]

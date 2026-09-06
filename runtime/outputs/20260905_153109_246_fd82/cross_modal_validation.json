@@ -1,0 +1,182 @@
+[
+  {
+    "check_id": "cross_modal_0e9a37ecf3",
+    "source_file": "arxiv_2509_07093v3_carnegie_supernova_project_fast_declining_type_ia_supernovae_as_cosmological_dis.pdf",
+    "page": 7,
+    "subject_id": "pdf_table_5c67e477",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 37,
+    "candidate_value_count": 38,
+    "evidence_refs": [
+      "pdf_table_5c67e477"
+    ],
+    "issues": [],
+    "confidence": 0.9894736842105263
+  },
+  {
+    "check_id": "cross_modal_f1531481d6",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 2,
+    "subject_id": "pdf_table_4047ca20",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 2,
+    "candidate_value_count": 13,
+    "evidence_refs": [
+      "pdf_table_4047ca20"
+    ],
+    "issues": [],
+    "confidence": 0.6615384615384615
+  },
+  {
+    "check_id": "cross_modal_6e7dc5bb29",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 4,
+    "subject_id": "pdf_table_6cf9cd8d",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 7,
+    "candidate_value_count": 7,
+    "evidence_refs": [
+      "pdf_table_6cf9cd8d"
+    ],
+    "issues": [],
+    "confidence": 1.0
+  },
+  {
+    "check_id": "cross_modal_c95e45a0e3",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "subject_id": "pdf_table_420049d3",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 9,
+    "candidate_value_count": 9,
+    "evidence_refs": [
+      "pdf_table_420049d3"
+    ],
+    "issues": [],
+    "confidence": 1.0
+  },
+  {
+    "check_id": "cross_modal_12eee791ed",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "subject_id": "pdf_table_237080e2",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 9,
+    "candidate_value_count": 9,
+    "evidence_refs": [
+      "pdf_table_237080e2"
+    ],
+    "issues": [],
+    "confidence": 1.0
+  },
+  {
+    "check_id": "cross_modal_a7af5e0135",
+    "source_file": "arxiv_2401_06087v1_probing_the_diversity_of_type_ia_supernova_light_curves_in_the_open_supernova_ca.pdf",
+    "page": 8,
+    "subject_id": "pdf_table_8e336324",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 9,
+    "candidate_value_count": 9,
+    "evidence_refs": [
+      "pdf_table_8e336324"
+    ],
+    "issues": [],
+    "confidence": 1.0
+  },
+  {
+    "check_id": "cross_modal_362f16264a",
+    "source_file": "arxiv_2607_20599v1_semi_analytical_light_curve_model_for_transients_preceding_binary_mergers_i_supe.pdf",
+    "page": 8,
+    "subject_id": "pdf_table_ad1bf540",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 4,
+    "candidate_value_count": 4,
+    "evidence_refs": [
+      "pdf_table_ad1bf540"
+    ],
+    "issues": [],
+    "confidence": 1.0
+  },
+  {
+    "check_id": "cross_modal_363eea2023",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 6,
+    "subject_id": "pdf_table_25d98095",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 29,
+    "candidate_value_count": 41,
+    "evidence_refs": [
+      "pdf_table_25d98095"
+    ],
+    "issues": [],
+    "confidence": 0.8829268292682927
+  },
+  {
+    "check_id": "cross_modal_645e38b32e",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 6,
+    "subject_id": "pdf_table_b2dab2bc",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 36,
+    "candidate_value_count": 45,
+    "evidence_refs": [
+      "pdf_table_b2dab2bc"
+    ],
+    "issues": [],
+    "confidence": 0.9199999999999999
+  },
+  {
+    "check_id": "cross_modal_29342ff485",
+    "source_file": "arxiv_2509_04073v1_ztf_sne_ia_dr2_towards_cosmology_grade_ztf_supernova_light_curves_using_scene_mo.pdf",
+    "page": 6,
+    "subject_id": "pdf_table_a07e2bca",
+    "modalities": [
+      "table",
+      "text"
+    ],
+    "status": "supported",
+    "matched_value_count": 5,
+    "candidate_value_count": 7,
+    "evidence_refs": [
+      "pdf_table_a07e2bca"
+    ],
+    "issues": [],
+    "confidence": 0.8857142857142857
+  }
+]

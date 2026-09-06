@@ -1,0 +1,642 @@
+{
+  "decision": "allow_stop",
+  "coverage_score": 0.6439275059033814,
+  "requirements": [
+    {
+      "name": "supernova_name",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 50,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.4807692307692308
+    },
+    {
+      "name": "redshift",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 3,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.061224489795918366
+    },
+    {
+      "name": "peak_magnitude",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 7,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.14285714285714285
+    },
+    {
+      "name": "filter_band",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 25,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.5102040816326531
+    },
+    {
+      "name": "decay_rate",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 24,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.4489795918367347
+    },
+    {
+      "name": "observation_telescope",
+      "priority": "low",
+      "status": "partial",
+      "evidence_count": 16,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.32653061224489793
+    },
+    {
+      "name": "host_galaxy_type",
+      "priority": "low",
+      "status": "partial",
+      "evidence_count": 1,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.02040816326530612
+    },
+    {
+      "name": "progenitor_model",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 10,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.6666666666666666
+    },
+    {
+      "name": "fit_method",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 101,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 0.9615384615384616
+    },
+    {
+      "name": "fit_parameters",
+      "priority": "low",
+      "status": "covered",
+      "evidence_count": 25,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 0.7741935483870968
+    },
+    {
+      "name": "residual_std_dev",
+      "priority": "low",
+      "status": "partial",
+      "evidence_count": 2,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.06451612903225806
+    },
+    {
+      "name": "chi_squared",
+      "priority": "low",
+      "status": "missing",
+      "evidence_count": 0,
+      "evidence_types": [],
+      "reason": "No sufficient field-level evidence has been extracted.",
+      "coverage_score": 0.0
+    },
+    {
+      "name": "metric_name",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 70,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 1.0
+    },
+    {
+      "name": "source_1",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 8,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 1.0
+    },
+    {
+      "name": "value_1",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 2,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.2222222222222222
+    },
+    {
+      "name": "source_2",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 8,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 1.0
+    },
+    {
+      "name": "value_2",
+      "priority": "high",
+      "status": "partial",
+      "evidence_count": 1,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.1111111111111111
+    },
+    {
+      "name": "discrepancy_reason",
+      "priority": "low",
+      "status": "partial",
+      "evidence_count": 4,
+      "evidence_types": [],
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "coverage_score": 0.4444444444444444
+    },
+    {
+      "name": "paper_title",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 74,
+      "evidence_types": [
+        "paper_full_text"
+      ],
+      "reason": null,
+      "coverage_score": 1.0
+    },
+    {
+      "name": "material",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 74,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 0.9487179487179487
+    },
+    {
+      "name": "method",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 101,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 0.9615384615384616
+    },
+    {
+      "name": "metric_value",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 70,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 1.0
+    },
+    {
+      "name": "unit",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 65,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 0.9091
+    },
+    {
+      "name": "condition",
+      "priority": "high",
+      "status": "covered",
+      "evidence_count": 71,
+      "evidence_types": [],
+      "reason": null,
+      "coverage_score": 0.9102564102564102
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "requirement_supernova_name_74ca32b5",
+      "requirement_name": "supernova_name",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "supernova_name"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 50,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_redshift_2ef0ce79",
+      "requirement_name": "redshift",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "redshift"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 3,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_peak_magnitude_59b5b2f0",
+      "requirement_name": "peak_magnitude",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "peak_magnitude"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 7,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_filter_band_23d27447",
+      "requirement_name": "filter_band",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "filter_band"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 25,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_decay_rate_59f98f00",
+      "requirement_name": "decay_rate",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "decay_rate"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 24,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_observation_telescope_1e577933",
+      "requirement_name": "observation_telescope",
+      "priority": "low",
+      "status": "partial",
+      "missing_fields": [
+        "observation_telescope"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 16,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_host_galaxy_type_0380042b",
+      "requirement_name": "host_galaxy_type",
+      "priority": "low",
+      "status": "partial",
+      "missing_fields": [
+        "host_galaxy_type"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 1,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_progenitor_model_c3ff8f7a",
+      "requirement_name": "progenitor_model",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "progenitor_model"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 10,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_residual_std_dev_309757a3",
+      "requirement_name": "residual_std_dev",
+      "priority": "low",
+      "status": "partial",
+      "missing_fields": [
+        "residual_std_dev"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 2,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_chi_squared_209fd4af",
+      "requirement_name": "chi_squared",
+      "priority": "low",
+      "status": "missing",
+      "missing_fields": [
+        "chi_squared"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 0,
+      "reason": "No sufficient field-level evidence has been extracted.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_value_1_bc679926",
+      "requirement_name": "value_1",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "value_1"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 2,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_value_2_72224b17",
+      "requirement_name": "value_2",
+      "priority": "high",
+      "status": "partial",
+      "missing_fields": [
+        "value_2"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 1,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "requirement_discrepancy_reason_fa6a6841",
+      "requirement_name": "discrepancy_reason",
+      "priority": "low",
+      "status": "partial",
+      "missing_fields": [
+        "discrepancy_reason"
+      ],
+      "missing_evidence_types": [],
+      "evidence_count": 4,
+      "reason": "Some field-level evidence exists, but it is not sufficiently covered.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "evidence_supplementary_material_8aa0671c",
+      "requirement_name": "Required evidence: supplementary_material",
+      "priority": "high",
+      "status": "missing",
+      "missing_fields": [],
+      "missing_evidence_types": [
+        "supplementary_material"
+      ],
+      "evidence_count": 0,
+      "reason": "No parsed evidence of type 'supplementary_material' is available.",
+      "recommended_actions": [
+        "download_artifact",
+        "parse_pdf_sections"
+      ]
+    },
+    {
+      "gap_id": "evidence_dataset_76f747de",
+      "requirement_name": "Required evidence: dataset",
+      "priority": "high",
+      "status": "unavailable",
+      "missing_fields": [],
+      "missing_evidence_types": [
+        "dataset"
+      ],
+      "evidence_count": 0,
+      "reason": "No parsed evidence of type 'dataset' is available.",
+      "recommended_actions": [
+        "download_artifact",
+        "read_file_manifest",
+        "parse_csv"
+      ]
+    }
+  ],
+  "missing_requirements": [
+    "supernova_name",
+    "redshift",
+    "peak_magnitude",
+    "filter_band",
+    "decay_rate",
+    "progenitor_model",
+    "value_1",
+    "value_2"
+  ],
+  "required_evidence_types": [
+    "paper_full_text",
+    "table",
+    "supplementary_material",
+    "dataset",
+    "figure"
+  ],
+  "covered_evidence_types": [
+    "paper_full_text",
+    "table",
+    "figure"
+  ],
+  "unprocessed_relevant_artifacts": [],
+  "field_groups": [
+    {
+      "group_id": "light_curve_metrics",
+      "label": "light_curve_metrics",
+      "fields": [
+        "supernova_name",
+        "redshift",
+        "peak_magnitude",
+        "filter_band",
+        "decay_rate",
+        "observation_telescope",
+        "host_galaxy_type"
+      ],
+      "required_fields": [
+        "supernova_name",
+        "redshift",
+        "peak_magnitude",
+        "filter_band",
+        "decay_rate"
+      ],
+      "missing_fields": [
+        "supernova_name",
+        "redshift",
+        "peak_magnitude",
+        "filter_band",
+        "decay_rate",
+        "observation_telescope",
+        "host_galaxy_type"
+      ],
+      "coverage_score": 0.31053190506972017,
+      "evidence_count": 126,
+      "source_count": 12,
+      "initial_search_completed": true,
+      "search_more_count": 2,
+      "search_more_limit": 2,
+      "status": "exhausted"
+    },
+    {
+      "group_id": "progenitor_evidence",
+      "label": "progenitor_evidence",
+      "fields": [
+        "progenitor_model"
+      ],
+      "required_fields": [
+        "progenitor_model"
+      ],
+      "missing_fields": [
+        "progenitor_model"
+      ],
+      "coverage_score": 0.6666666666666666,
+      "evidence_count": 10,
+      "source_count": 6,
+      "initial_search_completed": true,
+      "search_more_count": 2,
+      "search_more_limit": 2,
+      "status": "exhausted"
+    },
+    {
+      "group_id": "light_curve_fits",
+      "label": "light_curve_fits",
+      "fields": [
+        "fit_method",
+        "fit_parameters",
+        "residual_std_dev",
+        "chi_squared"
+      ],
+      "required_fields": [
+        "fit_method"
+      ],
+      "missing_fields": [
+        "residual_std_dev",
+        "chi_squared"
+      ],
+      "coverage_score": 0.6205541770057899,
+      "evidence_count": 128,
+      "source_count": 11,
+      "initial_search_completed": true,
+      "search_more_count": 0,
+      "search_more_limit": 2,
+      "status": "sufficient"
+    },
+    {
+      "group_id": "cross_survey_comparisons",
+      "label": "cross_survey_comparisons",
+      "fields": [
+        "metric_name",
+        "source_1",
+        "value_1",
+        "source_2",
+        "value_2",
+        "discrepancy_reason"
+      ],
+      "required_fields": [
+        "metric_name",
+        "source_1",
+        "value_1",
+        "source_2",
+        "value_2"
+      ],
+      "missing_fields": [
+        "value_1",
+        "value_2",
+        "discrepancy_reason"
+      ],
+      "coverage_score": 0.6527777777777779,
+      "evidence_count": 93,
+      "source_count": 3,
+      "initial_search_completed": true,
+      "search_more_count": 2,
+      "search_more_limit": 2,
+      "status": "exhausted"
+    },
+    {
+      "group_id": "other_required_fields",
+      "label": "other_required_fields",
+      "fields": [
+        "paper_title",
+        "material",
+        "method",
+        "metric_value",
+        "unit",
+        "condition"
+      ],
+      "required_fields": [
+        "paper_title",
+        "material",
+        "method",
+        "metric_value",
+        "unit",
+        "condition"
+      ],
+      "missing_fields": [],
+      "coverage_score": 0.95493547008547,
+      "evidence_count": 455,
+      "source_count": 16,
+      "initial_search_completed": true,
+      "search_more_count": 0,
+      "search_more_limit": 2,
+      "status": "sufficient"
+    }
+  ],
+  "reasons": [
+    "Required fields are missing or partial: supernova_name, redshift, peak_magnitude, filter_band, decay_rate, progenitor_model, value_1, value_2.",
+    "Required evidence types are not covered: supplementary_material, dataset."
+  ],
+  "recommended_actions": [
+    "download_artifact",
+    "parse_pdf_sections",
+    "parse_table",
+    "parse_figure",
+    "search_more"
+  ]
+}

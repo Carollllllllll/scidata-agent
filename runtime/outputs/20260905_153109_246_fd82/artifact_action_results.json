@@ -1,0 +1,20 @@
+[
+  {
+    "action_id": "runtime_validate_quality_87",
+    "artifact_id": null,
+    "action": "validate_quality",
+    "status": "completed",
+    "message": "Dynamic workflow tool validate_quality completed.",
+    "output_counts": {
+      "files_delta": 0,
+      "source_catalog_delta": 0,
+      "artifact_delta": 0,
+      "text_blocks_delta": 0,
+      "tables_delta": 0,
+      "chart_extractions_delta": 0,
+      "failed_connector_requests": 0
+    },
+    "warnings": [],
+    "error": null
+  }
+]
