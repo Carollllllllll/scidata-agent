@@ -41,7 +41,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <img className="brand-mark" src="/scidata-mark.svg" alt="" />
           <span>
             <strong>SciData</strong>
-            <small>Agent Workbench</small>
+            <small>科研智能体工作台</small>
           </span>
         </NavLink>
 

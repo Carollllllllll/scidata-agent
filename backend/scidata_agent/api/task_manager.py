@@ -23,6 +23,12 @@ TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 # state and should not be presented as a finished research result.
 _PRIVATE_OUTPUT_FILES = frozenset({"agent_checkpoint.json", "agent_monitor.jsonl"})
 
+# The export page is for tabular, structured and readable research deliverables.
+# Images remain accessible from the 图像 / 图表 panel and scoped asset URLs, but
+# listing every extracted PNG alongside data files makes the export page noisy
+# and difficult to use.
+_EXPORTABLE_RESULT_SUFFIXES = frozenset({".csv", ".json", ".md"})
+
 
 class TaskQueueFullError(RuntimeError):
     pass
@@ -54,6 +60,7 @@ class TaskManager:
         "paper_survey": "paper_survey.json",
         "dynamic_schema": "dynamic_schema.json",
         "dynamic_records": "dynamic_records.json",
+        "dynamic_records_csv": "dynamic_records.csv",
         "dynamic_records_clean": "dynamic_records_clean.json",
         "dynamic_records_raw": "dynamic_records_raw.json",
         "needs_review": "needs_review.json",
@@ -442,9 +449,10 @@ class TaskManager:
         """Return every finished, user-facing artifact in a task output tree.
 
         The original allowlist remains the stable public API for the core
-        deliverables.  Schema-driven table CSVs, chart data, extracted figures,
-        and auxiliary CSV/JSON reports are generated dynamically, though, so a
-        fixed list silently hid them from the Export panel.
+        deliverables. Schema-driven table CSVs, chart data, and auxiliary
+        CSV/JSON/Markdown reports are generated dynamically, though, so a
+        fixed list silently hid them from the Export panel. Extracted figures
+        are intentionally excluded: they belong in the image/chart viewer.
         """
 
         task_dir = self._task_output_dir(task_id)
@@ -466,7 +474,11 @@ class TaskManager:
                 relative = path.relative_to(task_dir)
             except ValueError:
                 continue
-            if path.resolve() in exported_paths or relative.name in _PRIVATE_OUTPUT_FILES:
+            if (
+                path.resolve() in exported_paths
+                or relative.name in _PRIVATE_OUTPUT_FILES
+                or path.suffix.lower() not in _EXPORTABLE_RESULT_SUFFIXES
+            ):
                 continue
             key_parts = [re.sub(r"[^a-zA-Z0-9]+", "_", part).strip("_").lower() for part in relative.parts]
             key_base = "artifact__" + "__".join(part for part in key_parts if part)

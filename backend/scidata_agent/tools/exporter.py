@@ -90,6 +90,7 @@ def export_results(
     paper_survey_json_path = task_dir / "paper_survey.json"
     dynamic_schema_path = task_dir / "dynamic_schema.json"
     dynamic_records_path = task_dir / "dynamic_records.json"
+    dynamic_records_csv_path = task_dir / "dynamic_records.csv"
     clean_dynamic_records_path = task_dir / "dynamic_records_clean.json"
     raw_dynamic_records_path = task_dir / "dynamic_records_raw.json"
     needs_review_csv_path = task_dir / "needs_review.csv"
@@ -285,6 +286,7 @@ def export_results(
     dynamic_schema_payload = state.dynamic_extraction_plan.model_dump(mode="json") if state.dynamic_extraction_plan else None
     dynamic_schema_path.write_text(json.dumps(dynamic_schema_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     dynamic_records_path.write_text(json.dumps(clean_dynamic_record_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
+    export_dynamic_records_csv(clean_dynamic_records, dynamic_records_csv_path)
     clean_dynamic_records_path.write_text(json.dumps(clean_dynamic_record_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
     raw_dynamic_records_path.write_text(json.dumps(raw_dynamic_record_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
     needs_review_json_path.write_text(json.dumps(needs_review_dicts, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -372,6 +374,7 @@ def export_results(
         paper_survey_json=str(paper_survey_json_path),
         dynamic_schema=str(dynamic_schema_path),
         dynamic_records=str(dynamic_records_path),
+        dynamic_records_csv=str(dynamic_records_csv_path),
         clean_dynamic_records=str(clean_dynamic_records_path),
         needs_review=str(needs_review_csv_path),
         review_queue_json=str(review_queue_json_path),
@@ -700,6 +703,27 @@ def _dynamic_table_columns(state: AgentState, table_name: str) -> list[str]:
 
 def _dynamic_records_to_rows(records: list[DynamicRecord]) -> list[dict]:
     return [_dynamic_record_to_row(record) for record in records]
+
+
+def export_dynamic_records_csv(records: list[DynamicRecord], output_path: Path) -> None:
+    """Export every cleaned dynamic record as one cross-table CSV file."""
+
+    _write_csv(_dynamic_records_to_rows(records), output_path)
+
+
+def export_dynamic_records_json_as_csv(json_path: Path, csv_path: Path) -> int:
+    """Rebuild the aggregate CSV export from a previously generated JSON file.
+
+    This is intentionally reusable for completed tasks created before the CSV
+    export was introduced.
+    """
+
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError(f"Dynamic-record export must be a JSON list: {json_path}")
+    records = [DynamicRecord.model_validate(item) for item in payload]
+    export_dynamic_records_csv(records, csv_path)
+    return len(records)
 
 
 def _dynamic_record_to_row(record: DynamicRecord) -> dict:

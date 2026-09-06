@@ -180,7 +180,7 @@ def test_reconciliation_preserves_live_owner_and_fails_orphan_only(tmp_path) -> 
         manager.shutdown()
 
 
-def test_download_urls_include_dynamic_result_artifacts(tmp_path, monkeypatch) -> None:
+def test_download_urls_include_dynamic_data_artifacts_but_not_images(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(task_manager_module, "SciDataAgent", _FakeAgent)
     manager = TaskManager(tmp_path / "outputs", tmp_path / "tasks", max_workers=1)
     task_id = "20260819_120000_001_efgh"
@@ -193,6 +193,8 @@ def test_download_urls_include_dynamic_result_artifacts(tmp_path, monkeypatch) -
         tables_dir.mkdir(parents=True)
         figures_dir.mkdir(parents=True)
         (tables_dir / "fabrication_methods.csv").write_text("method\nspin coating\n", encoding="utf-8")
+        (output_dir / "dynamic_records.csv").write_text("record_id,table_name\ndyn_1,results\n", encoding="utf-8")
+        (output_dir / "supplement.json").write_text("{}", encoding="utf-8")
         (figures_dir / "figure_1.png").write_bytes(b"png")
         (output_dir / "agent_checkpoint.json").write_text("{}", encoding="utf-8")
 
@@ -200,7 +202,9 @@ def test_download_urls_include_dynamic_result_artifacts(tmp_path, monkeypatch) -
 
         assert "artifact__tables__fabrication_methods_csv" in urls
         assert urls["artifact__tables__fabrication_methods_csv"].endswith("/assets/output/tables/fabrication_methods.csv")
-        assert "artifact__figures__figure_1_png" in urls
+        assert urls["dynamic_records_csv"].endswith("/export?format=dynamic_records_csv")
+        assert "artifact__supplement_json" in urls
+        assert "artifact__figures__figure_1_png" not in urls
         assert all("checkpoint" not in key for key in urls)
     finally:
         manager.shutdown()

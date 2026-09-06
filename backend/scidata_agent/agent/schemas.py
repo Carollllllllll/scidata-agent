@@ -1013,6 +1013,7 @@ class ExportFiles(BaseModel):
     paper_survey_json: str | None = None
     dynamic_schema: str | None = None
     dynamic_records: str | None = None
+    dynamic_records_csv: str | None = None
     clean_dynamic_records: str | None = None
     needs_review: str | None = None
     review_queue_json: str | None = None

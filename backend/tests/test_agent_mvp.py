@@ -708,6 +708,7 @@ def test_qwen_agent_pipeline_with_mock_client() -> None:
     assert result.export_files.paper_survey_json and Path(result.export_files.paper_survey_json).exists()
     assert result.export_files.dynamic_schema and Path(result.export_files.dynamic_schema).exists()
     assert result.export_files.dynamic_records and Path(result.export_files.dynamic_records).exists()
+    assert result.export_files.dynamic_records_csv and Path(result.export_files.dynamic_records_csv).exists()
     assert result.export_files.clean_dynamic_records and Path(result.export_files.clean_dynamic_records).exists()
     assert result.export_files.needs_review and Path(result.export_files.needs_review).exists()
     assert result.export_files.dynamic_tables_dir and Path(result.export_files.dynamic_tables_dir).exists()
@@ -720,12 +721,14 @@ def test_qwen_agent_pipeline_with_mock_client() -> None:
     dynamic_schema = json.loads(Path(result.export_files.dynamic_schema).read_text(encoding="utf-8"))
     dynamic_records = json.loads(Path(result.export_files.dynamic_records).read_text(encoding="utf-8"))
     clean_dynamic_records = json.loads(Path(result.export_files.clean_dynamic_records).read_text(encoding="utf-8"))
+    dynamic_records_csv = Path(result.export_files.dynamic_records_csv).read_text(encoding="utf-8-sig")
     assert exported_json["summary"]["files_processed"] == 2
     assert exported_json["summary"]["records_after_cleaning"] >= 2
     assert exported_json["summary"]["dynamic_records_extracted"] >= 2
     assert dynamic_schema["dynamic_tables"]
     assert dynamic_records
     assert clean_dynamic_records
+    assert "record_id" in dynamic_records_csv
     assert exported_json["dynamic_records_raw"]
     assert result.quality_report.record_count == result.summary.records_after_cleaning
     assert result.quality_report.evidence_coverage > 0

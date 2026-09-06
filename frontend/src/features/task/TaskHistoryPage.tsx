@@ -26,7 +26,7 @@ export function TaskHistoryPage() {
     <div className="task-history-page">
       <section className="page-heading">
         <div>
-          <div className="heading-kicker"><span /> TASK HISTORY</div>
+          <div className="heading-kicker"><span /> 任务历史</div>
           <h1>历史任务</h1>
           <p>集中查看过往调研任务、执行状态与结果规模，并随时返回任务详情。</p>
         </div>
@@ -35,7 +35,7 @@ export function TaskHistoryPage() {
       <section className="recent-section task-history-section">
         <div className="section-heading-row">
           <div>
-            <span className="eyebrow dark"><Icon name="clock" size={14} /> TASK ARCHIVE</span>
+            <span className="eyebrow dark"><Icon name="clock" size={14} /> 任务档案</span>
             <h2>全部任务{tasks.data ? ` · ${tasks.data.count}` : ""}</h2>
           </div>
           <button

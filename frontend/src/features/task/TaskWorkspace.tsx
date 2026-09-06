@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
   import { ApiError, cancelTask, getTask, getTaskEvents, resumeTask, retryTask } from "../../api/client";
 import { Icon, type IconName } from "../../components/Icon";
 import { QualityBadge, StatusBadge } from "../../components/StatusBadge";
-import { formatDate, overallProgressPercent, stageLabel } from "../../lib/task";
+import { formatDate, overallProgressPercent, stageLabel, uiLabel } from "../../lib/task";
 import type { EvidenceRecord, TaskEvent, TaskResponse } from "../../types/api";
 import {
   ChartsPanel,
@@ -119,7 +119,7 @@ export function TaskWorkspace() {
     { id: "sources", label: "来源", icon: "database", count: sourceCount },
     { id: "data", label: "数据", icon: "table", count: recordCount },
     { id: "charts", label: "图像 / 图表", icon: "chart", count: chartCount },
-    { id: "evidence", label: "Evidence", icon: "link", count: evidenceCount },
+    { id: "evidence", label: "证据链", icon: "link", count: evidenceCount },
     { id: "review", label: "复核", icon: "warning", count: reviewCount },
     { id: "quality", label: "质量", icon: "shield", count: issueCount },
     { id: "exports", label: "导出", icon: "download", count: Object.keys(task.download_urls).length },
@@ -319,46 +319,46 @@ function LiveAgentRuntimePanel({ task }: { task: TaskResponse }) {
   const connectors = sourceStatus?.connectors ?? [];
   const stopReason = runtime?.stop_reason ?? (
     task.status === "running"
-      ? "Agent is still working; no stop reason has been recorded."
-      : task.message ?? "No stop reason recorded."
+      ? "智能体仍在运行，尚未记录停止原因。"
+      : task.message ?? "尚未记录停止原因。"
   );
 
   return (
     <section className="live-runtime-panel panel-card" aria-live="polite">
       <div className="live-runtime-heading">
-        <div><span className="eyebrow dark">LIVE AGENT RUNTIME</span><h2>Current decision state</h2></div>
+        <div><span className="eyebrow dark">智能体实时运行状态</span><h2>当前决策状态</h2></div>
         <QualityBadge tone={runtime?.status === "completed" ? "success" : runtime?.status === "partial" ? "warning" : "info"}>
-          {runtime?.status || task.status}
+          {uiLabel(runtime?.status || task.status)}
         </QualityBadge>
       </div>
       <div className="live-runtime-stats">
-        <span><small>Iteration</small><strong>{runtime?.iteration ?? 0}{runtime?.iteration_budget ? ` / ${runtime.iteration_budget}` : ""}</strong></span>
-        <span><small>Decisions</small><strong>{runtime?.decision_count ?? decisions.length}</strong></span>
-        <span><small>Tools</small><strong>{runtime?.tool_result_count ?? recentResults.length}</strong></span>
-        <span><small>Coverage</small><strong>{coverage?.coverage_score !== undefined ? `${Math.round(coverage.coverage_score * 100)}%` : "-"}</strong></span>
-        <span><small>Sources</small><strong>{sourceStatus?.catalog_count ?? resultCatalog.length}</strong></span>
+        <span><small>迭代次数</small><strong>{runtime?.iteration ?? 0}{runtime?.iteration_budget ? ` / ${runtime.iteration_budget}` : ""}</strong></span>
+        <span><small>决策次数</small><strong>{runtime?.decision_count ?? decisions.length}</strong></span>
+        <span><small>工具调用</small><strong>{runtime?.tool_result_count ?? recentResults.length}</strong></span>
+        <span><small>覆盖率</small><strong>{coverage?.coverage_score !== undefined ? `${Math.round(coverage.coverage_score * 100)}%` : "-"}</strong></span>
+        <span><small>来源数量</small><strong>{sourceStatus?.catalog_count ?? resultCatalog.length}</strong></span>
       </div>
       <div className="live-runtime-columns">
         <div className="live-runtime-decision">
-          <small>Latest model decision</small>
-          <strong>{latestDecision?.decision || (task.status === "running" ? "Waiting for the next decision" : "No decision recorded")}</strong>
+          <small>最新模型决策</small>
+          <strong>{latestDecision?.decision ? uiLabel(latestDecision.decision) : task.status === "running" ? "等待下一次决策" : "尚未记录决策"}</strong>
           {latestDecision?.reason && <p>{latestDecision.reason}</p>}
           {calls.length > 0 && <div className="live-runtime-tools">{calls.slice(0, 8).map((call) => <span key={call.call_id}><Icon name="play" size={12} />{call.tool_name}</span>)}</div>}
         </div>
         <div className="live-runtime-sources">
-          <small>Source status</small>
+          <small>来源状态</small>
           <div className="live-runtime-status-list">
-            {Object.entries(sourceStatus?.source_status_counts ?? {}).slice(0, 5).map(([name, count]) => <span key={name}>{name}<strong>{count}</strong></span>)}
-            {connectors.slice(-4).map((connector, index) => <span key={`${connector.connector || connector.connector_name || "connector"}-${index}`}><em>{connector.connector || connector.connector_name || "connector"}</em><strong>{connector.status || "unknown"}</strong></span>)}
+            {Object.entries(sourceStatus?.source_status_counts ?? {}).slice(0, 5).map(([name, count]) => <span key={name}>{uiLabel(name)}<strong>{count}</strong></span>)}
+            {connectors.slice(-4).map((connector, index) => <span key={`${connector.connector || connector.connector_name || "connector"}-${index}`}><em>{connector.connector || connector.connector_name || "连接器"}</em><strong>{uiLabel(connector.status || "unknown")}</strong></span>)}
           </div>
         </div>
       </div>
-      {runtime?.latest_event?.event_type && <div className="live-runtime-latest"><small>Latest runtime event</small><span><strong>{runtime.latest_event.event_type.replaceAll("_", " ")}</strong>{runtime.latest_event.tool_name ? ` / ${runtime.latest_event.tool_name}` : ""}{runtime.latest_event.status ? ` / ${runtime.latest_event.status}` : ""}</span></div>}
-      {recentResults.length > 0 && <div className="live-runtime-results"><small>Recent tool results</small><div>{recentResults.slice(-5).map((result) => <span key={`${result.call_id}-${result.tool_name}`} className={`live-tool-result live-tool-${result.status}`}><strong>{result.tool_name}</strong><em>{result.status}</em>{(result.evidence_refs?.length ?? 0) > 0 && <i>{result.evidence_refs?.length} evidence</i>}</span>)}</div></div>}
-      {(coverage?.missing_requirements?.length ?? 0) > 0 && <div className="live-runtime-gap"><Icon name="warning" size={14} /><span>Open requirements: {coverage?.missing_requirements?.slice(0, 4).join(", ")}</span></div>}
-      {stopReason && <div className="live-runtime-stop"><small>Stop reason</small><span>{stopReason}</span></div>}
-      {runtime?.phase && <div className="live-runtime-latest"><small>Runtime phase</small><span>{runtime.phase.replaceAll("_", " ")}{runtime.no_progress_streak !== undefined && runtime.no_progress_limit !== undefined ? `; no progress ${runtime.no_progress_streak}/${runtime.no_progress_limit}` : ""}</span></div>}
-      {(runtime?.stop_rejections?.length ?? 0) > 0 && <div className="live-runtime-gap"><Icon name="warning" size={14} /><span>Policy / stop-gate rejections: {runtime?.stop_rejections?.slice(-2).join("; ")}</span></div>}
+      {runtime?.latest_event?.event_type && <div className="live-runtime-latest"><small>最新运行事件</small><span><strong>{stageLabel(runtime.latest_event.event_type)}</strong>{runtime.latest_event.tool_name ? ` / ${runtime.latest_event.tool_name}` : ""}{runtime.latest_event.status ? ` / ${uiLabel(runtime.latest_event.status)}` : ""}</span></div>}
+      {recentResults.length > 0 && <div className="live-runtime-results"><small>最近工具结果</small><div>{recentResults.slice(-5).map((result) => <span key={`${result.call_id}-${result.tool_name}`} className={`live-tool-result live-tool-${result.status}`}><strong>{result.tool_name}</strong><em>{uiLabel(result.status)}</em>{(result.evidence_refs?.length ?? 0) > 0 && <i>{result.evidence_refs?.length} 条证据</i>}</span>)}</div></div>}
+      {(coverage?.missing_requirements?.length ?? 0) > 0 && <div className="live-runtime-gap"><Icon name="warning" size={14} /><span>待满足要求：{coverage?.missing_requirements?.slice(0, 4).map(uiLabel).join("、")}</span></div>}
+      {stopReason && <div className="live-runtime-stop"><small>停止原因</small><span>{stopReason}</span></div>}
+      {runtime?.phase && <div className="live-runtime-latest"><small>运行阶段</small><span>{stageLabel(runtime.phase)}{runtime.no_progress_streak !== undefined && runtime.no_progress_limit !== undefined ? `；连续无进展 ${runtime.no_progress_streak}/${runtime.no_progress_limit}` : ""}</span></div>}
+      {(runtime?.stop_rejections?.length ?? 0) > 0 && <div className="live-runtime-gap"><Icon name="warning" size={14} /><span>策略/停止门槛拒绝：{runtime?.stop_rejections?.slice(-2).join("；")}</span></div>}
     </section>
   );
 }
@@ -375,7 +375,7 @@ function EventsPanel({ taskId, status }: { taskId: string; status: TaskResponse[
 
   return (
     <div className="panel-card events-panel">
-      <div className="panel-heading"><div><span className="eyebrow dark">AUDIT TRAIL</span><h2>运行记录</h2><p>只读取最近 80 条事件，避免反复传输完整日志。</p></div><button className="icon-button" onClick={() => events.refetch()}><Icon name="refresh" size={16} /></button></div>
+      <div className="panel-heading"><div><span className="eyebrow dark">运行审计轨迹</span><h2>运行记录</h2><p>只读取最近 80 条事件，避免反复传输完整日志。</p></div><button className="icon-button" onClick={() => events.refetch()}><Icon name="refresh" size={16} /></button></div>
       {events.isLoading && <div className="inline-loading"><span className="spinner dark" /> 正在读取事件…</div>}
       {events.isError && <EmptyResult icon="warning" title="运行记录加载失败" text="任务结果仍可继续浏览，请稍后重试。" />}
       {events.data?.events.length === 0 && <EmptyResult icon="clock" title="还没有运行事件" text="任务进入执行阶段后，节点状态会出现在这里。" />}

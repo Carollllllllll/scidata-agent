@@ -108,7 +108,7 @@ describe("result panels", () => {
       <QualityPanel task={task} onSelectRecord={() => undefined} />,
     );
 
-    expect(html).toContain("COVERAGE AUDIT");
+    expect(html).toContain("覆盖审核");
     expect(html).toContain("model architecture");
     expect(html).toContain("未处理高相关资料");
   });
@@ -137,8 +137,8 @@ describe("result panels", () => {
     );
 
     expect(html).toContain("3.6/4");
-    expect(html).toContain("method");
-    expect(html).toContain("experimental_result");
+    expect(html).toContain("方法");
+    expect(html).toContain("实验结果");
     expect(html).toContain("Contains the requested architecture and benchmark results.");
   });
 
@@ -155,7 +155,7 @@ describe("result panels", () => {
 
     const html = renderToStaticMarkup(<AgentRuntimePanel result={result} />);
 
-    expect(html).toContain("AGENT RUNTIME");
+    expect(html).toContain("智能体运行状态");
     expect(html).toContain("safety budget exhausted");
     expect(html).toContain("tool failed");
     expect(html).toContain("parse_table");
